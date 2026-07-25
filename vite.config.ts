@@ -9,7 +9,10 @@ export default defineConfig({
   base: './',
   plugins: [react()],
   build: {
-    outDir: 'dist',
+    // GitHub Pages can publish the `/docs` directory directly from `main`.
+    // Keeping the generated site here lets the source and published site share
+    // one branch without needing a deployment action or a second branch.
+    outDir: 'docs',
     target: 'es2020',
   },
   test: {
