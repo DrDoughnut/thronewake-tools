@@ -1,0 +1,327 @@
+{
+  "early-off": [
+    {
+      "set": [
+        "embermark_dominion/iron_spear"
+      ],
+      "value": 0.11666666666666667
+    },
+    {
+      "set": [
+        "stormfang_clans/war_brute"
+      ],
+      "value": 0.12244897959183673
+    },
+    {
+      "set": [
+        "verdant_wardens/woodblade"
+      ],
+      "value": 0.12149532710280374
+    },
+    {
+      "set": [
+        "embermark_dominion/emberblade"
+      ],
+      "value": 0.1
+    },
+    {
+      "set": [
+        "stormfang_clans/raider"
+      ],
+      "value": 0.16
+    }
+  ],
+  "early-def": [
+    {
+      "set": [
+        "embermark_dominion/emberblade"
+      ],
+      "value": 0.2125
+    },
+    {
+      "set": [
+        "embermark_dominion/shieldbearer"
+      ],
+      "value": 0.21739130434782608
+    },
+    {
+      "set": [
+        "stormfang_clans/axeborn"
+      ],
+      "value": 0.27941176470588236
+    },
+    {
+      "set": [
+        "verdant_wardens/briar_guard"
+      ],
+      "value": 0.2857142857142857
+    },
+    {
+      "set": [
+        "verdant_wardens/green_lancer"
+      ],
+      "value": 0.1559633027522936
+    }
+  ],
+  "early-farm": [
+    {
+      "set": [
+        "embermark_dominion/emberblade"
+      ],
+      "value": 0.125
+    },
+    {
+      "set": [
+        "stormfang_clans/raider"
+      ],
+      "value": 0.24
+    },
+    {
+      "set": [
+        "verdant_wardens/briar_guard"
+      ],
+      "value": 0.1111111111111111
+    },
+    {
+      "set": [
+        "stormfang_clans/fang_rider"
+      ],
+      "value": 0.10945273631840796
+    },
+    {
+      "set": [
+        "embermark_dominion/sun_rider"
+      ],
+      "value": 0.07092198581560284
+    }
+  ],
+  "late-off": [
+    {
+      "set": [
+        "embermark_dominion/crimson_lancer"
+      ],
+      "value": 58.153349228272226
+    },
+    {
+      "set": [
+        "stormfang_clans/blood_charger"
+      ],
+      "value": 63.90191381849909
+    },
+    {
+      "set": [
+        "verdant_wardens/oak_cavalier"
+      ],
+      "value": 60.069537425014516
+    },
+    {
+      "set": [
+        "verdant_wardens/stag_rider"
+      ],
+      "value": 63.9019138184991
+    },
+    {
+      "set": [
+        "embermark_dominion/iron_spear"
+      ],
+      "value": 86.89617217940659
+    }
+  ],
+  "late-def": [
+    {
+      "set": [
+        "embermark_dominion/shieldbearer"
+      ],
+      "value": 127.80382763699821
+    },
+    {
+      "set": [
+        "stormfang_clans/axeborn"
+      ],
+      "value": 122.05526304677133
+    },
+    {
+      "set": [
+        "verdant_wardens/briar_guard"
+      ],
+      "value": 116.30669845654444
+    },
+    {
+      "set": [
+        "stormfang_clans/fang_rider"
+      ],
+      "value": 93.31244009563694
+    },
+    {
+      "set": [
+        "verdant_wardens/green_lancer"
+      ],
+      "value": 110.55813386631758
+    }
+  ],
+  "late-farm": [
+    {
+      "set": [
+        "embermark_dominion/emberblade"
+      ],
+      "value": 300
+    },
+    {
+      "set": [
+        "stormfang_clans/raider"
+      ],
+      "value": 420
+    },
+    {
+      "set": [
+        "verdant_wardens/briar_guard"
+      ],
+      "value": 245
+    },
+    {
+      "set": [
+        "stormfang_clans/fang_rider"
+      ],
+      "value": 550
+    },
+    {
+      "set": [
+        "embermark_dominion/sun_rider"
+      ],
+      "value": 466.6666666666667
+    }
+  ],
+  "off-per-time": [
+    {
+      "set": [
+        "embermark_dominion/iron_spear"
+      ],
+      "value": 1086.304205807589
+    },
+    {
+      "set": [
+        "stormfang_clans/war_brute"
+      ],
+      "value": 1498.468575550861
+    },
+    {
+      "set": [
+        "embermark_dominion/crimson_lancer"
+      ],
+      "value": 1556.636540141898
+    },
+    {
+      "set": [
+        "verdant_wardens/oak_cavalier"
+      ],
+      "value": 1363.069376384832
+    }
+  ],
+  "mixed-pairs": [
+    {
+      "set": [
+        "embermark_dominion/iron_spear",
+        "embermark_dominion/sun_rider"
+      ],
+      "value": 2790.0076088425017
+    },
+    {
+      "set": [
+        "stormfang_clans/raider",
+        "stormfang_clans/blood_charger"
+      ],
+      "value": 3666.555411878226
+    },
+    {
+      "set": [
+        "verdant_wardens/woodblade",
+        "verdant_wardens/oak_cavalier"
+      ],
+      "value": 3036.166544644905
+    }
+  ],
+  "all-divisors": [
+    {
+      "set": [
+        "embermark_dominion/emberblade"
+      ],
+      "value": 46.92224763089528
+    },
+    {
+      "set": [
+        "stormfang_clans/axeborn"
+      ],
+      "value": 76.90965820300553
+    },
+    {
+      "set": [
+        "verdant_wardens/green_lancer"
+      ],
+      "value": 20.89527612041786
+    },
+    {
+      "set": [
+        "stormfang_clans/raider"
+      ],
+      "value": 139.96290449642984
+    },
+    {
+      "set": [
+        "embermark_dominion/crimson_lancer"
+      ],
+      "value": 4.18239508633671
+    }
+  ],
+  "recon": [
+    {
+      "set": [
+        "embermark_dominion/sentinel"
+      ],
+      "value": 39.98803311339173
+    },
+    {
+      "set": [
+        "stormfang_clans/pathstalker"
+      ],
+      "value": 70.52140393273294
+    },
+    {
+      "set": [
+        "verdant_wardens/wind_scout"
+      ],
+      "value": 39.98803311339173
+    },
+    {
+      "set": [
+        "ancients/shardwing"
+      ],
+      "value": 70.52140393273294
+    }
+  ],
+  "ancients-no-cost": [
+    {
+      "set": [
+        "ancients/monolith_warden"
+      ],
+      "value": 299.36298193960255
+    },
+    {
+      "set": [
+        "ancients/obsidian_knight"
+      ],
+      "value": 152.5760425810093
+    },
+    {
+      "set": [
+        "ancients/gatebreaker"
+      ],
+      "value": 152.5760425810093
+    },
+    {
+      "set": [
+        "ancients/slate_rider"
+      ],
+      "value": 166.1674258549531
+    }
+  ]
+}
