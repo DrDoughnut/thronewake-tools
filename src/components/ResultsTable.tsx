@@ -46,15 +46,12 @@ export function ResultsTable({ ranking, heading }: Props) {
                   <div className="unit-cell">
                     <div className="unit-cell__icons">
                       {row.set.map((ref) => (
-                        <UnitIcon key={ref} unitRef={ref} />
+                        <UnitIcon key={ref} unitRef={ref} size={30} />
                       ))}
                     </div>
                     <div className="unit-cell__text">
                       <span className="unit-cell__names">
                         {entries.map((e) => e.unit.name).join(' + ')}
-                      </span>
-                      <span className="unit-cell__faction">
-                        {[...new Set(entries.map((e) => e.faction.name))].join(' / ')}
                       </span>
                     </div>
                   </div>

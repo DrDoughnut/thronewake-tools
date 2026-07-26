@@ -279,4 +279,13 @@ export function lookup(ref: UnitRef) {
   return found;
 }
 
+export function factionByKey(key: string): Faction {
+  const found = factions.find((f) => f.key === key);
+  if (!found) throw new Error(`Unknown faction: ${key}`);
+  return found;
+}
+
+/** Factions a player can actually pick. */
+export const playableFactions = factions.filter((f) => !f.wild);
+
 export const allUnitRefs = [...index.keys()];

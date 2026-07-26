@@ -1,3 +1,5 @@
+import { NORMAL_MAX_LEVEL, trainingBuildings } from './buildings';
+
 /**
  * Tunable game rules — every constant the engine uses lives here.
  *
@@ -19,22 +21,12 @@ export const rules = {
     name: 'Smithy',
     icon: 'anvil',
     maxLevel: 20,
+    /** Research can raise this building three levels above its normal cap. */
+    researchMaxLevel: 23,
     /** Per-level growth of the scaling term. */
     growth: 1.007,
     /** Weight of upkeep inside the scaling term. */
     upkeepWeight: 300 / 7,
-  },
-
-  /**
-   * Training-building speedup assumed when reporting build times.
-   *
-   * A fully levelled training building cuts training time by 10% per level
-   * above the first, so a level-20 building trains at 0.9^19 of the base
-   * rate. Times shown by the calculator are therefore "best case".
-   */
-  training: {
-    speedupPerLevel: 0.9,
-    assumedLevel: 20,
   },
 
   /**
@@ -87,6 +79,11 @@ export type FactionBuildingKey = keyof typeof factionBuildings;
 
 export const factionBuildingList = Object.values(factionBuildings);
 
-/** `0.9 ^ 19` — the training-time multiplier from a maxed training building. */
+/**
+ * Training-time multiplier assumed by the unit-attributes calculator: a
+ * level-20 training building, the highest reachable without deliberately
+ * pushing past the normal cap. Read from the game's published table rather
+ * than computed, so both tools agree to the digit.
+ */
 export const trainingSpeedup =
-  rules.training.speedupPerLevel ** (rules.training.assumedLevel - 1);
+  trainingBuildings.barracks.speed[NORMAL_MAX_LEVEL];

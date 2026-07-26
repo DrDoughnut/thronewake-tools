@@ -66,7 +66,27 @@ export function effectiveUpkeep(
 }
 
 /**
- * Training time in seconds, assuming a maxed training building and, for
+ * Seconds to train one unit.
+ *
+ * `buildingSpeed` is the training-time multiplier for the queue's building
+ * at its current level; `speedBonus` is a fractional bonus from anything
+ * else (0.25 meaning +25% faster). Stabled units also pick up their
+ * faction's cavalry-building discount.
+ */
+export function trainingSeconds(
+  faction: Faction,
+  unit: Unit,
+  buildingSpeed: number,
+  mods: Modifiers,
+  speedBonus = 0,
+): number {
+  const level = unit.stabled ? levelFor(faction, 'ridersWells', mods) : 0;
+  const discount = 1 - factionBuildings.ridersWells.trainingSpeedPerLevel * level;
+  return (unit.time * buildingSpeed * discount) / (1 + speedBonus);
+}
+
+/**
+ * Training time in seconds, assuming a level-20 training building and, for
  * stabled units, the faction's cavalry-building discount.
  */
 export function effectiveTime(
@@ -74,9 +94,7 @@ export function effectiveTime(
   unit: Unit,
   mods: Modifiers,
 ): number {
-  const level = unit.stabled ? levelFor(faction, 'ridersWells', mods) : 0;
-  const discount = 1 - factionBuildings.ridersWells.trainingSpeedPerLevel * level;
-  return Math.round(unit.time * trainingSpeedup * discount);
+  return Math.round(trainingSeconds(faction, unit, trainingSpeedup, mods));
 }
 
 /** Sum of the four resource costs. */

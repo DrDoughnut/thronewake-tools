@@ -210,6 +210,7 @@ export function Controls({ state, patch, formulaError }: Props) {
           hint="Weapon and armour upgrades. Raises attack and both defense values for every faction."
           value={state.smithy}
           max={rules.smithy.maxLevel}
+          researchMax={rules.smithy.researchMaxLevel}
           onChange={(smithy) => patch({ smithy })}
         />
       </section>

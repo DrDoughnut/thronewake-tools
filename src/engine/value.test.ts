@@ -210,6 +210,15 @@ describe('data integrity', () => {
     expect(all.sets).toHaveLength(21);
   });
 
+  it('separates seven offense cores from twelve offense-and-siege compositions', () => {
+    const offense = groupByKey('offense');
+    const offenseSiege = groupByKey('offense-siege');
+    expect(offense.sets).toHaveLength(7);
+    expect(offense.sets.every((set) => set.length === 2)).toBe(true);
+    expect(offenseSiege.sets).toHaveLength(12);
+    expect(offenseSiege.sets.every((set) => set.length === 3)).toBe(true);
+  });
+
   it('gives each faction exactly one scout, leader and settler', () => {
     for (const faction of factions) {
       const count = (role: string) => faction.units.filter((u) => u.role === role).length;

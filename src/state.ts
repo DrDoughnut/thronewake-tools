@@ -98,6 +98,8 @@ const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n
 
 function encode(state: AppState): string {
   const p = new URLSearchParams();
+  // Identifies which tool owns these parameters, so a reload lands back here.
+  p.set('tool', 'units');
   p.set('g', state.group);
   if (state.mode === 'formula') {
     p.set('f', state.expression);
@@ -118,7 +120,8 @@ function encode(state: AppState): string {
 
 function decode(hash: string): AppState {
   const p = new URLSearchParams(hash.replace(/^#/, ''));
-  if ([...p.keys()].length === 0) return initialState;
+  // 'tool' alone means the tool was just opened, with nothing configured yet.
+  if ([...p.keys()].filter((k) => k !== 'tool').length === 0) return initialState;
 
   const group = p.get('g');
   const formula = p.get('f');
@@ -134,7 +137,7 @@ function decode(hash: string): AppState {
     divisors: divisors.filter((d) => ['cu', 't', 'tc'].includes(d)),
     bySpeed: p.get('v') === '1',
     expression: formula ?? initialState.expression,
-    smithy: num('sm', rules.smithy.maxLevel),
+    smithy: num('sm', rules.smithy.researchMaxLevel),
     buildings: Object.fromEntries(
       factionBuildingList.map((b) => [b.key, num(b.key, b.maxLevel)]),
     ) as Record<FactionBuildingKey, number>,

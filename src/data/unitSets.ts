@@ -49,7 +49,7 @@ export const unitSetGroups: UnitSetGroup[] = [
   {
     key: 'offense',
     name: 'Offense compositions',
-    hint: 'Foot-and-cavalry pairings that get sent together.',
+    hint: 'Infantry-and-cavalry cores, without siege support.',
     stats: 'combat',
     sets: [
       [`${EMB}/iron_spear`, `${EMB}/sun_rider`],
@@ -61,6 +61,29 @@ export const unitSetGroups: UnitSetGroup[] = [
 
       [`${VER}/woodblade`, `${VER}/stag_rider`],
       [`${VER}/woodblade`, `${VER}/oak_cavalier`],
+    ],
+  },
+
+  {
+    key: 'offense-siege',
+    name: 'Offense + siege compositions',
+    hint: 'Infantry-and-cavalry cores with either ram or catapult support.',
+    stats: 'combat',
+    sets: [
+      [`${EMB}/iron_spear`, `${EMB}/sun_rider`, `${EMB}/iron_ram`],
+      [`${EMB}/iron_spear`, `${EMB}/sun_rider`, `${EMB}/dominion_catapult`],
+      [`${EMB}/iron_spear`, `${EMB}/crimson_lancer`, `${EMB}/iron_ram`],
+      [`${EMB}/iron_spear`, `${EMB}/crimson_lancer`, `${EMB}/dominion_catapult`],
+
+      [`${STO}/raider`, `${STO}/blood_charger`, `${STO}/war_ram`],
+      [`${STO}/raider`, `${STO}/blood_charger`, `${STO}/skullthrower`],
+      [`${STO}/war_brute`, `${STO}/blood_charger`, `${STO}/war_ram`],
+      [`${STO}/war_brute`, `${STO}/blood_charger`, `${STO}/skullthrower`],
+
+      [`${VER}/woodblade`, `${VER}/stag_rider`, `${VER}/timber_ram`],
+      [`${VER}/woodblade`, `${VER}/stag_rider`, `${VER}/stonecaster`],
+      [`${VER}/woodblade`, `${VER}/oak_cavalier`, `${VER}/timber_ram`],
+      [`${VER}/woodblade`, `${VER}/oak_cavalier`, `${VER}/stonecaster`],
     ],
   },
 

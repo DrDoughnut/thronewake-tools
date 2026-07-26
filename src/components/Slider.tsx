@@ -5,7 +5,10 @@ interface Props {
   label: string;
   hint: string;
   value: number;
+  /** Normal in-game level cap, used by the middle shortcut. */
   max: number;
+  /** Higher cap available once the relevant research is complete. */
+  researchMax?: number;
   onChange: (value: number) => void;
   /** Icon file basename in `src/assets/icons/stats/`. */
   iconKey?: string;
@@ -22,6 +25,7 @@ export function Slider({
   hint,
   value,
   max,
+  researchMax,
   onChange,
   iconKey,
   badge,
@@ -29,6 +33,7 @@ export function Slider({
   badgeTitle,
 }: Props) {
   const icon = iconKey ? statIcon(iconKey) : undefined;
+  const sliderMax = researchMax ?? max;
 
   return (
     <div className="slider">
@@ -54,13 +59,23 @@ export function Slider({
           id={id}
           type="range"
           min={0}
-          max={max}
+          max={sliderMax}
           value={value}
           onChange={(e) => onChange(Number(e.target.value))}
         />
         <button type="button" className="pill pill--tiny" onClick={() => onChange(max)}>
           {max}
         </button>
+        {researchMax && researchMax > max && (
+          <button
+            type="button"
+            className="pill pill--tiny"
+            onClick={() => onChange(researchMax)}
+            title="Maximum level with research"
+          >
+            {researchMax}
+          </button>
+        )}
       </div>
     </div>
   );

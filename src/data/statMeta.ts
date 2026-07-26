@@ -69,6 +69,17 @@ export const SPEED_META: StatMeta = {
   hint: 'Squares per hour. Multiplies the rating — for a mixed row the slowest unit sets the pace.',
 };
 
+/**
+ * The four resources, in cost-array order. Icon names are the game's own:
+ * it maps wood→lumber, clay→stone, iron→metal, crop→food.
+ */
+export const RESOURCE_META: StatMeta[] = [
+  { variable: 'wood', label: 'Wood', short: 'Wood', icon: 'res_wood', hint: 'Wood cost.' },
+  { variable: 'clay', label: 'Clay', short: 'Clay', icon: 'res_clay', hint: 'Clay cost.' },
+  { variable: 'iron', label: 'Iron', short: 'Iron', icon: 'res_iron', hint: 'Iron cost.' },
+  { variable: 'crop', label: 'Grain', short: 'Grain', icon: 'res_crop', hint: 'Grain cost.' },
+];
+
 /** Every variable a custom formula may reference, with its description. */
 export const FORMULA_VARIABLES: StatMeta[] = [
   SPEED_META,

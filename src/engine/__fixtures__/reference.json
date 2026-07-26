@@ -208,13 +208,13 @@
       "set": [
         "embermark_dominion/crimson_lancer"
       ],
-      "value": 1556.636540141898
+      "value": 1553.3662953096673
     },
     {
       "set": [
         "verdant_wardens/oak_cavalier"
       ],
-      "value": 1363.069376384832
+      "value": 1359.8393541659104
     }
   ],
   "mixed-pairs": [
@@ -237,7 +237,7 @@
         "verdant_wardens/woodblade",
         "verdant_wardens/oak_cavalier"
       ],
-      "value": 3036.166544644905
+      "value": 3032.5184499235897
     }
   ],
   "all-divisors": [
@@ -269,7 +269,7 @@
       "set": [
         "embermark_dominion/crimson_lancer"
       ],
-      "value": 4.18239508633671
+      "value": 4.173608542037684
     }
   ],
   "recon": [

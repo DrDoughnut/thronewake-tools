@@ -107,6 +107,25 @@ describe('the app', () => {
     expect(window.location.hash).not.toContain('n=a');
   });
 
+  it('switches to the Army Calculator and back', () => {
+    const armyTab = [...container.querySelectorAll('.pill--tool')].find(
+      (b) => b.getAttribute('aria-label') === 'Army Calculator',
+    )!;
+    click(armyTab);
+
+    expect(window.location.hash).toContain('tool=army');
+    expect(container.textContent).toContain('Barracks #1');
+    expect(container.textContent).toContain('Great Barracks');
+    // The unit-attributes table is gone, not merely hidden.
+    expect(container.querySelector('.results__table')).toBeNull();
+
+    const unitsTab = [...container.querySelectorAll('.pill--tool')].find(
+      (b) => b.getAttribute('aria-label') === 'Unit Attributes',
+    )!;
+    click(unitsTab);
+    expect(rows()).toHaveLength(21);
+  });
+
   it('shows a readable error for a broken formula, without clearing the page', () => {
     const input = container.querySelector('.text-input') as HTMLInputElement;
     act(() => {
@@ -121,5 +140,138 @@ describe('the app', () => {
 
     expect(container.querySelector('.error')).toBeTruthy();
     expect(container.textContent).toMatch(/brackets|ends too early/i);
+  });
+});
+
+describe('the army calculator', () => {
+  beforeEach(() => {
+    const armyTab = [...container.querySelectorAll('.pill--tool')].find(
+      (b) => b.getAttribute('aria-label') === 'Army Calculator',
+    )!;
+    click(armyTab);
+  });
+
+  const groupCard = (index: number) => container.querySelectorAll('.qgroup')[index];
+  const cell = (name: string) =>
+    [...container.querySelectorAll('.qcell')].find(
+      (q) => q.querySelector('.qcell__name')?.textContent === name,
+    )!;
+
+  const setLevel = (name: string, value: string) => {
+    const input = cell(name).querySelector('.text-input--level') as HTMLInputElement;
+    act(() => {
+      const setter = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        'value',
+      )!.set!;
+      setter.call(input, value);
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+  };
+
+  const strip = () =>
+    [...container.querySelectorAll('.strip__cell')].map((c) =>
+      Number(c.querySelector('.strip__count')!.textContent!.replace(/,/g, '')),
+    );
+
+  it('groups the three barracks into one row with a shared picker', () => {
+    const names = [...groupCard(0).querySelectorAll('.qcell__name')].map((n) => n.textContent);
+    expect(names).toEqual(['Barracks #1', 'Barracks #2', 'Great Barracks']);
+    // One picker for the group, not one per queue.
+    expect(groupCard(0).querySelectorAll('.qgroup__units')).toHaveLength(1);
+  });
+
+  it('lists all seven queues across three groups', () => {
+    expect(container.querySelectorAll('.qgroup')).toHaveLength(3);
+    const names = [...container.querySelectorAll('.qcell__name')].map((n) => n.textContent);
+    expect(names).toEqual([
+      'Barracks #1',
+      'Barracks #2',
+      'Great Barracks',
+      'Stable #1',
+      'Stable #2',
+      'Great Stable',
+      'Workshop',
+    ]);
+  });
+
+  it('offers every unit of the right type, and no leaders or settlers', () => {
+    const picks = (i: number) =>
+      [...groupCard(i).querySelectorAll('.unit-pick')].map((pick) =>
+        pick.getAttribute('aria-label'),
+      );
+
+    expect(picks(0)).toEqual(['Emberblade', 'Shieldbearer', 'Iron Spear']);
+    expect(picks(1)).toEqual(['Sentinel', 'Sun Rider', 'Crimson Lancer']);
+    expect(picks(2)).toEqual(['Iron Ram', 'Dominion Catapult']);
+
+    const all = [...container.querySelectorAll('.unit-pick')].map((pick) =>
+      pick.getAttribute('aria-label'),
+    );
+    expect(all).not.toContain('High Prefect');
+    expect(all).not.toContain('Settler');
+  });
+
+  it('marks the Great Barracks as triple cost', () => {
+    expect(cell('Great Barracks').textContent).toContain('×3');
+    expect(cell('Barracks #1').textContent).not.toContain('×3');
+  });
+
+  it('defaults to 3× and switches server speed', () => {
+    const speeds = [...container.querySelectorAll('.pill--speed')];
+    expect(speeds.map((s) => s.textContent)).toEqual(['1×', '3×', '10×']);
+    expect(speeds[1].getAttribute('aria-pressed')).toBe('true');
+
+    click(speeds[2]);
+    expect(window.location.hash).toContain('x=10');
+  });
+
+  it('shows a slot for every trainable unit, zeroes included', () => {
+    // Eight trainable units: no leader, no settler.
+    expect(strip()).toEqual([0, 0, 0, 0, 0, 0, 0, 0]);
+  });
+
+  it('produces an army once a queue is set up', () => {
+    setLevel('Barracks #1', '20');
+    click(groupCard(0).querySelectorAll('.unit-pick')[0]);
+
+    const counts = strip();
+    expect(counts[0]).toBeGreaterThan(0);
+    // The other slots stay in place rather than disappearing.
+    expect(counts).toHaveLength(8);
+    expect(counts.slice(1)).toEqual([0, 0, 0, 0, 0, 0, 0]);
+    expect(window.location.hash).toContain('barracks1=20');
+    expect(window.location.hash).toContain('u_barracks=emberblade');
+  });
+
+  it('splits a queue between two selected units', () => {
+    setLevel('Barracks #1', '20');
+    click(groupCard(0).querySelectorAll('.unit-pick')[0]);
+    const solo = strip()[0];
+
+    click(groupCard(0).querySelectorAll('.unit-pick')[1]);
+    const [first, second] = strip();
+
+    expect(first).toBe(Math.floor(solo / 2));
+    expect(second).toBeGreaterThan(0);
+  });
+
+  it('offers a level-22 shortcut only where the game allows it', () => {
+    const shortcuts = (name: string) =>
+      [...cell(name).querySelectorAll('.qcell__level .pill')].map((b) => b.textContent);
+
+    expect(shortcuts('Barracks #1')).toEqual(['0', '20', '22']);
+    expect(shortcuts('Great Barracks')).toEqual(['0', '20']);
+  });
+
+  it('reports resources per hour and a split attack', () => {
+    setLevel('Barracks #1', '20');
+    click(groupCard(0).querySelectorAll('.unit-pick')[0]);
+
+    expect(container.textContent).toContain('Per hour');
+    expect(container.textContent).toContain('Infantry attack');
+    expect(container.textContent).toContain('Cavalry attack');
+    expect(container.textContent).toContain('Total attack');
+    expect(container.textContent).toContain('Upkeep');
   });
 });

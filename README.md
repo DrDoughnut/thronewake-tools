@@ -5,9 +5,15 @@ whole thing is static files, and every number is computed in your browser.
 Deploy it to GitHub Pages, Netlify, S3, or open `dist/index.html` from a USB
 stick; it works the same.
 
-The first tool is the **unit attributes calculator**: it ranks every unit (or
-mixed pair of units) by whatever is actually limiting you — resources, grain, or
-hours — with smithy upgrades and each faction's own buildings applied.
+Two tools so far:
+
+- **Unit Attributes** — ranks every unit (or mixed pair) by whatever is actually
+  limiting you: resources, grain, or hours.
+- **Army Calculator** — set your training buildings running for a stretch of
+  time and see the army that comes out, what it costs, and what it is worth in
+  a fight.
+
+Both apply smithy upgrades and each faction's own buildings.
 
 ## Running it
 
@@ -90,6 +96,62 @@ Training times assume a fully levelled training building.
 > In game, Stormbrew Works only applies while a Stormbrew Celebration is
 > running in your capital, and it forces catapults onto random targets. The
 > calculator models the attack bonus alone.
+
+## The Army Calculator
+
+Seven queues, each with its own building level and its own unit:
+
+| Queue | Trains | Max level | Cost |
+| --- | --- | --- | --- |
+| Barracks #1, Barracks #2 | infantry | 22 | ×1 |
+| Great Barracks | infantry | 20 | ×3 |
+| Stable #1, Stable #2 | cavalry | 22 | ×1 |
+| Great Stable | cavalry | 20 | ×3 |
+| Workshop | siege | 22 | ×1 |
+
+Queues run **in parallel and independently** — two barracks at level 20 produce
+twice what one does — and turn out whole units only.
+
+The three barracks share one unit picker, since they all build the same thing.
+Selecting more than one unit **splits each queue's time evenly between them**,
+not its output: pick two and each gets half the hours, so the slower unit yields
+fewer of itself.
+
+Time per unit is
+
+```
+unit.time × buildingSpeed[level] × cavalryDiscount ÷ serverSpeed ÷ (1 + trainingBonus)
+```
+
+Server speed is 1× / 3× / 10×, defaulting to **3×**. Note that a faster server
+does not multiply the unit count exactly, because each queue floors once at the
+end — going faster also finishes what would have been a part-built unit.
+
+`buildingSpeed` is the game's own published table. Note the regular buildings
+publish levels up to **22** (`0.1216`, `0.1094`) while the Great variants stop
+at 20 — that asymmetry is the game's, not a gap here. The 0/20/22 shortcuts
+reflect it, and 22 only appears where it is legal.
+
+Which building trains a unit is derived from the game's own cavalry flag, so
+mounted scouts go to the Stable and foot scouts to the Barracks — the Sentinel
+and the Pathstalker are both scouts but train in different buildings. Leaders
+and settlers have no queue: they come from the Palace and Residence.
+
+The army strip below the buildings keeps **a slot for every trainable unit**,
+zeroes included, so it does not reflow as you change the selection.
+
+Attack is reported split into **infantry** and **cavalry** as well as the total,
+because that is the split a defender's anti-infantry and anti-cavalry values are
+weighed against. Siege counts as infantry-class. Upkeep is the army's real
+upkeep — Rider's Wells relief is applied, so Embermark cavalry can cost less
+than their base figure.
+
+> [!NOTE]
+> **Stable #1 / #2 is an assumption.** You specified two barracks plus a Great
+> Barracks; I mirrored that for the Stable since the game has a Great Stable
+> too. The Workshop has no Great variant, so it gets one queue. If the real
+> layout differs, `queues` in [`src/data/buildings.ts`](src/data/buildings.ts)
+> is a one-line change.
 
 ### Custom formulas
 
