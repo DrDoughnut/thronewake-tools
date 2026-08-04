@@ -112,7 +112,7 @@ export function ArmyCalculator() {
               className="text-input"
               type="number"
               min={0}
-              step={5}
+              step={2}
               value={state.speedBonusPercent}
               onChange={(e) =>
                 patch({ speedBonusPercent: Math.max(0, Number(e.target.value) || 0) })
@@ -302,10 +302,10 @@ export function ArmyCalculator() {
             <dl className="totals">
               {RESOURCE_META.map((meta, i) => (
                 <div className="totals__row" key={meta.variable}>
-                  <dt>
-                    <StatIcon meta={meta} /> {meta.label}
-                  </dt>
-                  <dd>{fmt(totals.cost[i])}</dd>
+                  <dt>{meta.label}</dt>
+                  <dd>
+                    <StatIcon meta={meta} /> {fmt(totals.cost[i])}
+                  </dd>
                 </div>
               ))}
               <div className="totals__row totals__row--sum">

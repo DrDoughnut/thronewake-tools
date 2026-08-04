@@ -621,21 +621,25 @@ code, .heading-formula {
 
 /* Three level cells side by side, with the shared unit picker filling the
    fourth column. A one-queue group pads with empty cells so every group's
-   picker starts at the same place. */
+   picker starts at the same place. Cells are divided by a hairline rather
+   than a wide gap, so the row stays compact. */
 .qgroup {
   display: grid;
-  grid-template-columns: repeat(3, minmax(96px, 1fr)) minmax(0, 1.6fr);
-  gap: 10px 12px;
+  grid-template-columns: repeat(3, minmax(160px, 1fr)) minmax(0, 1.6fr);
+  gap: 10px 0;
   align-items: start;
   padding: 11px 12px 12px;
 }
 
-.qcell { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.qcell { display: flex; flex-direction: column; gap: 5px; min-width: 0; padding-left: 10px; }
 .qcell--empty { display: none; }
+.qcell:first-child { padding-left: 0; }
+.qcell:not(:first-child) { border-left: 1px solid var(--border); }
 
 .qcell__head { display: flex; align-items: baseline; gap: 5px; }
 .qcell__name { font-weight: 650; font-size: 12.5px; white-space: nowrap; }
-.qcell__level { display: flex; align-items: center; gap: 3px; flex-wrap: wrap; }
+.qcell__level { display: flex; align-items: center; gap: 3px; flex-wrap: nowrap; }
+.qcell__level .pill--tiny { min-width: 28px; padding: 4px 6px; }
 .qcell__cap-buttons { display: inline-flex; gap: 3px; white-space: nowrap; }
 
 .qcell__out {
@@ -646,7 +650,14 @@ code, .heading-formula {
 
 .qcell__pushed { color: var(--accent); }
 
-.qgroup__units { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.qgroup__units {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+  padding-left: 10px;
+  border-left: 1px solid var(--border);
+}
 
 .qgroup__caption {
   font-size: 11px;
@@ -724,9 +735,9 @@ code, .heading-formula {
 .queue__level { display: flex; align-items: center; gap: 6px; margin-bottom: 9px; }
 
 .text-input--level {
-  width: 64px;
+  width: 42px;
   text-align: center;
-  padding: 4px 6px;
+  padding: 4px 4px;
   font-size: 13px;
 }
 
@@ -796,6 +807,9 @@ code, .heading-formula {
 }
 
 .totals__row dd {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   margin: 0;
   font-variant-numeric: tabular-nums;
   font-weight: 650;
@@ -815,16 +829,33 @@ code, .heading-formula {
 }
 
 @media (max-width: 1080px) {
-  /* Levels on one row, picker beneath, rather than four cramped columns. */
+  /* Levels on one row, picker beneath, rather than four cramped columns.
+     The picker's divider moves from its left edge to its top edge to match. */
   .qgroup { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .qgroup__units { grid-column: 1 / -1; }
+  .qgroup__units {
+    grid-column: 1 / -1;
+    padding-left: 0;
+    border-left: none;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+  }
 }
 
 @media (max-width: 640px) {
   .army__setup-row { gap: 10px; }
   .field-inline, .field-inline--narrow, .field-inline--duration { flex: 1 1 100%; }
   .army__setup-row--sliders > .slider { flex: 1 1 100%; }
-  .qgroup { grid-template-columns: 1fr; gap: 12px; }
+  /* Stacked single column: dividers move from the left edge to the top
+     edge, and the leftover left padding (meant for a side-by-side row) is
+     dropped so every cell hugs the panel's own edge. */
+  .qgroup { grid-template-columns: 1fr; gap: 0; }
+  .qcell, .qgroup__units { padding-left: 0; border-left: none; }
+  .qcell:not(:first-child) {
+    padding-top: 10px;
+    margin-top: 10px;
+    border-top: 1px solid var(--border);
+  }
+  .qgroup__units { padding-top: 10px; margin-top: 10px; border-top: 1px solid var(--border); }
   .qcell__level { gap: 5px; }
   .unit-pick { flex: 1 1 calc(50% - 3px); }
   .strip__cell { min-width: 48px; }
