@@ -42,6 +42,7 @@ export function ArmyCalculator() {
 
   const { faction, outputs, lines, totals } = result;
   const outputFor = (key: string) => outputs.find((o) => o.queue.key === key)!;
+  const mods = { smithy: state.smithy, buildings: state.buildings };
 
   return (
     <div className="army">
@@ -286,9 +287,8 @@ export function ArmyCalculator() {
                 <div
                   className={`strip__cell ${line.count === 0 ? 'is-zero' : ''}`}
                   key={line.ref}
-                  title={line.unit.name}
                 >
-                  <UnitIcon unitRef={line.ref} size={32} />
+                  <UnitIcon unitRef={line.ref} size={32} mods={mods} />
                   <span className="strip__count">{fmt(line.count)}</span>
                 </div>
               ))}

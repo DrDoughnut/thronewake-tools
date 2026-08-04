@@ -1,14 +1,17 @@
 import { lookup } from '../data/factions';
 import type { Ranking } from '../engine/value';
+import type { Modifiers } from '../engine/stats';
 import { UnitIcon } from './UnitIcon';
 
 interface Props {
   ranking: Ranking;
   /** Rendered description of what the value column means. */
   heading: React.ReactNode;
+  /** Current smithy/building levels, so a unit's hover card matches the table. */
+  mods: Modifiers;
 }
 
-export function ResultsTable({ ranking, heading }: Props) {
+export function ResultsTable({ ranking, heading, mods }: Props) {
   if (ranking.error) {
     return (
       <div className="results results--empty">
@@ -46,7 +49,7 @@ export function ResultsTable({ ranking, heading }: Props) {
                   <div className="unit-cell">
                     <div className="unit-cell__icons">
                       {row.set.map((ref) => (
-                        <UnitIcon key={ref} unitRef={ref} size={30} />
+                        <UnitIcon key={ref} unitRef={ref} size={30} mods={mods} />
                       ))}
                     </div>
                     <div className="unit-cell__text">

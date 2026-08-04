@@ -2,7 +2,7 @@
  * Human-maintained release notes. Bump `APP_VERSION` and add an entry here
  * whenever a change is worth telling a returning user about.
  */
-export const APP_VERSION = '1.2.0';
+export const APP_VERSION = '1.3.0';
 
 export interface ChangelogEntry {
   version: string;
@@ -12,6 +12,14 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '1.3.0',
+    date: '2026-08-04',
+    changes: [
+      'Unit Attributes: hover, focus or tap a unit\'s icon in the table for a stat card — attack, defense, speed, capacity and upkeep under the current smithy and building levels.',
+      'Army Calculator: the same stat card appears on the produced-army icons at the bottom, not on the unit-picker buttons.',
+    ],
+  },
+  {
     version: '1.2.0',
     date: '2026-08-04',
     changes: [
@@ -20,6 +28,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       'Army Calculator: the cost icon sits next to its number instead of its label.',
       'Army Calculator: training bonus now steps by 2% instead of 5%.',
       'Tightened the mobile layout across breakpoints.',
+      'Added a version badge next to the wordmark; click it for the changelog.',
     ],
   },
   {

@@ -50,6 +50,21 @@ describe('the app', () => {
     expect(container.querySelectorAll('.unit-icon--glyph')).toHaveLength(0);
   });
 
+  it('shows a stat card when a unit icon in the table is tapped, and hides it again', () => {
+    const trigger = container.querySelector('.unit-icon-trigger') as HTMLElement;
+    expect(trigger).toBeTruthy();
+    expect(document.querySelector('.stat-card-popover')).toBeNull();
+
+    click(trigger);
+    const popover = document.querySelector('.stat-card-popover');
+    expect(popover).toBeTruthy();
+    expect(popover!.textContent).toContain('Attack');
+    expect(popover!.textContent).toContain('Speed');
+
+    click(trigger);
+    expect(document.querySelector('.stat-card-popover')).toBeNull();
+  });
+
   it('rates raiding as speed × carry, over cost only in the early preset', () => {
     const byKey = (k: string) => presets.find((p) => p.key === k)!.patch;
 
@@ -287,5 +302,20 @@ describe('the army calculator', () => {
     expect(container.textContent).toContain('Cavalry attack');
     expect(container.textContent).toContain('Total attack');
     expect(container.textContent).toContain('Upkeep');
+  });
+
+  it('shows a stat card for a produced unit, but not for the picker buttons', () => {
+    // The picker buttons keep their plain title tooltip, no stat card.
+    expect(groupCard(0).querySelectorAll('.unit-pick .unit-icon-trigger')).toHaveLength(0);
+
+    const stripTrigger = container.querySelector(
+      '.strip__cell .unit-icon-trigger',
+    ) as HTMLElement;
+    expect(stripTrigger).toBeTruthy();
+
+    click(stripTrigger);
+    const popover = document.querySelector('.stat-card-popover');
+    expect(popover).toBeTruthy();
+    expect(popover!.textContent).toContain('Speed');
   });
 });

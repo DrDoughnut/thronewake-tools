@@ -23,14 +23,12 @@ export function UnitAttributes() {
     [state.mode, state.expression, state.stats, state.bySpeed, state.divisors],
   );
 
-  const ranking = useMemo(
-    () =>
-      rank(group.sets, query, {
-        smithy: state.smithy,
-        buildings: state.buildings,
-      }),
-    [group, query, state.smithy, state.buildings],
+  const mods = useMemo(
+    () => ({ smithy: state.smithy, buildings: state.buildings }),
+    [state.smithy, state.buildings],
   );
+
+  const ranking = useMemo(() => rank(group.sets, query, mods), [group, query, mods]);
 
   const heading =
     state.mode === 'formula' ? (
@@ -45,7 +43,7 @@ export function UnitAttributes() {
         <Controls state={state} patch={patch} formulaError={ranking.error} />
       </aside>
       <section className="app__results">
-        <ResultsTable ranking={ranking} heading={heading} />
+        <ResultsTable ranking={ranking} heading={heading} mods={mods} />
       </section>
     </main>
   );
