@@ -3,6 +3,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import App from './App';
+import { APP_VERSION } from './data/changelog';
 import { presets } from './state';
 
 /**
@@ -140,6 +141,19 @@ describe('the app', () => {
 
     expect(container.querySelector('.error')).toBeTruthy();
     expect(container.textContent).toMatch(/brackets|ends too early/i);
+  });
+
+  it('opens the changelog from the version badge and closes it again', () => {
+    const badge = container.querySelector('.brand__version') as HTMLButtonElement;
+    expect(badge.textContent).toBe(`v${APP_VERSION}`);
+    expect(container.querySelector('.changelog-overlay')).toBeNull();
+
+    click(badge);
+    expect(container.querySelector('.changelog-overlay')).toBeTruthy();
+    expect(container.textContent).toContain(`v${APP_VERSION}`);
+
+    click(container.querySelector('[aria-label="Close"]')!);
+    expect(container.querySelector('.changelog-overlay')).toBeNull();
   });
 });
 

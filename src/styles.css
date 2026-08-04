@@ -99,6 +99,28 @@ code, .heading-formula {
   letter-spacing: -0.01em;
 }
 
+.brand__version {
+  appearance: none;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-sunken);
+  color: var(--text-faint);
+  font: inherit;
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+.brand__version:hover,
+.brand__version:focus-visible {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
 .app__blurb {
   grid-column: 1 / -1;
   margin: 8px 0 0;
@@ -867,3 +889,65 @@ code, .heading-formula {
 .results { max-width: 100%; }
 .results__table { table-layout: fixed; }
 .unit-cell__names { overflow-wrap: anywhere; }
+
+/* ── Changelog ───────────────────────────────────────────────────────── */
+
+.changelog-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 10vh 16px 16px;
+  background: color-mix(in srgb, black 55%, transparent);
+  z-index: 100;
+}
+
+.changelog-panel {
+  width: 100%;
+  max-width: 480px;
+  max-height: 76vh;
+  overflow-y: auto;
+}
+
+.changelog-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.changelog-panel__head .panel__title { margin: 0; }
+
+.changelog-entry { padding: 10px 0; border-top: 1px solid var(--border); }
+.changelog-entry:first-of-type { border-top: none; padding-top: 2px; }
+
+.changelog-entry__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 0 5px;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.changelog-entry__date {
+  font-size: 11.5px;
+  font-weight: 400;
+  color: var(--text-faint);
+}
+
+.changelog-entry__list {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--text-dim);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.changelog-entry__list li { margin-bottom: 3px; }
+
+@media (max-width: 640px) {
+  .changelog-overlay { padding: 6vh 10px 10px; }
+}

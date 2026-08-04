@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { Changelog } from './components/Changelog';
+import { APP_VERSION } from './data/changelog';
 import { ArmyCalculator } from './pages/ArmyCalculator';
 import { UnitAttributes } from './pages/UnitAttributes';
 
@@ -41,6 +43,7 @@ const readTool = (): string => {
 
 export default function App() {
   const [toolKey, setToolKey] = useState(readTool);
+  const [showChangelog, setShowChangelog] = useState(false);
 
   // Each tool owns its own slice of the fragment, so switching tools clears
   // the previous tool's parameters rather than leaving them to be misread.
@@ -64,7 +67,17 @@ export default function App() {
         <div className="brand">
           <span className="brand__mark" aria-hidden="true">⌬</span>
           <div>
-            <span className="brand__name">Thronewake Tools</span>
+            <span className="brand__name">
+              Thronewake Tools
+              <button
+                type="button"
+                className="brand__version"
+                onClick={() => setShowChangelog(true)}
+                title="View changelog"
+              >
+                v{APP_VERSION}
+              </button>
+            </span>
             <span className="brand__tool">{tool.name}</span>
           </div>
         </div>
@@ -100,6 +113,8 @@ export default function App() {
           data. {tool.footer}
         </p>
       </footer>
+
+      {showChangelog && <Changelog onClose={() => setShowChangelog(false)} />}
     </div>
   );
 }
