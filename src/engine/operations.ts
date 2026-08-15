@@ -284,7 +284,13 @@ export function encodeCompactPlan(state: CompactPlannerState): string {
 /** Decodes an ultra-compact delimited string back into planner state. */
 export function decodeCompactPlan(compactStr: string): CompactPlannerState | null {
   if (!compactStr || typeof compactStr !== 'string') return null;
-  const segments = compactStr.split('~');
+  let str = compactStr;
+  if (str.includes('%')) {
+    try {
+      str = decodeURIComponent(str);
+    } catch {}
+  }
+  const segments = str.split('~');
   if (segments.length < 1) return null;
 
   const header = segments[0];

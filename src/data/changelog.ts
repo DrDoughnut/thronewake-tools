@@ -2,7 +2,7 @@
  * Human-maintained release notes. Bump `APP_VERSION` and add an entry here
  * whenever a change is worth telling a returning user about.
  */
-export const APP_VERSION = '1.5.1';
+export const APP_VERSION = '1.5.2';
 
 export interface ChangelogEntry {
   version: string;
@@ -12,13 +12,21 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '1.5.2',
+    date: '2026-08-15',
+    changes: [
+      'Operation Planner: human-readable clean compact link sharing without percent-encoding escaping.',
+      'Operation Planner: one-click "🔗 Copy Share Link" button with instant clipboard feedback.',
+      'Operation Planner: live browser URL and hash change synchronization.',
+      'Branding: official Thronewake crest emblem vector favicon.',
+    ],
+  },
+  {
     version: '1.5.1',
     date: '2026-08-15',
     changes: [
-      'Operation Planner: ultra-compact 75% shorter shareable links with live browser address bar & clipboard synchronization.',
-      'Operation Planner: one-click "🔗 Copy Share Link" button with instant clipboard feedback.',
+      'Operation Planner: compact 75% shorter shareable links.',
       'Operation Planner: full backward compatibility for legacy JSON plan URL bookmarks.',
-      'Branding: integrated official Thronewake crest emblem SVG favicon.',
     ],
   },
   {

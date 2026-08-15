@@ -797,16 +797,14 @@ export function OperationPlanner() {
 
   const copyShareLink = async () => {
     const compact = encodeCompactPlan(state);
-    const params = new URLSearchParams();
-    params.set('tool', 'operations');
-    params.set('p', compact);
-    const fullUrl = `${window.location.origin}${window.location.pathname}#${params.toString()}`;
+    const hash = `tool=operations&p=${compact}`;
+    const fullUrl = `${window.location.origin}${window.location.pathname}#${hash}`;
     try {
       await navigator.clipboard.writeText(fullUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      window.location.hash = params.toString();
+      window.location.hash = hash;
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
@@ -814,10 +812,7 @@ export function OperationPlanner() {
 
   useEffect(() => {
     const compact = encodeCompactPlan(state);
-    const params = new URLSearchParams();
-    params.set('tool', 'operations');
-    params.set('p', compact);
-    window.history.replaceState(null, '', window.location.pathname + '#' + params.toString());
+    window.history.replaceState(null, '', `${window.location.pathname}#tool=operations&p=${compact}`);
   }, [state]);
 
   const parsedLanding = useMemo(() => {

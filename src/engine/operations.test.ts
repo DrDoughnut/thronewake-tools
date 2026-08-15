@@ -194,4 +194,22 @@ describe('safe time', () => {
     expect(decoded?.targets[0].name).toBe('Froggy G');
     expect(decoded?.targets[1].name).toBe('Dangerdoom');
   });
+
+  it('decodes percent-encoded compact string cleanly', () => {
+    const rawEncoded = 'v1_2026-08-16T19%3A00_3%7Ea%3ADrDoughnut%2C17%2C-25%2Cstormfang_clans%2Fskullthrower%2C1%2C9%2C1%2C01%3A00-07%3A00%7Ea%3AJezu%2C4%2C34%2Cstormfang_clans%2Fskullthrower%2C1%2C0%2C0%2C22%3A00-04%3A00%7Et%3AFroggy+G%2C-34%2C-31%2C1%2C04%3A30-10%3A30%7Et%3ASmall+cat%2C-35%2C-22%2C1%2C04%3A30-10%3A30%7Et%3APetrgon%2C-8%2C-46%2C1%2C22%3A45-04%3A00%7Et%3ADangerdoom%2C-42%2C-21%2C1%2C17%3A00-23%3A00';
+    const decoded = decodeCompactPlan(rawEncoded);
+    expect(decoded).toBeTruthy();
+    expect(decoded?.landing).toBe('2026-08-16T19:00');
+    expect(decoded?.serverSpeed).toBe(3);
+    expect(decoded?.attackers).toHaveLength(2);
+    expect(decoded?.attackers[0].name).toBe('DrDoughnut');
+    expect(decoded?.attackers[0].x).toBe(17);
+    expect(decoded?.attackers[0].y).toBe(-25);
+    expect(decoded?.attackers[0].unitRef).toBe('stormfang_clans/skullthrower');
+    expect(decoded?.targets).toHaveLength(4);
+    expect(decoded?.targets[0].name).toBe('Froggy G');
+    expect(decoded?.targets[1].name).toBe('Small cat');
+    expect(decoded?.targets[2].name).toBe('Petrgon');
+    expect(decoded?.targets[3].name).toBe('Dangerdoom');
+  });
 });
