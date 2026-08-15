@@ -932,19 +932,32 @@ code, .heading-formula {
   .army__setup-row { gap: 10px; }
   .field-inline, .field-inline--narrow, .field-inline--duration { flex: 1 1 100%; }
   .army__setup-row--sliders > .slider { flex: 1 1 100%; }
-  /* Stacked single column: dividers move from the left edge to the top
-     edge, and the leftover left padding (meant for a side-by-side row) is
-     dropped so every cell hugs the panel's own edge. */
-  .qgroup { grid-template-columns: 1fr; gap: 0; }
-  .qcell, .qgroup__units { padding-left: 0; border-left: none; }
-  .qcell:not(:first-child) {
-    padding-top: 10px;
-    margin-top: 10px;
+  /* Keep a building's three queues together. On a phone the controls are
+     deliberately terse, but Barracks/Stable 1, 2, and Great remain a single
+     scannable row instead of turning every group into a tall mini-form. */
+  .qgroup { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; }
+  .qcell { padding-left: 6px; gap: 4px; }
+  .qcell:first-child { padding-left: 0; }
+  .qcell:not(:first-child) { border-left: 1px solid var(--border); }
+  .qcell--empty { display: block; }
+  .qcell__name { font-size: 11px; overflow: hidden; text-overflow: ellipsis; }
+  .qcell__level { gap: 2px; }
+  .qcell__level > .pill--tiny { display: none; }
+  .qcell__level .text-input--level { min-width: 0; padding: 5px 2px; font-size: 12px; text-align: center; }
+  .qcell__cap-buttons { flex: 1 1 auto; gap: 2px; min-width: 0; }
+  .qcell__level .pill--tiny { min-width: 0; flex: 1 1 0; padding: 5px 2px; font-size: 11px; }
+  .qcell__out { font-size: 10.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .qgroup__units {
+    grid-column: 1 / -1;
+    padding: 9px 0 0;
+    margin-top: 9px;
+    border-left: none;
     border-top: 1px solid var(--border);
   }
-  .qgroup__units { padding-top: 10px; margin-top: 10px; border-top: 1px solid var(--border); }
-  .qcell__level { gap: 5px; }
-  .unit-pick { flex: 1 1 calc(50% - 3px); }
+  /* Six compact, evenly spaced icons mean a full unit set normally takes
+     two rows rather than a column of large two-up tiles. */
+  .qgroup__picks { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; }
+  .unit-pick { width: 100%; height: auto; aspect-ratio: 1; padding: 1px; }
   .strip__cell { min-width: 48px; }
 }
 
