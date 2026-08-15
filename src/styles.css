@@ -985,8 +985,35 @@ code, .heading-formula {
 .op-landing-shortcuts { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin-top: 2px; }
 .op-landing-shortcuts__label { color: var(--text-faint); font-size: 11px; font-weight: 600; margin-right: 2px; }
 
-.op-speed-control { display: flex; flex-direction: column; gap: 7px; flex: 0 1 220px; }
+.op-speed-control { display: flex; flex-direction: column; gap: 7px; flex: 0 1 200px; }
 .op-speed-note { color: var(--text-faint); font-size: 11.5px; }
+
+.op-share-control { display: flex; flex-direction: column; gap: 7px; flex: 0 0 auto; align-self: flex-start; }
+.pill--share {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: hsl(220, 16%, 18%);
+  color: #f0f3f8;
+  border: 1px solid hsl(220, 14%, 28%);
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  border-radius: 999px;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.pill--share:hover {
+  background: hsl(220, 16%, 24%);
+  border-color: var(--accent);
+  color: #fff;
+}
+.pill--share.is-copied {
+  background: color-mix(in srgb, #55a56c 25%, transparent);
+  border-color: #55a56c;
+  color: #92e6a7;
+}
 
 /* Roster grid */
 .op-rosters { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.95fr); gap: 16px; align-items: start; }

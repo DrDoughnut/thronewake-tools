@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="8" fill="#111620" />
+
+  <!-- Outer Hexagon -->
+  <polygon
+    points="32,7.2 53.6,19.6 53.6,44.4 32,56.8 10.4,44.4 10.4,19.6"
+    fill="none"
+    stroke="#d99f36"
+    stroke-width="4.6"
+    stroke-linejoin="miter"
+    stroke-miterlimit="2"
+  />
+
+  <!-- Three Inner Alternating Bonds -->
+  <!-- Left vertical bond -->
+  <line x1="18.8" y1="23.6" x2="18.8" y2="40.4" stroke="#d99f36" stroke-width="3.8" stroke-linecap="butt" />
+
+  <!-- Top-right bond -->
+  <line x1="36" y1="16.4" x2="45.6" y2="21.9" stroke="#d99f36" stroke-width="3.8" stroke-linecap="butt" />
+
+  <!-- Bottom-right bond -->
+  <line x1="45.6" y1="42.1" x2="36" y2="47.6" stroke="#d99f36" stroke-width="3.8" stroke-linecap="butt" />
+</svg>

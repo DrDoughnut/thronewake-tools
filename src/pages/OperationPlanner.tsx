@@ -3,7 +3,9 @@ import { createPortal } from 'react-dom';
 import { playableFactions, lookup, type UnitRef } from '../data/factions';
 import {
   combineUtcDateAndTime,
+  decodeCompactPlan,
   distanceBetween,
+  encodeCompactPlan,
   enforceMaxSafeWindow,
   formatClock,
   formatDateTime,
@@ -102,32 +104,116 @@ const initialState = (): PlannerState => {
   };
 };
 
-function decodeState(): PlannerState {
+export function decodeState(hashOrSearch?: string): PlannerState {
   const fallback = initialState();
-  const raw = new URLSearchParams(window.location.hash.replace(/^#/, '')).get('plan');
-  if (!raw) return fallback;
-  try {
-    const parsed = JSON.parse(raw) as Partial<PlannerState>;
-    if (!Array.isArray(parsed.attackers) || !Array.isArray(parsed.targets)) return fallback;
-    const cleanAttackers = (parsed.attackers.length ? parsed.attackers : fallback.attackers).map((atk) => ({
-      ...atk,
-      ...enforceMaxSafeWindow(atk.safeStart || '22:00', atk.safeEnd || '04:00', 'start'),
-    }));
-    const cleanTargets = (parsed.targets.length ? parsed.targets : fallback.targets).map((tgt) => ({
-      ...tgt,
-      ...enforceMaxSafeWindow(tgt.safeStart || '22:00', tgt.safeEnd || '04:00', 'start'),
-    }));
-    return {
-      landing: typeof parsed.landing === 'string' ? parsed.landing : fallback.landing,
-      serverSpeed: [1, 3, 10].includes(Number(parsed.serverSpeed))
-        ? Number(parsed.serverSpeed)
-        : fallback.serverSpeed,
-      attackers: cleanAttackers,
-      targets: cleanTargets,
-    };
-  } catch {
-    return fallback;
+  let rawP: string | null = null;
+  let rawPlan: string | null = null;
+
+  const sources = hashOrSearch
+    ? [hashOrSearch]
+    : [
+        typeof window !== 'undefined' ? window.location.hash : '',
+        typeof window !== 'undefined' ? window.location.search : '',
+      ];
+
+  for (const src of sources) {
+    if (!src) continue;
+    try {
+      const clean = src.replace(/^[#?]/, '');
+      const p = new URLSearchParams(clean);
+      if (!rawP && p.get('p')) rawP = p.get('p');
+      if (!rawPlan && p.get('plan')) rawPlan = p.get('plan');
+    } catch {}
   }
+
+  // 1. Try compact format ('p' parameter)
+  if (rawP) {
+    const compactParsed = decodeCompactPlan(rawP);
+    if (compactParsed) {
+      const cleanAttackers: Attacker[] = (compactParsed.attackers.length ? compactParsed.attackers : fallback.attackers).map((atk, idx) => ({
+        id: atk.id || `a${idx + 1}`,
+        name: atk.name || `Hammer ${idx + 1}`,
+        x: Number(atk.x) || 0,
+        y: Number(atk.y) || 0,
+        unitRef: typeof atk.unitRef === 'string' ? (atk.unitRef as UnitRef) : defaultUnitRef,
+        artifactMultiplier: atk.artifactMultiplier || 1,
+        bannerfieldLevel: atk.bannerfieldLevel || 0,
+        safeEnabled: Boolean(atk.safeEnabled),
+        safeStart: atk.safeStart || '22:00',
+        safeEnd: atk.safeEnd || '04:00',
+      }));
+
+      const cleanTargets: Target[] = (compactParsed.targets.length ? compactParsed.targets : fallback.targets).map((tgt, idx) => ({
+        id: tgt.id || `t${idx + 1}`,
+        name: tgt.name || `Target ${idx + 1}`,
+        x: Number(tgt.x) || 0,
+        y: Number(tgt.y) || 0,
+        safeEnabled: Boolean(tgt.safeEnabled),
+        safeStart: tgt.safeStart || '22:00',
+        safeEnd: tgt.safeEnd || '04:00',
+      }));
+
+      return {
+        landing: compactParsed.landing || fallback.landing,
+        serverSpeed: [1, 3, 10].includes(Number(compactParsed.serverSpeed)) ? Number(compactParsed.serverSpeed) : fallback.serverSpeed,
+        attackers: cleanAttackers,
+        targets: cleanTargets,
+      };
+    }
+  }
+
+  // 2. Fall back to legacy full JSON format ('plan' parameter)
+  if (rawPlan) {
+    try {
+      if (rawPlan.startsWith('%7B') || rawPlan.startsWith('%7b')) {
+        try {
+          rawPlan = decodeURIComponent(rawPlan);
+        } catch {}
+      }
+      const parsed = JSON.parse(rawPlan) as Partial<PlannerState>;
+      if (Array.isArray(parsed.attackers) && Array.isArray(parsed.targets)) {
+        const cleanAttackers: Attacker[] = (parsed.attackers.length ? parsed.attackers : fallback.attackers).map((atk, idx) => {
+          const safe = enforceMaxSafeWindow(atk?.safeStart || '22:00', atk?.safeEnd || '04:00', 'start');
+          return {
+            id: typeof atk?.id === 'string' && atk.id ? atk.id : `a${idx + 1}`,
+            name: typeof atk?.name === 'string' && atk.name ? atk.name : `Hammer ${idx + 1}`,
+            x: Number(atk?.x) || 0,
+            y: Number(atk?.y) || 0,
+            unitRef: typeof atk?.unitRef === 'string' ? (atk.unitRef as UnitRef) : defaultUnitRef,
+            artifactMultiplier: (atk?.artifactMultiplier === 1.5 || atk?.artifactMultiplier === 2) ? atk.artifactMultiplier : 1,
+            bannerfieldLevel: Math.min(20, Math.max(0, Number(atk?.bannerfieldLevel) || 0)),
+            safeEnabled: Boolean(atk?.safeEnabled),
+            safeStart: safe.safeStart,
+            safeEnd: safe.safeEnd,
+          };
+        });
+
+        const cleanTargets: Target[] = (parsed.targets.length ? parsed.targets : fallback.targets).map((tgt, idx) => {
+          const safe = enforceMaxSafeWindow(tgt?.safeStart || '22:00', tgt?.safeEnd || '04:00', 'start');
+          return {
+            id: typeof tgt?.id === 'string' && tgt.id ? tgt.id : `t${idx + 1}`,
+            name: typeof tgt?.name === 'string' && tgt.name ? tgt.name : `Target ${idx + 1}`,
+            x: Number(tgt?.x) || 0,
+            y: Number(tgt?.y) || 0,
+            safeEnabled: Boolean(tgt?.safeEnabled),
+            safeStart: safe.safeStart,
+            safeEnd: safe.safeEnd,
+          };
+        });
+
+        return {
+          landing: typeof parsed.landing === 'string' && parsed.landing ? parsed.landing : fallback.landing,
+          serverSpeed: [1, 3, 10].includes(Number(parsed.serverSpeed))
+            ? Number(parsed.serverSpeed)
+            : fallback.serverSpeed,
+          attackers: cleanAttackers,
+          targets: cleanTargets,
+        };
+      }
+    } catch {}
+  }
+
+  return fallback;
 }
 
 function ownerWindow(owner: SafeTimeOwner): SafeWindow {
@@ -691,13 +777,46 @@ function DailySchedule({ routes, route }: { routes: PlannedRoute[]; route: Plann
 }
 
 export function OperationPlanner() {
-  const [state, setState] = useState<PlannerState>(decodeState);
+  const [state, setState] = useState<PlannerState>(() => decodeState());
   const [selectedKey, setSelectedKey] = useState('');
 
+  // Sync state whenever hash or popstate changes (e.g. pasted URL, bookmark, back/forward)
   useEffect(() => {
+    const handleHashChange = () => {
+      setState(decodeState());
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    window.addEventListener('popstate', handleHashChange);
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+      window.removeEventListener('popstate', handleHashChange);
+    };
+  }, []);
+
+  const [copied, setCopied] = useState(false);
+
+  const copyShareLink = async () => {
+    const compact = encodeCompactPlan(state);
     const params = new URLSearchParams();
     params.set('tool', 'operations');
-    params.set('plan', JSON.stringify(state));
+    params.set('p', compact);
+    const fullUrl = `${window.location.origin}${window.location.pathname}#${params.toString()}`;
+    try {
+      await navigator.clipboard.writeText(fullUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      window.location.hash = params.toString();
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  useEffect(() => {
+    const compact = encodeCompactPlan(state);
+    const params = new URLSearchParams();
+    params.set('tool', 'operations');
+    params.set('p', compact);
     window.history.replaceState(null, '', window.location.pathname + '#' + params.toString());
   }, [state]);
 
@@ -862,6 +981,18 @@ export function OperationPlanner() {
             <span className="op-speed-note">
               {state.serverSpeed === 1 ? '1× troop speed' : state.serverSpeed === 3 ? '2× troop speed' : '4× troop speed'}
             </span>
+          </div>
+
+          <div className="op-share-control">
+            <span className="op-command__label">Share Plan</span>
+            <button
+              type="button"
+              className={`pill pill--share ${copied ? 'is-copied' : ''}`}
+              onClick={copyShareLink}
+              title="Copy short shareable link with current plan settings"
+            >
+              {copied ? '✓ Link Copied!' : '🔗 Copy Share Link'}
+            </button>
           </div>
         </div>
 

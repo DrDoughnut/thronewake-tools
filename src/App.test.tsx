@@ -4,6 +4,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import App from './App';
 import { APP_VERSION } from './data/changelog';
+import { decodeState } from './pages/OperationPlanner';
 import { presets } from './state';
 
 /**
@@ -403,5 +404,99 @@ describe('the operation planner', () => {
     expect(rows[1].classList.contains('is-selected')).toBe(true);
     expect(container.querySelector('.schedule__row.is-selected-lane')).toBeTruthy();
     expect(container.querySelector('.schedule__row.is-faded-lane')).toBeTruthy();
+  });
+
+  it('imports saved plan settings from URL hash correctly', () => {
+    const rawPlan = JSON.stringify({
+      landing: '2026-08-16T19:00',
+      serverSpeed: 3,
+      attackers: [
+        {
+          id: 'a1',
+          name: 'DrDoughnut',
+          x: 17,
+          y: -25,
+          unitRef: 'stormfang_clans/skullthrower',
+          artifactMultiplier: 1,
+          bannerfieldLevel: 9,
+          safeEnabled: true,
+          safeStart: '01:00',
+          safeEnd: '07:00',
+        },
+        {
+          id: 'ayhdwke',
+          name: 'Jezu',
+          x: 4,
+          y: 34,
+          unitRef: 'stormfang_clans/skullthrower',
+          artifactMultiplier: 1,
+          bannerfieldLevel: 0,
+          safeEnabled: false,
+          safeStart: '22:00',
+          safeEnd: '04:00',
+        },
+      ],
+      targets: [
+        {
+          id: 't1',
+          name: 'Froggy G',
+          x: -34,
+          y: -31,
+          safeEnabled: true,
+          safeStart: '04:30',
+          safeEnd: '10:30',
+        },
+        {
+          id: 't7enqa8',
+          name: 'Small cat',
+          x: -35,
+          y: -22,
+          safeEnabled: true,
+          safeStart: '04:30',
+          safeEnd: '10:30',
+        },
+      ],
+    });
+
+    act(() => {
+      window.location.hash = `#tool=operations&plan=${encodeURIComponent(rawPlan)}`;
+      window.dispatchEvent(new Event('hashchange'));
+    });
+
+    expect(container.textContent).toContain('DrDoughnut');
+    expect(container.textContent).toContain('Jezu');
+    expect(container.textContent).toContain('Froggy G');
+    expect(container.textContent).toContain('Small cat');
+    expect(container.textContent).toContain('Skullthrower');
+  });
+
+  it('decodes full custom user plan correctly from URL string', () => {
+    const rawHash = '#tool=operations&plan=%7B%22landing%22%3A%222026-08-16T19%3A00%22%2C%22serverSpeed%22%3A3%2C%22attackers%22%3A%5B%7B%22id%22%3A%22a1%22%2C%22name%22%3A%22DrDoughnut%22%2C%22x%22%3A17%2C%22y%22%3A-25%2C%22unitRef%22%3A%22stormfang_clans%2Fskullthrower%22%2C%22artifactMultiplier%22%3A1%2C%22bannerfieldLevel%22%3A9%2C%22safeEnabled%22%3Atrue%2C%22safeStart%22%3A%2201%3A00%22%2C%22safeEnd%22%3A%2207%3A00%22%7D%2C%7B%22id%22%3A%22ayhdwke%22%2C%22name%22%3A%22Jezu%22%2C%22x%22%3A4%2C%22y%22%3A34%2C%22unitRef%22%3A%22stormfang_clans%2Fskullthrower%22%2C%22artifactMultiplier%22%3A1%2C%22bannerfieldLevel%22%3A0%2C%22safeEnabled%22%3Afalse%2C%22safeStart%22%3A%2222%3A00%22%2C%22safeEnd%22%3A%2204%3A00%22%7D%5D%2C%22targets%22%3A%5B%7B%22id%22%3A%22t1%22%2C%22name%22%3A%22Froggy+G%22%2C%22x%22%3A-34%2C%22y%22%3A-31%2C%22safeEnabled%22%3Atrue%2C%22safeStart%22%3A%2204%3A30%22%2C%22safeEnd%22%3A%2210%3A30%22%7D%2C%7B%22id%22%3A%22t7enqa8%22%2C%22name%22%3A%22Small+cat%22%2C%22x%22%3A-35%2C%22y%22%3A-22%2C%22safeEnabled%22%3Atrue%2C%22safeStart%22%3A%2204%3A30%22%2C%22safeEnd%22%3A%2210%3A30%22%7D%2C%7B%22id%22%3A%22tqp3lq9%22%2C%22name%22%3A%22Petrgon%22%2C%22x%22%3A-8%2C%22y%22%3A-46%2C%22safeEnabled%22%3Atrue%2C%22safeStart%22%3A%2222%3A45%22%2C%22safeEnd%22%3A%2204%3A00%22%7D%2C%7B%22id%22%3A%22t0ldztq%22%2C%22name%22%3A%22Dangerdoom%22%2C%22x%22%3A-42%2C%22y%22%3A-21%2C%22safeEnabled%22%3Atrue%2C%22safeStart%22%3A%2217%3A00%22%2C%22safeEnd%22%3A%2223%3A00%22%7D%5D%7D';
+    const decoded = decodeState(rawHash);
+    expect(decoded.landing).toBe('2026-08-16T19:00');
+    expect(decoded.attackers).toHaveLength(2);
+    expect(decoded.attackers[0].name).toBe('DrDoughnut');
+    expect(decoded.attackers[0].x).toBe(17);
+    expect(decoded.attackers[0].y).toBe(-25);
+    expect(decoded.attackers[0].unitRef).toBe('stormfang_clans/skullthrower');
+    expect(decoded.attackers[0].bannerfieldLevel).toBe(9);
+    expect(decoded.attackers[0].safeStart).toBe('01:00');
+    expect(decoded.attackers[0].safeEnd).toBe('07:00');
+    expect(decoded.targets).toHaveLength(4);
+    expect(decoded.targets[0].name).toBe('Froggy G');
+    expect(decoded.targets[3].name).toBe('Dangerdoom');
+  });
+
+  it('imports compact plan string via hashchange', () => {
+    const compact = 'v1_2026-08-16T19:00_3~a:DrDoughnut,17,-25,stormfang_clans/skullthrower,1,9,1,01:00-07:00~a:Jezu,4,34,stormfang_clans/skullthrower,1,0,0,22:00-04:00~t:Froggy+G,-34,-31,1,04:30-10:30~t:Dangerdoom,-42,-21,1,17:00-23:00';
+    act(() => {
+      window.location.hash = `#tool=operations&p=${encodeURIComponent(compact)}`;
+      window.dispatchEvent(new Event('hashchange'));
+    });
+
+    expect(container.textContent).toContain('DrDoughnut');
+    expect(container.textContent).toContain('Jezu');
+    expect(container.textContent).toContain('Froggy G');
+    expect(container.textContent).toContain('Dangerdoom');
   });
 });

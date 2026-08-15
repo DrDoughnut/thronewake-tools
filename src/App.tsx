@@ -65,9 +65,13 @@ export default function App() {
   };
 
   useEffect(() => {
-    const onPop = () => setToolKey(readTool());
-    window.addEventListener('popstate', onPop);
-    return () => window.removeEventListener('popstate', onPop);
+    const onHash = () => setToolKey(readTool());
+    window.addEventListener('hashchange', onHash);
+    window.addEventListener('popstate', onHash);
+    return () => {
+      window.removeEventListener('hashchange', onHash);
+      window.removeEventListener('popstate', onHash);
+    };
   }, []);
 
   const tool = TOOLS.find((t) => t.key === toolKey) ?? TOOLS[0];

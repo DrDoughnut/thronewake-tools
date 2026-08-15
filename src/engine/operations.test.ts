@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   combineUtcDateAndTime,
+  decodeCompactPlan,
   distanceBetween,
+  encodeCompactPlan,
   enforceMaxSafeWindow,
   formatDateTime,
   isInSafeWindow,
@@ -118,5 +120,78 @@ describe('safe time', () => {
       safeStart: '23:00',
       safeEnd: '04:00',
     });
+  });
+
+  it('encodes and decodes compact plan string cleanly in a round-trip', () => {
+    const original = {
+      landing: '2026-08-16T19:00',
+      serverSpeed: 3,
+      attackers: [
+        {
+          id: 'a1',
+          name: 'DrDoughnut',
+          x: 17,
+          y: -25,
+          unitRef: 'stormfang_clans/skullthrower',
+          artifactMultiplier: 1 as const,
+          bannerfieldLevel: 9,
+          safeEnabled: true,
+          safeStart: '01:00',
+          safeEnd: '07:00',
+        },
+        {
+          id: 'a2',
+          name: 'Jezu',
+          x: 4,
+          y: 34,
+          unitRef: 'stormfang_clans/skullthrower',
+          artifactMultiplier: 1.5 as const,
+          bannerfieldLevel: 0,
+          safeEnabled: false,
+          safeStart: '22:00',
+          safeEnd: '04:00',
+        },
+      ],
+      targets: [
+        {
+          id: 't1',
+          name: 'Froggy G',
+          x: -34,
+          y: -31,
+          safeEnabled: true,
+          safeStart: '04:30',
+          safeEnd: '10:30',
+        },
+        {
+          id: 't2',
+          name: 'Dangerdoom',
+          x: -42,
+          y: -21,
+          safeEnabled: true,
+          safeStart: '17:00',
+          safeEnd: '23:00',
+        },
+      ],
+    };
+
+    const encoded = encodeCompactPlan(original);
+    // Ensure string is short (< 250 chars) and doesn't contain bulky JSON syntax
+    expect(encoded.length).toBeLessThan(250);
+    expect(encoded).not.toContain('"safeEnabled"');
+    expect(encoded).toContain('v1_2026-08-16T19:00_3');
+
+    const decoded = decodeCompactPlan(encoded);
+    expect(decoded).toBeTruthy();
+    expect(decoded?.landing).toBe('2026-08-16T19:00');
+    expect(decoded?.serverSpeed).toBe(3);
+    expect(decoded?.attackers).toHaveLength(2);
+    expect(decoded?.attackers[0].name).toBe('DrDoughnut');
+    expect(decoded?.attackers[0].x).toBe(17);
+    expect(decoded?.attackers[0].y).toBe(-25);
+    expect(decoded?.attackers[0].bannerfieldLevel).toBe(9);
+    expect(decoded?.attackers[1].artifactMultiplier).toBe(1.5);
+    expect(decoded?.targets).toHaveLength(2);
+    expect(decoded?.targets[0].name).toBe('Froggy G');
+    expect(decoded?.targets[1].name).toBe('Dangerdoom');
   });
 });

@@ -217,3 +217,154 @@ export function formatDateTime(date: Date, includeSeconds = false): string {
   }
   return `${day} ${month} ${hours}:${minutes} UTC`;
 }
+
+export interface CompactSafeTimeOwner {
+  safeEnabled: boolean;
+  safeStart: string;
+  safeEnd: string;
+}
+
+export interface CompactAttacker extends CompactSafeTimeOwner {
+  id: string;
+  name: string;
+  x: number;
+  y: number;
+  unitRef: string;
+  artifactMultiplier: 1 | 1.5 | 2;
+  bannerfieldLevel: number;
+}
+
+export interface CompactTarget extends CompactSafeTimeOwner {
+  id: string;
+  name: string;
+  x: number;
+  y: number;
+}
+
+export interface CompactPlannerState {
+  landing: string;
+  serverSpeed: number;
+  attackers: CompactAttacker[];
+  targets: CompactTarget[];
+}
+
+/** Encodes operation planner state into an ultra-compact, URL-safe delimited string. */
+export function encodeCompactPlan(state: CompactPlannerState): string {
+  const parts: string[] = [];
+  const landingClean = state.landing || '2026-08-16T19:00';
+  const speed = state.serverSpeed || 3;
+  parts.push(`v1_${landingClean}_${speed}`);
+
+  for (const atk of state.attackers) {
+    const cleanName = (atk.name || 'Attacker').replace(/~/g, '-').replace(/,/g, ' ').trim();
+    const x = Number(atk.x) || 0;
+    const y = Number(atk.y) || 0;
+    const unit = atk.unitRef || 'embermark_dominion/emberblade';
+    const art = atk.artifactMultiplier || 1;
+    const banner = Math.min(20, Math.max(0, Number(atk.bannerfieldLevel) || 0));
+    const safeOn = atk.safeEnabled ? 1 : 0;
+    const sStart = atk.safeStart || '22:00';
+    const sEnd = atk.safeEnd || '04:00';
+    parts.push(`a:${cleanName},${x},${y},${unit},${art},${banner},${safeOn},${sStart}-${sEnd}`);
+  }
+
+  for (const tgt of state.targets) {
+    const cleanName = (tgt.name || 'Target').replace(/~/g, '-').replace(/,/g, ' ').trim();
+    const x = Number(tgt.x) || 0;
+    const y = Number(tgt.y) || 0;
+    const safeOn = tgt.safeEnabled ? 1 : 0;
+    const sStart = tgt.safeStart || '22:00';
+    const sEnd = tgt.safeEnd || '04:00';
+    parts.push(`t:${cleanName},${x},${y},${safeOn},${sStart}-${sEnd}`);
+  }
+
+  return parts.join('~');
+}
+
+/** Decodes an ultra-compact delimited string back into planner state. */
+export function decodeCompactPlan(compactStr: string): CompactPlannerState | null {
+  if (!compactStr || typeof compactStr !== 'string') return null;
+  const segments = compactStr.split('~');
+  if (segments.length < 1) return null;
+
+  const header = segments[0];
+  const headerMatch = /^v1_([^_+]+)_(\d+)$/.exec(header);
+  if (!headerMatch) return null;
+
+  const landing = headerMatch[1];
+  const serverSpeed = Number(headerMatch[2]) || 3;
+
+  const decodeField = (str: string) => {
+    try {
+      return decodeURIComponent((str || '').replace(/\+/g, ' '));
+    } catch {
+      return (str || '').replace(/\+/g, ' ');
+    }
+  };
+
+  const attackers: CompactAttacker[] = [];
+  const targets: CompactTarget[] = [];
+
+  for (let i = 1; i < segments.length; i++) {
+    const seg = segments[i];
+    if (seg.startsWith('a:')) {
+      const body = seg.slice(2);
+      const fields = body.split(',');
+      const [name, xStr, yStr, unitRef, artStr, bannerStr, safeOnStr, timesStr] = fields;
+      const safeEnabled = safeOnStr === '1' || safeOnStr === 'true';
+      let safeStart = '22:00';
+      let safeEnd = '04:00';
+      if (timesStr && timesStr.includes('-')) {
+        const [s, e] = timesStr.split('-');
+        if (s) safeStart = s;
+        if (e) safeEnd = e;
+      }
+      const safe = enforceMaxSafeWindow(safeStart, safeEnd, 'start');
+      const artNum = Number(artStr);
+      const artifactMultiplier = artNum === 1.5 || artNum === 2 ? artNum : 1;
+
+      attackers.push({
+        id: `a${attackers.length + 1}`,
+        name: decodeField(name) || `Attacker ${attackers.length + 1}`,
+        x: Number(xStr) || 0,
+        y: Number(yStr) || 0,
+        unitRef: unitRef || 'embermark_dominion/emberblade',
+        artifactMultiplier,
+        bannerfieldLevel: Math.min(20, Math.max(0, Number(bannerStr) || 0)),
+        safeEnabled,
+        safeStart: safe.safeStart,
+        safeEnd: safe.safeEnd,
+      });
+    } else if (seg.startsWith('t:')) {
+      const body = seg.slice(2);
+      const fields = body.split(',');
+      const [name, xStr, yStr, safeOnStr, timesStr] = fields;
+      const safeEnabled = safeOnStr === '1' || safeOnStr === 'true';
+      let safeStart = '22:00';
+      let safeEnd = '04:00';
+      if (timesStr && timesStr.includes('-')) {
+        const [s, e] = timesStr.split('-');
+        if (s) safeStart = s;
+        if (e) safeEnd = e;
+      }
+      const safe = enforceMaxSafeWindow(safeStart, safeEnd, 'start');
+
+      targets.push({
+        id: `t${targets.length + 1}`,
+        name: decodeField(name) || `Target ${targets.length + 1}`,
+        x: Number(xStr) || 0,
+        y: Number(yStr) || 0,
+        safeEnabled,
+        safeStart: safe.safeStart,
+        safeEnd: safe.safeEnd,
+      });
+    }
+  }
+
+  return {
+    landing,
+    serverSpeed,
+    attackers,
+    targets,
+  };
+}
