@@ -255,8 +255,13 @@ export function encodeCompactPlan(state: CompactPlannerState): string {
   const speed = state.serverSpeed || 3;
   parts.push(`v1_${landingClean}_${speed}`);
 
+  const sanitizeName = (raw: string, fallback: string) => {
+    const clean = (raw || fallback).trim().replace(/~/g, '-').replace(/,/g, ' ');
+    return clean.replace(/\s+/g, '+');
+  };
+
   for (const atk of state.attackers) {
-    const cleanName = (atk.name || 'Attacker').replace(/~/g, '-').replace(/,/g, ' ').trim();
+    const cleanName = sanitizeName(atk.name, 'Attacker');
     const x = Number(atk.x) || 0;
     const y = Number(atk.y) || 0;
     const unit = atk.unitRef || 'embermark_dominion/emberblade';
@@ -269,7 +274,7 @@ export function encodeCompactPlan(state: CompactPlannerState): string {
   }
 
   for (const tgt of state.targets) {
-    const cleanName = (tgt.name || 'Target').replace(/~/g, '-').replace(/,/g, ' ').trim();
+    const cleanName = sanitizeName(tgt.name, 'Target');
     const x = Number(tgt.x) || 0;
     const y = Number(tgt.y) || 0;
     const safeOn = tgt.safeEnabled ? 1 : 0;

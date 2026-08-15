@@ -76,6 +76,10 @@ export default function App() {
 
   const tool = TOOLS.find((t) => t.key === toolKey) ?? TOOLS[0];
 
+  useEffect(() => {
+    document.title = `Thronewake Tools — ${tool.name}`;
+  }, [tool.name]);
+
   return (
     <div className="app">
       <header className="app__header">

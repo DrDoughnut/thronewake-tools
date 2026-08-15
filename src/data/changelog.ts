@@ -2,7 +2,7 @@
  * Human-maintained release notes. Bump `APP_VERSION` and add an entry here
  * whenever a change is worth telling a returning user about.
  */
-export const APP_VERSION = '1.5.2';
+export const APP_VERSION = '1.5.3';
 
 export interface ChangelogEntry {
   version: string;
@@ -11,6 +11,15 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '1.5.3',
+    date: '2026-08-15',
+    changes: [
+      'Operation Planner: Discord-safe share link generation with whitespace substitution.',
+      'SEO & Metadata: rich OpenGraph & Twitter embeds for Discord and social link previews.',
+      'Operation Planner: live browser tab title updates based on the active tool.',
+    ],
+  },
   {
     version: '1.5.2',
     date: '2026-08-15',

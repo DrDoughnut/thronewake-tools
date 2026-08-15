@@ -175,8 +175,10 @@ describe('safe time', () => {
     };
 
     const encoded = encodeCompactPlan(original);
-    // Ensure string is short (< 250 chars) and doesn't contain bulky JSON syntax
+    // Ensure string is short (< 250 chars), has no spaces (Discord-safe), and doesn't contain bulky JSON syntax
     expect(encoded.length).toBeLessThan(250);
+    expect(encoded).not.toContain(' ');
+    expect(encoded).toContain('Froggy+G');
     expect(encoded).not.toContain('"safeEnabled"');
     expect(encoded).toContain('v1_2026-08-16T19:00_3');
 
