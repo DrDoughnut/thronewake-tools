@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Changelog } from './components/Changelog';
 import { APP_VERSION } from './data/changelog';
 import { ArmyCalculator } from './pages/ArmyCalculator';
+import { OperationPlanner } from './pages/OperationPlanner';
 import { UnitAttributes } from './pages/UnitAttributes';
 
 interface Tool {
@@ -33,6 +34,16 @@ const TOOLS: Tool[] = [
     footer:
       'Queues run in parallel and produce whole units only. Great Barracks and Great Stable charge triple.',
     render: () => <ArmyCalculator />,
+  },
+  {
+    key: 'operations',
+    name: 'Operation Planner',
+    icon: '🗺️',
+    blurb:
+      'Coordinate attackers and targets around troop speed, distance, long-range bonuses, and both players’ protected hours.',
+    footer:
+      'Travel uses the slowest troop in each army. Bannerfield adds 20% speed per level to the part of a journey beyond 20 fields.',
+    render: () => <OperationPlanner />,
   },
 ];
 

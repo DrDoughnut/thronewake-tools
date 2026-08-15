@@ -2,7 +2,7 @@
  * Human-maintained release notes. Bump `APP_VERSION` and add an entry here
  * whenever a change is worth telling a returning user about.
  */
-export const APP_VERSION = '1.3.0';
+export const APP_VERSION = '1.5.0';
 
 export interface ChangelogEntry {
   version: string;
@@ -11,6 +11,29 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '1.5.0',
+    date: '2026-08-15',
+    changes: [
+      'Operation Planner: added full coordinated multi-army attack & defense route calculation.',
+      'Operation Planner: chronological route sorting by Send time with precision seconds.',
+      'Operation Planner: interactive 3-faction Unit Grid Picker for slowest troop selection.',
+      'Operation Planner: detailed Safetime Checks (A, B, C, D) with interactive popovers and guidance tooltips.',
+      'Operation Planner: 24-hour UTC safe-time schedule timeline with sliding 6-hour max window enforcement.',
+      'Operation Planner: full-row route selection linked to lane highlighting and movement track safe window overlays.',
+      'Operation Planner: distinct color coding (Warm Ember for Attackers, Azure/Cyan for Defenders).',
+      'Operation Planner: resilient keyboard-friendly 24h time and negative coordinate inputs.',
+    ],
+  },
+  {
+    version: '1.4.0',
+    date: '2026-08-15',
+    changes: [
+      'Added the Operation Planner for coordinated landings across multiple attackers and targets.',
+      'Travel time accounts for coordinate distance, the slowest troop, server speed, 1.5×/2× speed artifacts, and Bannerfield beyond 20 fields.',
+      'Optional attacker and defender safe times are checked at both send and landing, with a daily overlap timeline.',
+    ],
+  },
   {
     version: '1.3.0',
     date: '2026-08-04',

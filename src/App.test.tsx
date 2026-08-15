@@ -319,3 +319,89 @@ describe('the army calculator', () => {
     expect(popover!.textContent).toContain('Speed');
   });
 });
+
+describe('the operation planner', () => {
+  beforeEach(() => {
+    const opTab = [...container.querySelectorAll('.pill--tool')].find(
+      (b) => b.getAttribute('aria-label') === 'Operation Planner',
+    )!;
+    click(opTab);
+  });
+
+  it('renders attackers, targets, and the route plan table', () => {
+    expect(window.location.hash).toContain('tool=operations');
+    expect(container.textContent).toContain('Attacking Armies');
+    expect(container.textContent).toContain('Target Destinations');
+    expect(container.textContent).toContain('Safetime Checks');
+    expect(container.textContent).toContain('24h UTC');
+  });
+
+  it('places Name and Coordinate X/Y inputs inline in card headers', () => {
+    const cardHeader = container.querySelector('.op-card__header-row');
+    expect(cardHeader).toBeTruthy();
+    const nameInput = cardHeader?.querySelector('.op-card__name');
+    const coordFields = cardHeader?.querySelectorAll('.coord-field');
+    expect(nameInput).toBeTruthy();
+    expect(coordFields).toHaveLength(2); // X and Y
+  });
+
+  it('places safe time controls at the bottom of the card', () => {
+    const cardFooter = container.querySelector('.op-card__footer .op-safetime');
+    expect(cardFooter).toBeTruthy();
+    expect(cardFooter?.textContent).toContain('Safe Hours');
+  });
+
+  it('opens 3-faction unit grid picker and allows selecting a unit', () => {
+    const trigger = container.querySelector('.unit-grid-picker__trigger') as HTMLElement;
+    expect(trigger).toBeTruthy();
+    click(trigger);
+
+    const popover = document.querySelector('.unit-grid-popover');
+    expect(popover).toBeTruthy();
+    expect(popover?.textContent).toContain('Embermark Dominion');
+    expect(popover?.textContent).toContain('Stormfang Clans');
+    expect(popover?.textContent).toContain('Verdant Wardens');
+
+    // Click another unit item in the popover
+    const unitButtons = popover?.querySelectorAll('.unit-grid-item');
+    expect(unitButtons && unitButtons.length).toBeGreaterThan(5);
+    const shieldbearer = [...(unitButtons || [])].find((btn) => btn.textContent?.includes('Shieldbearer'));
+    expect(shieldbearer).toBeTruthy();
+    click(shieldbearer!);
+
+    // Popover should close and trigger should update
+    expect(document.querySelector('.unit-grid-popover')).toBeNull();
+    expect(trigger.textContent).toContain('Shieldbearer');
+  });
+
+  it('sorts routes chronologically by Send time and includes seconds in send timestamps', () => {
+    // Add another target further away
+    const addTargetBtn = container.querySelector('.op-roster--targets .pill--primary') as HTMLElement;
+    click(addTargetBtn);
+
+    const rows = [...container.querySelectorAll('.op-routes tbody tr')];
+    expect(rows.length).toBe(2);
+    const sendTimestamps = rows.map((r) => r.querySelector('.op-timestamp--send')?.textContent || '');
+    expect(sendTimestamps.every((t) => /\d{2}:\d{2}:\d{2} UTC/.test(t))).toBe(true);
+
+    const landTimestamps = rows.map((r) => r.querySelector('.op-timestamp--land')?.textContent || '');
+    expect(landTimestamps.every((t) => /\d{2}:\d{2} UTC/.test(t) && !/\d{2}:\d{2}:\d{2} UTC/.test(t))).toBe(true);
+  });
+
+  it('selects a route when clicking anywhere on a row and highlights relevant schedule lanes', () => {
+    // Add another attacker
+    const addAttackerBtn = container.querySelector('.op-roster--attackers .pill--primary') as HTMLElement;
+    click(addAttackerBtn);
+
+    const rows = [...container.querySelectorAll('.op-routes tbody tr')];
+    expect(rows.length).toBe(2);
+
+    // Click the 2nd row anywhere (e.g. on the distance cell)
+    const secondRowDist = rows[1].querySelector('[data-label="Distance"]') as HTMLElement;
+    click(secondRowDist);
+
+    expect(rows[1].classList.contains('is-selected')).toBe(true);
+    expect(container.querySelector('.schedule__row.is-selected-lane')).toBeTruthy();
+    expect(container.querySelector('.schedule__row.is-faded-lane')).toBeTruthy();
+  });
+});

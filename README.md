@@ -5,15 +5,18 @@ whole thing is static files, and every number is computed in your browser.
 Deploy it to GitHub Pages, Netlify, S3, or open `dist/index.html` from a USB
 stick; it works the same.
 
-Two tools so far:
+Three tools so far:
 
 - **Unit Attributes** — ranks every unit (or mixed pair) by whatever is actually
   limiting you: resources, grain, or hours.
 - **Army Calculator** — set your training buildings running for a stretch of
   time and see the army that comes out, what it costs, and what it is worth in
   a fight.
+- **Operation Planner** — coordinates complex multi-army operations across
+  attackers and targets with slowest troop speed, artifact speed multipliers,
+  Bannerfield long-range bonus, and 24-hour UTC safe-time protection checks.
 
-Both apply smithy upgrades and each faction's own buildings.
+All apply smithy upgrades and faction-specific buildings where relevant.
 
 ## Running it
 
