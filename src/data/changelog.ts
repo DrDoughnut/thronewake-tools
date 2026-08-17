@@ -2,7 +2,7 @@
  * Human-maintained release notes. Bump `APP_VERSION` and add an entry here
  * whenever a change is worth telling a returning user about.
  */
-export const APP_VERSION = '1.5.4';
+export const APP_VERSION = '1.5.5';
 
 export interface ChangelogEntry {
   version: string;
@@ -11,6 +11,14 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '1.5.5',
+    date: '2026-08-17',
+    changes: [
+      'Operation Planner: interactive timeline lanes — click any attacker or defender in the daily schedule to switch routes directly.',
+      'Operation Planner: enhanced hover effects and keyboard navigation for timeline lanes.',
+    ],
+  },
   {
     version: '1.5.4',
     date: '2026-08-17',
