@@ -199,9 +199,13 @@ describe('the army calculator', () => {
     });
   };
 
+  // Counts render through toLocaleString, so the thousands separator is
+  // whatever the machine's locale uses — a comma, a period, or the non-breaking
+  // space Czech picks. Strip everything that is not a digit rather than
+  // assuming one of them.
   const strip = () =>
     [...container.querySelectorAll('.strip__cell')].map((c) =>
-      Number(c.querySelector('.strip__count')!.textContent!.replace(/,/g, '')),
+      Number(c.querySelector('.strip__count')!.textContent!.replace(/\D/g, '')),
     );
 
   it('groups the three barracks into one row with a shared picker', () => {
@@ -373,6 +377,44 @@ describe('the operation planner', () => {
     // Popover should close and trigger should update
     expect(document.querySelector('.unit-grid-popover')).toBeNull();
     expect(trigger.textContent).toContain('Shieldbearer');
+  });
+
+  it('adds villages under a player and shows the target coordinates and hit type in the route plan', () => {
+    const addPlayer = [...container.querySelectorAll('.op-section-head__actions .pill--tiny')].find(
+      (b) => b.textContent?.includes('Player'),
+    ) as HTMLElement;
+    click(addPlayer);
+
+    const group = container.querySelector('.op-target-group.is-player') as HTMLElement;
+    expect(group).toBeTruthy();
+
+    const addVillage = [...group.querySelectorAll('.pill--tiny')].find(
+      (b) => b.textContent?.includes('Village'),
+    ) as HTMLElement;
+    click(addVillage);
+    click(addVillage);
+    expect(group.textContent).toContain('2 villages');
+
+    // Both villages sit inside their player's group, not loose in the list.
+    expect(group.querySelectorAll('.op-card--target')).toHaveLength(2);
+    expect(container.querySelectorAll('.op-target-group.is-loose .op-card--target')).toHaveLength(1);
+
+    // Both villages inherit the player's window rather than carrying their own.
+    expect(container.querySelectorAll('.op-inherited')).toHaveLength(2);
+
+    // One default target plus two villages, against the single default attacker.
+    const rows = [...container.querySelectorAll('.op-routes tbody tr')];
+    expect(rows).toHaveLength(3);
+    expect(rows[0].querySelector('.op-route-coords')?.textContent).toMatch(/^\(-?\d+\|-?\d+\)$/);
+    expect(container.querySelectorAll('.op-hit-tag.is-real')).toHaveLength(3);
+
+    // Marking a village fake is reflected in its row and in the summary line.
+    const fakeButton = [...container.querySelectorAll('.op-fake-pill')].find(
+      (b) => b.textContent === 'Fake',
+    ) as HTMLElement;
+    click(fakeButton);
+    expect(container.querySelectorAll('.op-hit-tag.is-fake')).toHaveLength(1);
+    expect(container.textContent).toContain('2 real, 1 fake');
   });
 
   it('sorts routes chronologically by Send time and includes seconds in send timestamps', () => {

@@ -1,5 +1,7 @@
-/// <reference types="vitest" />
-import { defineConfig } from 'vite';
+// `defineConfig` comes from vitest, not vite: since vite 8 the `test` key is no
+// longer merged into vite's own config type, so importing it from 'vite' makes
+// `tsc -b` reject this file and the build gate never runs.
+import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 
 // Static site. Everything runs in the browser; there is no API layer.

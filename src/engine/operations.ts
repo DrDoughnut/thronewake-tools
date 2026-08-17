@@ -218,6 +218,69 @@ export function formatDateTime(date: Date, includeSeconds = false): string {
   return `${day} ${month} ${hours}:${minutes} UTC`;
 }
 
+/**
+ * Local-time display.
+ *
+ * Every number the planner computes is UTC and stays UTC — a shared plan has
+ * to mean the same instant for everyone reading it. These helpers only render
+ * that same instant a second time in the viewer's own zone, so nobody has to
+ * convert in their head. `timeZone` is for tests; left out, it resolves to
+ * whatever zone the browser is in.
+ */
+function localParts(
+  date: Date,
+  includeSeconds: boolean,
+  timeZone?: string,
+): Record<string, string> {
+  const formatter = new Intl.DateTimeFormat('en-GB', {
+    timeZone,
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    ...(includeSeconds ? { second: '2-digit' as const } : null),
+    // h23 rather than hour12:false — some engines render midnight as "24" for
+    // the latter.
+    hourCycle: 'h23',
+    timeZoneName: 'short',
+  });
+  const parts: Record<string, string> = {};
+  for (const part of formatter.formatToParts(date)) {
+    parts[part.type] = part.value;
+  }
+  return parts;
+}
+
+/** "16 Aug 00:30 GMT+2" in the viewer's zone. Falls back to UTC if Intl fails. */
+export function formatLocalDateTime(date: Date, includeSeconds = false, timeZone?: string): string {
+  try {
+    const p = localParts(date, includeSeconds, timeZone);
+    const time = includeSeconds ? `${p.hour}:${p.minute}:${p.second}` : `${p.hour}:${p.minute}`;
+    return `${p.day} ${p.month} ${time} ${p.timeZoneName}`;
+  } catch {
+    return formatDateTime(date, includeSeconds);
+  }
+}
+
+/** Just the clock portion of the above: "00:30". */
+export function formatLocalClock(date: Date, includeSeconds = false, timeZone?: string): string {
+  try {
+    const p = localParts(date, includeSeconds, timeZone);
+    return includeSeconds ? `${p.hour}:${p.minute}:${p.second}` : `${p.hour}:${p.minute}`;
+  } catch {
+    return formatClock(minuteOfDay(date), includeSeconds);
+  }
+}
+
+/** IANA name of the viewer's zone, for labelling the toggle: "Europe/Prague". */
+export function localZoneLabel(timeZone?: string): string {
+  try {
+    return timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+  } catch {
+    return 'Local';
+  }
+}
+
 export interface CompactSafeTimeOwner {
   safeEnabled: boolean;
   safeStart: string;
@@ -234,11 +297,20 @@ export interface CompactAttacker extends CompactSafeTimeOwner {
   bannerfieldLevel: number;
 }
 
+export interface CompactPlayer extends CompactSafeTimeOwner {
+  id: string;
+  name: string;
+}
+
 export interface CompactTarget extends CompactSafeTimeOwner {
   id: string;
   name: string;
   x: number;
   y: number;
+  /** Marks a diversion rather than a real hit. Display only. */
+  fake: boolean;
+  /** Id of the owning player, or '' when the village carries its own window. */
+  playerId: string;
 }
 
 export interface CompactPlannerState {
@@ -246,6 +318,37 @@ export interface CompactPlannerState {
   serverSpeed: number;
   attackers: CompactAttacker[];
   targets: CompactTarget[];
+  players: CompactPlayer[];
+}
+
+export interface ResolvedSafeTime extends CompactSafeTimeOwner {
+  /** Player the window was inherited from, or undefined if it is the village's own. */
+  sourceName?: string;
+}
+
+/**
+ * Safe hours are an account-level setting in this game, so every village of a
+ * player shares one window. A village assigned to a player therefore inherits
+ * rather than overrides; only an unassigned one carries its own.
+ */
+export function resolveSafeTime(
+  target: CompactSafeTimeOwner & { playerId?: string },
+  players: Array<CompactSafeTimeOwner & { id: string; name: string }>,
+): ResolvedSafeTime {
+  const owner = target.playerId ? players.find((p) => p.id === target.playerId) : undefined;
+  if (!owner) {
+    return {
+      safeEnabled: target.safeEnabled,
+      safeStart: target.safeStart,
+      safeEnd: target.safeEnd,
+    };
+  }
+  return {
+    safeEnabled: owner.safeEnabled,
+    safeStart: owner.safeStart,
+    safeEnd: owner.safeEnd,
+    sourceName: owner.name,
+  };
 }
 
 /** Encodes operation planner state into an ultra-compact, URL-safe delimited string. */
@@ -277,6 +380,18 @@ export function encodeCompactPlan(state: CompactPlannerState): string {
     parts.push(`a:${cleanName},${x},${y},${unit},${art},${banner},${safeOn},${sStart}-${sEnd}`);
   }
 
+  // Players are emitted before the villages that reference them, and a village
+  // stores its owner as a 1-based position in this list rather than an id, so
+  // the reference costs one character.
+  const players = state.players ?? [];
+  for (const player of players) {
+    const cleanName = sanitizeName(player.name, 'Player');
+    const safeOn = player.safeEnabled ? 1 : 0;
+    const sStart = player.safeStart || '22:00';
+    const sEnd = player.safeEnd || '04:00';
+    parts.push(`p:${cleanName},${safeOn},${sStart}-${sEnd}`);
+  }
+
   for (const tgt of state.targets) {
     const cleanName = sanitizeName(tgt.name, 'Target');
     const x = Number(tgt.x) || 0;
@@ -284,7 +399,11 @@ export function encodeCompactPlan(state: CompactPlannerState): string {
     const safeOn = tgt.safeEnabled ? 1 : 0;
     const sStart = tgt.safeStart || '22:00';
     const sEnd = tgt.safeEnd || '04:00';
-    parts.push(`t:${cleanName},${x},${y},${safeOn},${sStart}-${sEnd}`);
+    const fake = tgt.fake ? 1 : 0;
+    const ownerIndex = tgt.playerId ? players.findIndex((p) => p.id === tgt.playerId) + 1 : 0;
+    // `fake` and the owner reference are appended last, so a link written
+    // before they existed still decodes — the fields simply read as absent.
+    parts.push(`t:${cleanName},${x},${y},${safeOn},${sStart}-${sEnd},${fake},${ownerIndex}`);
   }
 
   return parts.join('~');
@@ -316,6 +435,20 @@ export function decodeCompactPlan(compactStr: string): CompactPlannerState | nul
 
   const attackers: CompactAttacker[] = [];
   const targets: CompactTarget[] = [];
+  const players: CompactPlayer[] = [];
+  /** Villages hold a 1-based player position until every `p:` record is read. */
+  const ownerIndexByTarget: number[] = [];
+
+  const readWindow = (timesStr: string | undefined) => {
+    let safeStart = '22:00';
+    let safeEnd = '04:00';
+    if (timesStr && timesStr.includes('-')) {
+      const [s, e] = timesStr.split('-');
+      if (s) safeStart = s;
+      if (e) safeEnd = e;
+    }
+    return enforceMaxSafeWindow(safeStart, safeEnd, 'start');
+  };
 
   for (let i = 1; i < segments.length; i++) {
     const seg = segments[i];
@@ -350,33 +483,48 @@ export function decodeCompactPlan(compactStr: string): CompactPlannerState | nul
     } else if (seg.startsWith('t:')) {
       const body = seg.slice(2);
       const fields = body.split(',');
-      const [name, xStr, yStr, safeOnStr, timesStr] = fields;
+      const [name, xStr, yStr, safeOnStr, timesStr, fakeStr, ownerStr] = fields;
       const safeEnabled = safeOnStr === '1' || safeOnStr === 'true';
-      let safeStart = '22:00';
-      let safeEnd = '04:00';
-      if (timesStr && timesStr.includes('-')) {
-        const [s, e] = timesStr.split('-');
-        if (s) safeStart = s;
-        if (e) safeEnd = e;
-      }
-      const safe = enforceMaxSafeWindow(safeStart, safeEnd, 'start');
+      const safe = readWindow(timesStr);
 
+      ownerIndexByTarget.push(Number(ownerStr) || 0);
       targets.push({
         id: `t${targets.length + 1}`,
         name: decodeField(name) || `Target ${targets.length + 1}`,
         x: Number(xStr) || 0,
         y: Number(yStr) || 0,
+        fake: fakeStr === '1' || fakeStr === 'true',
+        playerId: '',
         safeEnabled,
+        safeStart: safe.safeStart,
+        safeEnd: safe.safeEnd,
+      });
+    } else if (seg.startsWith('p:')) {
+      const fields = seg.slice(2).split(',');
+      const [name, safeOnStr, timesStr] = fields;
+      const safe = readWindow(timesStr);
+
+      players.push({
+        id: `p${players.length + 1}`,
+        name: decodeField(name) || `Player ${players.length + 1}`,
+        safeEnabled: safeOnStr === '1' || safeOnStr === 'true',
         safeStart: safe.safeStart,
         safeEnd: safe.safeEnd,
       });
     }
   }
 
+  // Resolved after the loop, because a village may be listed before its owner.
+  targets.forEach((target, index) => {
+    const owner = players[ownerIndexByTarget[index] - 1];
+    target.playerId = owner ? owner.id : '';
+  });
+
   return {
     landing,
     serverSpeed,
     attackers,
     targets,
+    players,
   };
 }
