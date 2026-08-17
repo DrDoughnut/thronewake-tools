@@ -255,9 +255,13 @@ export function encodeCompactPlan(state: CompactPlannerState): string {
   const speed = state.serverSpeed || 3;
   parts.push(`v1_${landingClean}_${speed}`);
 
+  // `~` and `,` are the record and field delimiters; `&`, `#`, `=`, `?` and `%`
+  // are URL structure. A name containing any of them would truncate or corrupt
+  // the plan when the link is parsed back, so they collapse to a space — which
+  // the `+` substitution below then carries safely through a URL.
   const sanitizeName = (raw: string, fallback: string) => {
-    const clean = (raw || fallback).trim().replace(/~/g, '-').replace(/,/g, ' ');
-    return clean.replace(/\s+/g, '+');
+    const clean = (raw || fallback).trim().replace(/[~,&#=?%+]/g, ' ');
+    return clean.replace(/\s+/g, '+') || fallback;
   };
 
   for (const atk of state.attackers) {
@@ -305,13 +309,10 @@ export function decodeCompactPlan(compactStr: string): CompactPlannerState | nul
   const landing = headerMatch[1];
   const serverSpeed = Number(headerMatch[2]) || 3;
 
-  const decodeField = (str: string) => {
-    try {
-      return decodeURIComponent((str || '').replace(/\+/g, ' '));
-    } catch {
-      return (str || '').replace(/\+/g, ' ');
-    }
-  };
+  // Percent-decoding already happened once above, on the whole string. Doing it
+  // again per field would decode a name that legitimately contains a percent
+  // escape twice, so this only undoes the space substitution.
+  const decodeField = (str: string) => (str || '').replace(/\+/g, ' ');
 
   const attackers: CompactAttacker[] = [];
   const targets: CompactTarget[] = [];
