@@ -624,14 +624,28 @@ function TimelineLane({
   window,
   isSelected = false,
   type = 'attacker',
+  onClick,
 }: {
   label: string;
   window: SafeWindow;
   isSelected?: boolean;
   type?: 'attacker' | 'defender';
+  onClick?: () => void;
 }) {
   return (
-    <div className={`schedule__row schedule__row--${type} ${isSelected ? 'is-selected-lane' : 'is-faded-lane'}`}>
+    <div
+      className={`schedule__row schedule__row--${type} ${onClick ? 'schedule__row--interactive ' : ''}${isSelected ? 'is-selected-lane' : 'is-faded-lane'}`}
+      onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick();
+        }
+      } : undefined}
+      title={onClick ? (isSelected ? `${label} (currently selected)` : `Click to switch route to ${label}`) : undefined}
+    >
       <span className="schedule__label">
         {isSelected && (
           <span className={`schedule__active-indicator schedule__active-indicator--${type}`} aria-hidden="true">
@@ -657,11 +671,37 @@ function TimelineLane({
   );
 }
 
-function DailySchedule({ routes, route }: { routes: PlannedRoute[]; route: PlannedRoute }) {
+function DailySchedule({
+  routes,
+  route,
+  onSelectRoute,
+}: {
+  routes: PlannedRoute[];
+  route: PlannedRoute;
+  onSelectRoute: (routeKey: string) => void;
+}) {
   const attackers = [...new Map(routes.map((item) => [item.attacker.id, item.attacker])).values()];
   const targets = [...new Map(routes.map((item) => [item.target.id, item.target])).values()];
   const sendPosition = Math.min(100, Math.max(0, minuteOfDay(route.send) / 14.4));
   const landPosition = Math.min(100, Math.max(0, minuteOfDay(route.land) / 14.4));
+
+  const handleSelectAttacker = (attackerId: string) => {
+    const nextRoute = routes.find(
+      (r) => r.attacker.id === attackerId && r.target.id === route.target.id
+    ) ?? routes.find((r) => r.attacker.id === attackerId);
+    if (nextRoute) {
+      onSelectRoute(nextRoute.key);
+    }
+  };
+
+  const handleSelectTarget = (targetId: string) => {
+    const nextRoute = routes.find(
+      (r) => r.attacker.id === route.attacker.id && r.target.id === targetId
+    ) ?? routes.find((r) => r.target.id === targetId);
+    if (nextRoute) {
+      onSelectRoute(nextRoute.key);
+    }
+  };
 
   return (
     <section className="panel op-schedule">
@@ -669,7 +709,7 @@ function DailySchedule({ routes, route }: { routes: PlannedRoute[]; route: Plann
         <div>
           <h2 className="panel__title">Daily safe-time schedule · UTC</h2>
           <p className="op-section-copy">
-            Selected route: <strong>{route.attacker.name}</strong> → <strong>{route.target.name}</strong>
+            Selected route: <strong>{route.attacker.name}</strong> → <strong>{route.target.name}</strong>. Click any lane or route row to switch.
           </p>
         </div>
         <span className={'op-status ' + (route.possible ? 'is-possible' : 'is-blocked')}>
@@ -697,6 +737,7 @@ function DailySchedule({ routes, route }: { routes: PlannedRoute[]; route: Plann
           window={ownerWindow(attacker)}
           isSelected={attacker.id === route.attacker.id}
           type="attacker"
+          onClick={() => handleSelectAttacker(attacker.id)}
         />
       ))}
 
@@ -708,6 +749,7 @@ function DailySchedule({ routes, route }: { routes: PlannedRoute[]; route: Plann
           window={ownerWindow(target)}
           isSelected={target.id === route.target.id}
           type="defender"
+          onClick={() => handleSelectTarget(target.id)}
         />
       ))}
 
@@ -1274,7 +1316,13 @@ export function OperationPlanner() {
         </div>
       </section>
 
-      {selectedRoute && <DailySchedule routes={routes} route={selectedRoute} />}
+      {selectedRoute && (
+        <DailySchedule
+          routes={routes}
+          route={selectedRoute}
+          onSelectRoute={setSelectedKey}
+        />
+      )}
     </div>
   );
 }

@@ -499,4 +499,29 @@ describe('the operation planner', () => {
     expect(container.textContent).toContain('Froggy G');
     expect(container.textContent).toContain('Dangerdoom');
   });
+
+  it('selects route when clicking on attacker or defender timeline lane in daily schedule', () => {
+    const compact = 'v1_2026-08-16T19:00_3~a:DrDoughnut,17,-25,stormfang_clans/skullthrower,1,9,1,01:00-07:00~a:Jezu,4,34,stormfang_clans/skullthrower,1,0,0,22:00-04:00~t:Froggy+G,-34,-31,1,04:30-10:30~t:Dangerdoom,-42,-21,1,17:00-23:00';
+    act(() => {
+      window.location.hash = `#tool=operations&p=${encodeURIComponent(compact)}`;
+      window.dispatchEvent(new Event('hashchange'));
+    });
+
+    // Find the schedule section and verify initial selected route
+    const schedule = container.querySelector('.op-schedule')!;
+    expect(schedule).toBeTruthy();
+    expect(schedule.textContent).toContain('Selected route:');
+
+    // Click on Dangerdoom (Defender 2) lane inside the schedule
+    const defenderLanes = Array.from(schedule.querySelectorAll('.schedule__row--defender.schedule__row--interactive'));
+    const dangerdoomLane = defenderLanes.find((el) => el.textContent?.includes('Dangerdoom')) as HTMLElement;
+    expect(dangerdoomLane).toBeTruthy();
+
+    act(() => {
+      dangerdoomLane.click();
+    });
+
+    expect(schedule.textContent).toContain('Dangerdoom');
+  });
 });
+
