@@ -6,7 +6,10 @@ import {
   encodeCompactPlan,
   enforceMaxSafeWindow,
   formatDateTime,
+  formatLocalClock,
+  formatLocalDateTime,
   isInSafeWindow,
+  resolveSafeTime,
   routeIsPossible,
   safeChecks,
   safeSegments,
@@ -84,6 +87,29 @@ describe('safe time', () => {
     expect(formatDateTime(morning, true)).toBe('05 Jan 08:05:09 UTC');
   });
 
+  it('renders the same instant in a named zone, rolling the date where it must', () => {
+    // 22:30 UTC is 00:30 the next day in Prague (CEST, UTC+2) in August.
+    const evening = new Date(Date.UTC(2026, 7, 15, 22, 30, 45));
+    expect(formatDateTime(evening)).toBe('15 Aug 22:30 UTC');
+    // The zone suffix itself is whatever the platform's ICU calls it (CEST or
+    // GMT+2), so only the instant is pinned.
+    expect(formatLocalDateTime(evening, false, 'Europe/Prague')).toMatch(/^16 Aug 00:30 \S+$/);
+    expect(formatLocalClock(evening, false, 'Europe/Prague')).toBe('00:30');
+    expect(formatLocalClock(evening, true, 'Europe/Prague')).toBe('00:30:45');
+    // Winter, so the same zone is one hour off UTC instead of two.
+    const winter = new Date(Date.UTC(2026, 0, 5, 23, 10));
+    expect(formatLocalDateTime(winter, false, 'Europe/Prague')).toMatch(/^06 Jan 00:10 \S+$/);
+    // Behind UTC, the local date rolls backwards.
+    expect(formatLocalClock(new Date(Date.UTC(2026, 7, 15, 2, 0)), false, 'America/New_York'))
+      .toBe('22:00');
+  });
+
+  it('falls back to UTC rather than throwing on an unusable time zone', () => {
+    const evening = new Date(Date.UTC(2026, 7, 15, 22, 30));
+    expect(formatLocalDateTime(evening, false, 'Not/AZone')).toBe('15 Aug 22:30 UTC');
+    expect(formatLocalClock(evening, false, 'Not/AZone')).toBe('22:30');
+  });
+
   it('splits and combines UTC date and time accurately', () => {
     const original = new Date(Date.UTC(2026, 7, 15, 14, 45));
     const { date, time } = splitUtcDateAndTime(original);
@@ -126,6 +152,7 @@ describe('safe time', () => {
     const original = {
       landing: '2026-08-16T19:00',
       serverSpeed: 3,
+      players: [],
       attackers: [
         {
           id: 'a1',
@@ -158,6 +185,8 @@ describe('safe time', () => {
           name: 'Froggy G',
           x: -34,
           y: -31,
+          fake: false,
+          playerId: '',
           safeEnabled: true,
           safeStart: '04:30',
           safeEnd: '10:30',
@@ -167,6 +196,8 @@ describe('safe time', () => {
           name: 'Dangerdoom',
           x: -42,
           y: -21,
+          fake: false,
+          playerId: '',
           safeEnabled: true,
           safeStart: '17:00',
           safeEnd: '23:00',
@@ -197,10 +228,60 @@ describe('safe time', () => {
     expect(decoded?.targets[1].name).toBe('Dangerdoom');
   });
 
+  it('round-trips players, village ownership and the fake mark', () => {
+    const encoded = encodeCompactPlan({
+      landing: '2026-08-16T19:00',
+      serverSpeed: 3,
+      players: [
+        { id: 'pA', name: 'Froggy G', safeEnabled: true, safeStart: '01:00', safeEnd: '07:00' },
+        { id: 'pB', name: 'Petrgon', safeEnabled: false, safeStart: '22:00', safeEnd: '04:00' },
+      ],
+      attackers: [],
+      targets: [
+        { id: 't1', name: 'Capital', x: 1, y: 2, fake: false, playerId: 'pB', safeEnabled: false, safeStart: '22:00', safeEnd: '04:00' },
+        { id: 't2', name: 'Second', x: 3, y: 4, fake: true, playerId: 'pA', safeEnabled: false, safeStart: '22:00', safeEnd: '04:00' },
+        { id: 't3', name: 'Loner', x: 5, y: 6, fake: true, playerId: '', safeEnabled: true, safeStart: '10:00', safeEnd: '12:00' },
+      ],
+    });
+
+    const decoded = decodeCompactPlan(encoded);
+    expect(decoded?.players.map((p) => p.name)).toEqual(['Froggy G', 'Petrgon']);
+    expect(decoded?.targets.map((t) => t.fake)).toEqual([false, true, true]);
+    // Ownership survives as a reference to the decoded player, not the original id.
+    expect(decoded?.targets[0].playerId).toBe(decoded?.players[1].id);
+    expect(decoded?.targets[1].playerId).toBe(decoded?.players[0].id);
+    expect(decoded?.targets[2].playerId).toBe('');
+
+    // A village inherits its player's window; an unassigned one keeps its own.
+    expect(resolveSafeTime(decoded!.targets[1], decoded!.players)).toEqual({
+      safeEnabled: true,
+      safeStart: '01:00',
+      safeEnd: '07:00',
+      sourceName: 'Froggy G',
+    });
+    expect(resolveSafeTime(decoded!.targets[2], decoded!.players)).toEqual({
+      safeEnabled: true,
+      safeStart: '10:00',
+      safeEnd: '12:00',
+    });
+  });
+
+  it('still decodes a target record written before players and fake marks existed', () => {
+    const legacy = 'v1_2026-08-16T19:00_3~t:Froggy+G,-34,-31,1,04:30-10:30';
+    const decoded = decodeCompactPlan(legacy);
+    expect(decoded?.targets).toHaveLength(1);
+    expect(decoded?.targets[0].name).toBe('Froggy G');
+    expect(decoded?.targets[0].safeStart).toBe('04:30');
+    expect(decoded?.targets[0].fake).toBe(false);
+    expect(decoded?.targets[0].playerId).toBe('');
+    expect(decoded?.players).toEqual([]);
+  });
+
   it('keeps URL-structural characters out of names so a link cannot be truncated', () => {
     const encoded = encodeCompactPlan({
       landing: '2026-08-16T19:00',
       serverSpeed: 3,
+      players: [],
       attackers: [
         {
           id: 'a1',
@@ -221,6 +302,8 @@ describe('safe time', () => {
           name: 'Loot=100%',
           x: 3,
           y: 4,
+          fake: false,
+          playerId: '',
           safeEnabled: false,
           safeStart: '22:00',
           safeEnd: '04:00',
