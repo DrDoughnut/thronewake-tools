@@ -211,3 +211,9 @@ An earlier draft used a variant of the upgrade curve that divides upkeep by
 formula by about 0.08% and the two extra constants have no stated basis, so the
 documented form is what ships. If in-game numbers ever disagree with this tool,
 that curve is the first thing to re-check.
+
+## Contributors
+
+- **Joseph Ghanimah** ([@DrDoughnut](https://github.com/DrDoughnut))
+- **Zdeněk Kunovjánek** ([@Qira95](https://github.com/Qira95)) — URL character sanitization, landing time validation, and dependency maintenance
+

@@ -1,7 +1,7 @@
 {
   "name": "thronewake-tools",
   "private": true,
-  "version": "1.5.3",
+  "version": "1.5.4",
   "type": "module",
   "description": "Browser-only calculators and tools for Thronewake. No backend, no server calls.",
   "scripts": {

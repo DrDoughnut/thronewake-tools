@@ -2,7 +2,7 @@
  * Human-maintained release notes. Bump `APP_VERSION` and add an entry here
  * whenever a change is worth telling a returning user about.
  */
-export const APP_VERSION = '1.5.3';
+export const APP_VERSION = '1.5.4';
 
 export interface ChangelogEntry {
   version: string;
@@ -11,6 +11,15 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '1.5.4',
+    date: '2026-08-17',
+    changes: [
+      'Operation Planner: strengthened URL-structural character sanitization in player and target names (credits: @Qira95).',
+      'Operation Planner: stricter UTC landing time validation and fallback render stability (credits: @Qira95).',
+      'Maintenance: upgraded Vite and Vitest dependencies to resolve security audit warnings (credits: @Qira95).',
+    ],
+  },
   {
     version: '1.5.3',
     date: '2026-08-15',
