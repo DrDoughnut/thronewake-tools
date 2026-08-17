@@ -197,6 +197,47 @@ describe('safe time', () => {
     expect(decoded?.targets[1].name).toBe('Dangerdoom');
   });
 
+  it('keeps URL-structural characters out of names so a link cannot be truncated', () => {
+    const encoded = encodeCompactPlan({
+      landing: '2026-08-16T19:00',
+      serverSpeed: 3,
+      attackers: [
+        {
+          id: 'a1',
+          name: 'R&D #1',
+          x: 1,
+          y: 2,
+          unitRef: 'stormfang_clans/skullthrower',
+          artifactMultiplier: 1,
+          bannerfieldLevel: 0,
+          safeEnabled: false,
+          safeStart: '22:00',
+          safeEnd: '04:00',
+        },
+      ],
+      targets: [
+        {
+          id: 't1',
+          name: 'Loot=100%',
+          x: 3,
+          y: 4,
+          safeEnabled: false,
+          safeStart: '22:00',
+          safeEnd: '04:00',
+        },
+      ],
+    });
+
+    expect(encoded).not.toMatch(/[&#=?%]/);
+
+    const decoded = decodeCompactPlan(encoded);
+    expect(decoded?.attackers).toHaveLength(1);
+    expect(decoded?.targets).toHaveLength(1);
+    expect(decoded?.attackers[0].name).toBe('R D 1');
+    expect(decoded?.targets[0].x).toBe(3);
+    expect(decoded?.targets[0].y).toBe(4);
+  });
+
   it('decodes percent-encoded compact string cleanly', () => {
     const rawEncoded = 'v1_2026-08-16T19%3A00_3%7Ea%3ADrDoughnut%2C17%2C-25%2Cstormfang_clans%2Fskullthrower%2C1%2C9%2C1%2C01%3A00-07%3A00%7Ea%3AJezu%2C4%2C34%2Cstormfang_clans%2Fskullthrower%2C1%2C0%2C0%2C22%3A00-04%3A00%7Et%3AFroggy+G%2C-34%2C-31%2C1%2C04%3A30-10%3A30%7Et%3ASmall+cat%2C-35%2C-22%2C1%2C04%3A30-10%3A30%7Et%3APetrgon%2C-8%2C-46%2C1%2C22%3A45-04%3A00%7Et%3ADangerdoom%2C-42%2C-21%2C1%2C17%3A00-23%3A00';
     const decoded = decodeCompactPlan(rawEncoded);

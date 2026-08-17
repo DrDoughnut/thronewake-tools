@@ -154,7 +154,7 @@ export function decodeState(hashOrSearch?: string): PlannerState {
       }));
 
       return {
-        landing: compactParsed.landing || fallback.landing,
+        landing: parseUtcDatetime(compactParsed.landing) ? compactParsed.landing : fallback.landing,
         serverSpeed: [1, 3, 10].includes(Number(compactParsed.serverSpeed)) ? Number(compactParsed.serverSpeed) : fallback.serverSpeed,
         attackers: cleanAttackers,
         targets: cleanTargets,
@@ -202,7 +202,9 @@ export function decodeState(hashOrSearch?: string): PlannerState {
         });
 
         return {
-          landing: typeof parsed.landing === 'string' && parsed.landing ? parsed.landing : fallback.landing,
+          landing: typeof parsed.landing === 'string' && parseUtcDatetime(parsed.landing)
+            ? parsed.landing
+            : fallback.landing,
           serverSpeed: [1, 3, 10].includes(Number(parsed.serverSpeed))
             ? Number(parsed.serverSpeed)
             : fallback.serverSpeed,
@@ -815,8 +817,16 @@ export function OperationPlanner() {
     window.history.replaceState(null, '', `${window.location.pathname}#tool=operations&p=${compact}`);
   }, [state]);
 
+  // `decodeState` guarantees a parseable landing, so this fallback should never
+  // fire. It is pinned to a ref anyway: recomputing `new Date()` inside a memo
+  // would make every route time drift on an unrelated re-render.
+  const fallbackLanding = useRef<Date | null>(null);
+
   const parsedLanding = useMemo(() => {
-    return parseUtcDatetime(state.landing) ?? new Date();
+    const parsed = parseUtcDatetime(state.landing);
+    if (parsed) return parsed;
+    if (!fallbackLanding.current) fallbackLanding.current = new Date();
+    return fallbackLanding.current;
   }, [state.landing]);
 
   const { date: landingDate, time: landingTime } = useMemo(() => {
