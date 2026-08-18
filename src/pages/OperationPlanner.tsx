@@ -10,9 +10,13 @@ import {
   formatClock,
   formatDateTime,
   formatDuration,
+  formatLocalClock,
+  formatLocalDateTime,
+  localZoneLabel,
   minuteOfDay,
   parseClock,
   parseUtcDatetime,
+  resolveSafeTime,
   routeIsPossible,
   safeChecks,
   safeSegments,
@@ -21,6 +25,7 @@ import {
   splitUtcDateAndTime,
   toUtcDatetimeInput,
   travelHours,
+  type ResolvedSafeTime,
   type SafeChecks,
   type SafeWindow,
 } from '../engine/operations';
@@ -42,11 +47,21 @@ interface Attacker extends SafeTimeOwner {
   bannerfieldLevel: number;
 }
 
+/** A targeted account. Owns the safe window that all of its villages share. */
+interface Player extends SafeTimeOwner {
+  id: string;
+  name: string;
+}
+
 interface Target extends SafeTimeOwner {
   id: string;
   name: string;
   x: number;
   y: number;
+  /** A diversion rather than a real hit. Display only — travel is identical. */
+  fake: boolean;
+  /** Owning player, or '' when this village carries its own safe window. */
+  playerId: string;
 }
 
 interface PlannerState {
@@ -54,12 +69,15 @@ interface PlannerState {
   serverSpeed: number;
   attackers: Attacker[];
   targets: Target[];
+  players: Player[];
 }
 
 interface PlannedRoute {
   key: string;
   attacker: Attacker;
   target: Target;
+  /** Where the target's window came from, after player inheritance. */
+  targetSafe: ResolvedSafeTime;
   attackerWindow: SafeWindow;
   targetWindow: SafeWindow;
   distance: number;
@@ -99,8 +117,11 @@ const initialState = (): PlannerState => {
       name: 'Primary target',
       x: 50,
       y: 50,
+      fake: false,
+      playerId: '',
       ...initialSafeTime(),
     }],
+    players: [],
   };
 };
 
@@ -143,11 +164,24 @@ export function decodeState(hashOrSearch?: string): PlannerState {
         safeEnd: atk.safeEnd || '04:00',
       }));
 
+      const cleanPlayers: Player[] = compactParsed.players.map((player, idx) => ({
+        id: player.id || `p${idx + 1}`,
+        name: player.name || `Player ${idx + 1}`,
+        safeEnabled: Boolean(player.safeEnabled),
+        safeStart: player.safeStart || '22:00',
+        safeEnd: player.safeEnd || '04:00',
+      }));
+      const playerIds = new Set(cleanPlayers.map((player) => player.id));
+
       const cleanTargets: Target[] = (compactParsed.targets.length ? compactParsed.targets : fallback.targets).map((tgt, idx) => ({
         id: tgt.id || `t${idx + 1}`,
         name: tgt.name || `Target ${idx + 1}`,
         x: Number(tgt.x) || 0,
         y: Number(tgt.y) || 0,
+        fake: Boolean(tgt.fake),
+        // A dangling owner reference drops back to the village's own window
+        // rather than leaving a target pointing at nothing.
+        playerId: tgt.playerId && playerIds.has(tgt.playerId) ? tgt.playerId : '',
         safeEnabled: Boolean(tgt.safeEnabled),
         safeStart: tgt.safeStart || '22:00',
         safeEnd: tgt.safeEnd || '04:00',
@@ -158,6 +192,7 @@ export function decodeState(hashOrSearch?: string): PlannerState {
         serverSpeed: [1, 3, 10].includes(Number(compactParsed.serverSpeed)) ? Number(compactParsed.serverSpeed) : fallback.serverSpeed,
         attackers: cleanAttackers,
         targets: cleanTargets,
+        players: cleanPlayers,
       };
     }
   }
@@ -195,6 +230,9 @@ export function decodeState(hashOrSearch?: string): PlannerState {
             name: typeof tgt?.name === 'string' && tgt.name ? tgt.name : `Target ${idx + 1}`,
             x: Number(tgt?.x) || 0,
             y: Number(tgt?.y) || 0,
+            // The legacy JSON format predates players and fake marks.
+            fake: Boolean(tgt?.fake),
+            playerId: '',
             safeEnabled: Boolean(tgt?.safeEnabled),
             safeStart: safe.safeStart,
             safeEnd: safe.safeEnd,
@@ -210,12 +248,61 @@ export function decodeState(hashOrSearch?: string): PlannerState {
             : fallback.serverSpeed,
           attackers: cleanAttackers,
           targets: cleanTargets,
+          players: [],
         };
       }
     } catch {}
   }
 
   return fallback;
+}
+
+/**
+ * Local-time display is a viewer preference, not part of the plan: a shared
+ * link should describe the operation and nothing about how the sender happens
+ * to be reading it. So it is deliberately kept out of the URL and remembered
+ * on this machine instead — the one thing here that outlives the fragment.
+ */
+const LOCAL_PREF_KEY = 'thronewake.showLocalTime';
+
+function readShowLocal(): boolean {
+  try {
+    return window.localStorage.getItem(LOCAL_PREF_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function writeShowLocal(value: boolean): void {
+  try {
+    window.localStorage.setItem(LOCAL_PREF_KEY, value ? '1' : '0');
+  } catch {
+    // Private browsing or a blocked store — the toggle still works this session.
+  }
+}
+
+const plannerHash = (state: PlannerState) => `tool=operations&p=${encodeCompactPlan(state)}`;
+
+/** A single instant, always in UTC, with the viewer's own clock beneath it. */
+function Stamp({
+  date,
+  showLocal,
+  seconds = false,
+  className = '',
+}: {
+  date: Date;
+  showLocal: boolean;
+  seconds?: boolean;
+  className?: string;
+}) {
+  return (
+    <span className={`op-stamp ${className}`}>
+      <span className="op-stamp__utc">{formatDateTime(date, seconds)}</span>
+      {showLocal && (
+        <span className="op-stamp__local">{formatLocalDateTime(date, seconds)}</span>
+      )}
+    </span>
+  );
 }
 
 function ownerWindow(owner: SafeTimeOwner): SafeWindow {
@@ -420,6 +507,122 @@ function SafeTimeFields({
   );
 }
 
+function TargetCard({
+  target,
+  index,
+  players,
+  canRemove,
+  onPatch,
+  onRemove,
+}: {
+  target: Target;
+  index: number;
+  players: Player[];
+  canRemove: boolean;
+  onPatch: (patch: Partial<Target>) => void;
+  onRemove: () => void;
+}) {
+  const inherited = resolveSafeTime(target, players);
+
+  return (
+    <article className="op-card op-card--target">
+      {/* Row 1: Name + Coordinates + Remove Button */}
+      <div className="op-card__header-row">
+        <span className="op-card__idx">#{index + 1}</span>
+        <input
+          className="text-input op-card__name"
+          aria-label="Target name"
+          value={target.name}
+          onChange={(event) => onPatch({ name: event.target.value })}
+        />
+        <div className="coord-inline">
+          <label className="coord-field">
+            <span className="coord-field__tag">X</span>
+            <CoordInput
+              value={target.x}
+              onChange={(x) => onPatch({ x })}
+              ariaLabel="Target X coordinate"
+            />
+          </label>
+          <label className="coord-field">
+            <span className="coord-field__tag">Y</span>
+            <CoordInput
+              value={target.y}
+              onChange={(y) => onPatch({ y })}
+              ariaLabel="Target Y coordinate"
+            />
+          </label>
+        </div>
+        <button
+          type="button"
+          className="op-remove"
+          aria-label={'Remove ' + target.name}
+          disabled={!canRemove}
+          onClick={onRemove}
+        >
+          ×
+        </button>
+      </div>
+
+      {/* Row 2: Owner and whether this hit is real or a diversion */}
+      <div className="op-target-meta">
+        <label className="op-modifier-field">
+          <span className="op-field-label">Player</span>
+          <select
+            className="select op-select-solid"
+            value={target.playerId}
+            onChange={(event) => onPatch({ playerId: event.target.value })}
+          >
+            <option value="">Own safe hours</option>
+            {players.map((player) => (
+              <option key={player.id} value={player.id}>{player.name}</option>
+            ))}
+          </select>
+        </label>
+
+        <div className="op-modifier-field">
+          <span className="op-field-label">Attack Type</span>
+          <div className="op-fake-group" role="group" aria-label="Attack type">
+            <button
+              type="button"
+              className={`pill pill--tiny op-fake-pill ${target.fake ? '' : 'is-real'}`}
+              aria-pressed={!target.fake}
+              onClick={() => onPatch({ fake: false })}
+            >
+              Real
+            </button>
+            <button
+              type="button"
+              className={`pill pill--tiny op-fake-pill ${target.fake ? 'is-fake' : ''}`}
+              aria-pressed={target.fake}
+              onClick={() => onPatch({ fake: true })}
+            >
+              Fake
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom: Safe Time Configuration */}
+      <div className="op-card__footer">
+        {target.playerId ? (
+          <p className="op-inherited">
+            {inherited.safeEnabled
+              ? `Inherits ${inherited.sourceName}: ${inherited.safeStart}–${inherited.safeEnd} UTC`
+              : `${inherited.sourceName} has no safe hours set`}
+          </p>
+        ) : (
+          <SafeTimeFields
+            owner={target}
+            label="Defender Safe Hours"
+            onChange={onPatch}
+          />
+        )}
+      </div>
+    </article>
+  );
+}
+
 function SafetimeHeaderTooltip() {
   const [show, setShow] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -481,7 +684,18 @@ function SafetimeHeaderTooltip() {
   );
 }
 
-function SafetimeChecksCell({ route }: { route: PlannedRoute }) {
+function SafetimeChecksCell({ route, showLocal }: { route: PlannedRoute; showLocal: boolean }) {
+  const stamp = (date: Date, seconds = false) =>
+    formatDateTime(date, seconds)
+    + (showLocal ? ` · ${formatLocalDateTime(date, seconds)}` : '');
+
+  // Names whoever actually owns the window, so an inherited one is not
+  // mistaken for something set on the village.
+  const defenderLabel = route.targetSafe.sourceName ?? route.target.name;
+  const defenderWindowText = route.targetSafe.safeEnabled
+    ? `${defenderLabel} safe time: ${route.targetSafe.safeStart}–${route.targetSafe.safeEnd} UTC`
+    : `${defenderLabel} has no safe time`;
+
   const [show, setShow] = useState(false);
   const triggerRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
@@ -503,7 +717,7 @@ function SafetimeChecksCell({ route }: { route: PlannedRoute }) {
       code: 'A',
       title: 'Land / Attacker Safe Time',
       blocked: route.checks.landAttacker,
-      time: `Land: ${formatDateTime(route.land)}`,
+      time: `Land: ${stamp(route.land)}`,
       windowText: route.attacker.safeEnabled
         ? `${route.attacker.name} safe time: ${route.attacker.safeStart}–${route.attacker.safeEnd} UTC`
         : `${route.attacker.name} has no safe time`,
@@ -512,16 +726,14 @@ function SafetimeChecksCell({ route }: { route: PlannedRoute }) {
       code: 'B',
       title: 'Land / Defender Safe Time',
       blocked: route.checks.landDefender,
-      time: `Land: ${formatDateTime(route.land)}`,
-      windowText: route.target.safeEnabled
-        ? `${route.target.name} safe time: ${route.target.safeStart}–${route.target.safeEnd} UTC`
-        : `${route.target.name} has no safe time`,
+      time: `Land: ${stamp(route.land)}`,
+      windowText: defenderWindowText,
     },
     {
       code: 'C',
       title: 'Send / Attacker Safe Time',
       blocked: route.checks.sendAttacker,
-      time: `Send: ${formatDateTime(route.send, true)}`,
+      time: `Send: ${stamp(route.send, true)}`,
       windowText: route.attacker.safeEnabled
         ? `${route.attacker.name} safe time: ${route.attacker.safeStart}–${route.attacker.safeEnd} UTC`
         : `${route.attacker.name} has no safe time`,
@@ -530,10 +742,8 @@ function SafetimeChecksCell({ route }: { route: PlannedRoute }) {
       code: 'D',
       title: 'Send / Defender Safe Time',
       blocked: route.checks.sendDefender,
-      time: `Send: ${formatDateTime(route.send, true)}`,
-      windowText: route.target.safeEnabled
-        ? `${route.target.name} safe time: ${route.target.safeStart}–${route.target.safeEnd} UTC`
-        : `${route.target.name} has no safe time`,
+      time: `Send: ${stamp(route.send, true)}`,
+      windowText: defenderWindowText,
     },
   ];
 
@@ -609,8 +819,14 @@ function SafetimeChecksCell({ route }: { route: PlannedRoute }) {
             </div>
 
             <div className="safetime-popover__footer">
-              <span>Send: <strong>{formatClock(minuteOfDay(route.send), true)} UTC</strong></span>
-              <span>Land: <strong>{formatClock(minuteOfDay(route.land))} UTC</strong></span>
+              <span>
+                Send: <strong>{formatClock(minuteOfDay(route.send), true)} UTC</strong>
+                {showLocal && <em className="op-local-inline">{formatLocalClock(route.send, true)} local</em>}
+              </span>
+              <span>
+                Land: <strong>{formatClock(minuteOfDay(route.land))} UTC</strong>
+                {showLocal && <em className="op-local-inline">{formatLocalClock(route.land)} local</em>}
+              </span>
             </div>
           </div>,
           document.body,
@@ -675,13 +891,26 @@ function DailySchedule({
   routes,
   route,
   onSelectRoute,
+  showLocal,
 }: {
   routes: PlannedRoute[];
   route: PlannedRoute;
   onSelectRoute: (routeKey: string) => void;
+  showLocal: boolean;
 }) {
   const attackers = [...new Map(routes.map((item) => [item.attacker.id, item.attacker])).values()];
-  const targets = [...new Map(routes.map((item) => [item.target.id, item.target])).values()];
+  // Villages of one player share a window, so they collapse into a single lane
+  // keyed by the player — otherwise five villages draw five identical bars.
+  const defenderKey = (target: Target) => target.playerId || target.id;
+  const defenders = [...new Map(routes.map((item) => [
+    defenderKey(item.target),
+    {
+      key: defenderKey(item.target),
+      label: item.targetSafe.sourceName ?? item.target.name,
+      window: ownerWindow(item.targetSafe),
+    },
+  ])).values()];
+  const selectedDefenderKey = defenderKey(route.target);
   const sendPosition = Math.min(100, Math.max(0, minuteOfDay(route.send) / 14.4));
   const landPosition = Math.min(100, Math.max(0, minuteOfDay(route.land) / 14.4));
 
@@ -694,10 +923,12 @@ function DailySchedule({
     }
   };
 
-  const handleSelectTarget = (targetId: string) => {
+  // A defender lane covers every village of one player, so match on the lane's
+  // key rather than a single target id.
+  const handleSelectDefender = (laneKey: string) => {
     const nextRoute = routes.find(
-      (r) => r.attacker.id === route.attacker.id && r.target.id === targetId
-    ) ?? routes.find((r) => r.target.id === targetId);
+      (r) => r.attacker.id === route.attacker.id && defenderKey(r.target) === laneKey
+    ) ?? routes.find((r) => defenderKey(r.target) === laneKey);
     if (nextRoute) {
       onSelectRoute(nextRoute.key);
     }
@@ -742,14 +973,14 @@ function DailySchedule({
       ))}
 
       <p className="schedule__group">Defenders</p>
-      {targets.map((target) => (
+      {defenders.map((defender) => (
         <TimelineLane
-          key={target.id}
-          label={target.name}
-          window={ownerWindow(target)}
-          isSelected={target.id === route.target.id}
+          key={defender.key}
+          label={defender.label}
+          window={defender.window}
+          isSelected={defender.key === selectedDefenderKey}
           type="defender"
-          onClick={() => handleSelectTarget(target.id)}
+          onClick={() => handleSelectDefender(defender.key)}
         />
       ))}
 
@@ -781,7 +1012,7 @@ function DailySchedule({
                 '--left': (seg.start / 14.4) + '%',
                 '--width': ((seg.end - seg.start) / 14.4) + '%',
               } as CSSProperties}
-              title={`${route.target.name} Safe Window: ${route.target.safeStart}–${route.target.safeEnd} UTC`}
+              title={`${route.targetSafe.sourceName ?? route.target.name} Safe Window: ${route.targetSafe.safeStart}–${route.targetSafe.safeEnd} UTC`}
             >
               <span className="schedule__movement-safe-tag">Defender Safe</span>
             </span>
@@ -795,7 +1026,12 @@ function DailySchedule({
           >
             <div className="schedule__pin-badge">
               <span className="schedule__pin-dot" />
-              <span>Send {formatClock(minuteOfDay(route.send), true)} UTC</span>
+              <span>
+                Send {formatClock(minuteOfDay(route.send), true)} UTC
+                {showLocal && (
+                  <span className="schedule__pin-local">{formatLocalClock(route.send, true)} local</span>
+                )}
+              </span>
             </div>
             <div className="schedule__pin-line" />
             <div className="schedule__pin-head" />
@@ -811,7 +1047,12 @@ function DailySchedule({
             <div className="schedule__pin-line" />
             <div className="schedule__pin-badge">
               <span className="schedule__pin-dot" />
-              <span>Land {formatClock(minuteOfDay(route.land))} UTC</span>
+              <span>
+                Land {formatClock(minuteOfDay(route.land))} UTC
+                {showLocal && (
+                  <span className="schedule__pin-local">{formatLocalClock(route.land)} local</span>
+                )}
+              </span>
             </div>
           </div>
         </div>
@@ -822,7 +1063,9 @@ function DailySchedule({
 
 export function OperationPlanner() {
   const [state, setState] = useState<PlannerState>(() => decodeState());
+  const [showLocal, setShowLocal] = useState<boolean>(readShowLocal);
   const [selectedKey, setSelectedKey] = useState('');
+  const zoneLabel = useMemo(() => localZoneLabel(), []);
 
   // Sync state whenever hash or popstate changes (e.g. pasted URL, bookmark, back/forward)
   useEffect(() => {
@@ -840,8 +1083,7 @@ export function OperationPlanner() {
   const [copied, setCopied] = useState(false);
 
   const copyShareLink = async () => {
-    const compact = encodeCompactPlan(state);
-    const hash = `tool=operations&p=${compact}`;
+    const hash = plannerHash(state);
     const fullUrl = `${window.location.origin}${window.location.pathname}#${hash}`;
     try {
       await navigator.clipboard.writeText(fullUrl);
@@ -855,9 +1097,12 @@ export function OperationPlanner() {
   };
 
   useEffect(() => {
-    const compact = encodeCompactPlan(state);
-    window.history.replaceState(null, '', `${window.location.pathname}#tool=operations&p=${compact}`);
+    window.history.replaceState(null, '', `${window.location.pathname}#${plannerHash(state)}`);
   }, [state]);
+
+  useEffect(() => {
+    writeShowLocal(showLocal);
+  }, [showLocal]);
 
   // `decodeState` guarantees a parseable landing, so this fallback should never
   // fire. It is pinned to a ref anyway: recomputing `new Date()` inside a memo
@@ -908,12 +1153,14 @@ export function OperationPlanner() {
         });
         const send = new Date(land.getTime() - travel * 3_600_000);
         const attackerWindow = ownerWindow(attacker);
-        const targetWindow = ownerWindow(target);
+        const targetSafe = resolveSafeTime(target, state.players);
+        const targetWindow = ownerWindow(targetSafe);
         const checks = safeChecks(send, land, attackerWindow, targetWindow);
         return {
           key: attacker.id + ':' + target.id,
           attacker,
           target,
+          targetSafe,
           attackerWindow,
           targetWindow,
           distance,
@@ -928,9 +1175,39 @@ export function OperationPlanner() {
 
     // Sort routes chronologically by Send time ascending (earliest departure first)
     return computed.sort((a, b) => a.send.getTime() - b.send.getTime());
-  }, [state.attackers, state.targets, state.serverSpeed, parsedLanding]);
+  }, [state.attackers, state.targets, state.players, state.serverSpeed, parsedLanding]);
 
   const selectedRoute = routes.find((route) => route.key === selectedKey) ?? routes[0];
+
+  /**
+   * Target cards, bucketed by owner. A player keeps their bucket even with no
+   * villages in it yet, so the "+ Village" button has somewhere to live;
+   * unassigned villages collect in a final bucket.
+   */
+  const targetGroups = useMemo(() => {
+    const groups: Array<{
+      key: string;
+      label: string;
+      player: Player | null;
+      targets: Target[];
+    }> = state.players.map((player) => ({
+      key: player.id,
+      label: player.name,
+      player,
+      targets: state.targets.filter((target) => target.playerId === player.id),
+    }));
+
+    const unassigned = state.targets.filter((target) => !target.playerId);
+    if (unassigned.length) {
+      groups.push({
+        key: '',
+        label: 'Unassigned villages',
+        player: null,
+        targets: unassigned,
+      });
+    }
+    return groups;
+  }, [state.players, state.targets]);
 
   const patchAttacker = (id: string, patch: Partial<Attacker>) => {
     setState((current) => ({
@@ -964,17 +1241,66 @@ export function OperationPlanner() {
     }));
   };
 
-  const addTarget = () => {
+  const addTarget = (playerId = '') => {
+    setState((current) => {
+      const owner = current.players.find((player) => player.id === playerId);
+      return {
+        ...current,
+        targets: [...current.targets, {
+          id: nextId('t'),
+          name: owner
+            ? `${owner.name} village ${current.targets.filter((t) => t.playerId === playerId).length + 1}`
+            : 'Target ' + (current.targets.length + 1),
+          x: 0,
+          y: 0,
+          fake: false,
+          playerId: owner ? owner.id : '',
+          ...initialSafeTime(),
+        }],
+      };
+    });
+  };
+
+  const patchPlayer = (id: string, patch: Partial<Player>) => {
     setState((current) => ({
       ...current,
-      targets: [...current.targets, {
-        id: nextId('t'),
-        name: 'Target ' + (current.targets.length + 1),
-        x: 0,
-        y: 0,
-        ...initialSafeTime(),
-      }],
+      players: current.players.map((player) =>
+        player.id === id ? { ...player, ...patch } : player),
     }));
+  };
+
+  const addPlayer = () => {
+    setState((current) => {
+      const player: Player = {
+        id: nextId('p'),
+        name: 'Player ' + (current.players.length + 1),
+        ...initialSafeTime(),
+        safeEnabled: true,
+      };
+      return { ...current, players: [...current.players, player] };
+    });
+  };
+
+  /** Removing a player leaves its villages in place, holding the window they
+   *  had been inheriting, so a misclick does not silently unprotect them. */
+  const removePlayer = (id: string) => {
+    setState((current) => {
+      const owner = current.players.find((player) => player.id === id);
+      return {
+        ...current,
+        players: current.players.filter((player) => player.id !== id),
+        targets: current.targets.map((target) =>
+          target.playerId === id
+            ? {
+                ...target,
+                playerId: '',
+                safeEnabled: owner ? owner.safeEnabled : target.safeEnabled,
+                safeStart: owner ? owner.safeStart : target.safeStart,
+                safeEnd: owner ? owner.safeEnd : target.safeEnd,
+              }
+            : target),
+      };
+    });
   };
 
   return (
@@ -985,6 +1311,17 @@ export function OperationPlanner() {
             <div className="op-landing-control__label-row">
               <span className="op-command__label">Coordinated Landing Time</span>
               <span className="op-utc-badge">24h UTC</span>
+              <label
+                className="op-local-toggle"
+                title={`Also show every time in ${zoneLabel}. Stays on this device — shared links carry only the plan.`}
+              >
+                <input
+                  type="checkbox"
+                  checked={showLocal}
+                  onChange={(event) => setShowLocal(event.target.checked)}
+                />
+                <span>Show local time</span>
+              </label>
             </div>
             <div className="op-landing-control__inputs">
               <input
@@ -999,6 +1336,11 @@ export function OperationPlanner() {
                 placeholder="14:00"
               />
             </div>
+            {showLocal && (
+              <span className="op-landing-local">
+                = {formatLocalDateTime(parsedLanding)} · {zoneLabel}
+              </span>
+            )}
             <div className="op-landing-shortcuts">
               <span className="op-landing-shortcuts__label">Shift:</span>
               <button type="button" className="pill pill--tiny" onClick={() => shiftLandingHours(1)}>+1h</button>
@@ -1174,67 +1516,94 @@ export function OperationPlanner() {
               <h2 className="panel__title">Target Destinations ({state.targets.length})</h2>
               <p className="op-section-copy">Set target coordinates and defender safe window protection.</p>
             </div>
-            <button type="button" className="pill pill--tiny pill--primary" onClick={addTarget}>
-              + Add Target
-            </button>
+            <div className="op-section-head__actions">
+              <button type="button" className="pill pill--tiny" onClick={addPlayer}>
+                + Add Player
+              </button>
+              <button type="button" className="pill pill--tiny pill--primary" onClick={() => addTarget()}>
+                + Add Target
+              </button>
+            </div>
           </div>
 
-          <div className="op-cards">
-            {state.targets.map((target, index) => (
-              <article className="op-card op-card--target" key={target.id}>
-                {/* Row 1: Name + Coordinates + Remove Button */}
-                <div className="op-card__header-row">
-                  <span className="op-card__idx">#{index + 1}</span>
+          {state.players.length === 0 && (
+            <p className="op-players__empty">
+              Add a player to hold one safe window, then attach their villages to it instead of
+              retyping the hours for every village.
+            </p>
+          )}
+
+          {/* Villages are listed under the player they belong to. Cards are
+              appended in the order they were created, which interleaves owners
+              once more than one player is in play. */}
+          {targetGroups.map((group) => (
+            <div
+              className={`op-target-group ${group.player ? 'is-player' : 'is-loose'}`}
+              key={group.key || 'unassigned'}
+            >
+              <div className="op-target-group__head">
+                {group.player ? (
                   <input
-                    className="text-input op-card__name"
-                    aria-label="Target name"
-                    value={target.name}
-                    onChange={(event) => patchTarget(target.id, { name: event.target.value })}
+                    className="text-input op-player__name"
+                    aria-label="Player name"
+                    value={group.player.name}
+                    onChange={(event) => patchPlayer(group.key, { name: event.target.value })}
                   />
-                  <div className="coord-inline">
-                    <label className="coord-field">
-                      <span className="coord-field__tag">X</span>
-                      <CoordInput
-                        value={target.x}
-                        onChange={(x) => patchTarget(target.id, { x })}
-                        ariaLabel="Target X coordinate"
-                      />
-                    </label>
-                    <label className="coord-field">
-                      <span className="coord-field__tag">Y</span>
-                      <CoordInput
-                        value={target.y}
-                        onChange={(y) => patchTarget(target.id, { y })}
-                        ariaLabel="Target Y coordinate"
-                      />
-                    </label>
-                  </div>
-                  <button
-                    type="button"
-                    className="op-remove"
-                    aria-label={'Remove ' + target.name}
-                    disabled={state.targets.length === 1}
-                    onClick={() =>
+                ) : (
+                  <span className="op-target-group__name">{group.label}</span>
+                )}
+                <span className="op-target-group__meta">
+                  {group.targets.length} {group.targets.length === 1 ? 'village' : 'villages'}
+                </span>
+                {group.player && (
+                  <>
+                    <button
+                      type="button"
+                      className="pill pill--tiny"
+                      onClick={() => addTarget(group.key)}
+                    >
+                      + Village
+                    </button>
+                    <button
+                      type="button"
+                      className="op-remove"
+                      aria-label={'Remove ' + group.player.name}
+                      onClick={() => removePlayer(group.key)}
+                    >
+                      ×
+                    </button>
+                  </>
+                )}
+              </div>
+
+              {/* One safe window for the whole group — every village inherits it. */}
+              {group.player && (
+                <SafeTimeFields
+                  owner={group.player}
+                  label={`${group.player.name} Safe Hours`}
+                  onChange={(patch) => patchPlayer(group.key, patch)}
+                />
+              )}
+
+              <div className="op-cards">
+                {group.targets.map((target, index) => (
+                  <TargetCard
+                    key={target.id}
+                    target={target}
+                    index={index}
+                    players={state.players}
+                    canRemove={state.targets.length > 1}
+                    onPatch={(patch) => patchTarget(target.id, patch)}
+                    onRemove={() =>
                       setState((current) => ({
                         ...current,
                         targets: current.targets.filter((item) => item.id !== target.id),
                       }))}
-                  >
-                    ×
-                  </button>
-                </div>
-
-                {/* Bottom: Safe Time Configuration */}
-                <div className="op-card__footer">
-                  <SafeTimeFields
-                    owner={target}
-                    label="Defender Safe Hours"
-                    onChange={(patch) => patchTarget(target.id, patch)}
                   />
-                </div>
-              </article>
-            ))}
-          </div>
+                ))}
+              </div>
+            </div>
+          ))}
         </section>
       </div>
 
@@ -1244,7 +1613,8 @@ export function OperationPlanner() {
           <div>
             <h2 className="panel__title">Route Plan (Sorted by Send Time)</h2>
             <p className="op-section-copy">
-              Click anywhere on a row to inspect its schedule. {routes.filter((route) => route.possible).length} of {routes.length} routes clear all safetime checks.
+              Click anywhere on a row to inspect its schedule. {routes.filter((route) => route.possible).length} of {routes.length} routes clear all safetime checks
+              {' · '}{routes.filter((route) => !route.target.fake).length} real, {routes.filter((route) => route.target.fake).length} fake.
             </p>
           </div>
         </div>
@@ -1284,9 +1654,14 @@ export function OperationPlanner() {
                         <strong className="op-route-attacker">{route.attacker.name}</strong>
                         <span className="op-route-arrow">→</span>
                         <strong className="op-route-target">{route.target.name}</strong>
+                        <span className="op-route-coords">({route.target.x}|{route.target.y})</span>
+                        <span className={`op-hit-tag ${route.target.fake ? 'is-fake' : 'is-real'}`}>
+                          {route.target.fake ? 'Fake' : 'Real'}
+                        </span>
                       </div>
                       <span className="op-route-unit-hint">
                         {lookup(route.attacker.unitRef).unit.name} ({lookup(route.attacker.unitRef).unit.speed} f/h)
+                        {route.targetSafe.sourceName ? ` · ${route.targetSafe.sourceName}` : ''}
                       </span>
                     </div>
                   </td>
@@ -1297,17 +1672,22 @@ export function OperationPlanner() {
                     <span className="travel-stat">{formatDuration(route.travel)}</span>
                   </td>
                   <td data-label="Send Time (UTC)">
-                    <span className="op-timestamp op-timestamp--send">
-                      {formatDateTime(route.send, true)}
-                    </span>
+                    <Stamp
+                      date={route.send}
+                      showLocal={showLocal}
+                      seconds
+                      className="op-timestamp op-timestamp--send"
+                    />
                   </td>
                   <td data-label="Land Time (UTC)">
-                    <span className="op-timestamp op-timestamp--land">
-                      {formatDateTime(route.land)}
-                    </span>
+                    <Stamp
+                      date={route.land}
+                      showLocal={showLocal}
+                      className="op-timestamp op-timestamp--land"
+                    />
                   </td>
                   <td data-label="Safetime Checks">
-                    <SafetimeChecksCell route={route} />
+                    <SafetimeChecksCell route={route} showLocal={showLocal} />
                   </td>
                 </tr>
               ))}
@@ -1321,6 +1701,7 @@ export function OperationPlanner() {
           routes={routes}
           route={selectedRoute}
           onSelectRoute={setSelectedKey}
+          showLocal={showLocal}
         />
       )}
     </div>

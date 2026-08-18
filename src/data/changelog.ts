@@ -2,7 +2,7 @@
  * Human-maintained release notes. Bump `APP_VERSION` and add an entry here
  * whenever a change is worth telling a returning user about.
  */
-export const APP_VERSION = '1.5.5';
+export const APP_VERSION = '1.5.6';
 
 export interface ChangelogEntry {
   version: string;
@@ -11,6 +11,18 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+      version: '1.5.6',
+      date: '2026-08-17',
+      changes: [
+        'Operation Planner: targeted players — set safe hours once per player and attach their villages to it.',
+        'Operation Planner: target cards are grouped under the player who owns them, with unassigned villages listed separately.',
+        'Operation Planner: mark each target Real or Fake; shown as a badge in the route plan with a real/fake tally.',
+        'Operation Planner: route plan now shows each target’s coordinates.',
+        'Operation Planner: optional local-time display alongside UTC, remembered per device and kept out of shared links.',
+        'Operation Planner: share links can no longer be truncated by a name containing URL characters.',
+      ],
+  },
   {
     version: '1.5.5',
     date: '2026-08-17',
