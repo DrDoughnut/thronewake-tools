@@ -1849,7 +1849,7 @@ export function OperationPlanner() {
                 <option value="all">All Armies</option>
                 {state.attackers.map((atk) => (
                   <option key={atk.id} value={atk.id}>
-                    {atk.name} (You)
+                    {atk.name}
                   </option>
                 ))}
               </select>
