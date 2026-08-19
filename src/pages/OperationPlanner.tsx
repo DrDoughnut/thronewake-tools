@@ -47,7 +47,7 @@ interface Attacker extends SafeTimeOwner {
   bannerfieldLevel: number;
 }
 
-/** A targeted account. Owns the safe window that all of its villages share. */
+/** A targeted defender account. Owns the safe window that all of its villages share. */
 interface Player extends SafeTimeOwner {
   id: string;
   name: string;
@@ -58,9 +58,7 @@ interface Target extends SafeTimeOwner {
   name: string;
   x: number;
   y: number;
-  /** A diversion rather than a real hit. Display only — travel is identical. */
   fake: boolean;
-  /** Owning player, or '' when this village carries its own safe window. */
   playerId: string;
 }
 
@@ -76,7 +74,6 @@ interface PlannedRoute {
   key: string;
   attacker: Attacker;
   target: Target;
-  /** Where the target's window came from, after player inheritance. */
   targetSafe: ResolvedSafeTime;
   attackerWindow: SafeWindow;
   targetWindow: SafeWindow;
@@ -99,6 +96,7 @@ const initialSafeTime = (): SafeTimeOwner => ({
 const initialState = (): PlannerState => {
   const landing = new Date();
   landing.setUTCHours(landing.getUTCHours() + 8, 0, 0, 0);
+  const defPlayerId = 'p1';
   return {
     landing: toUtcDatetimeInput(landing),
     serverSpeed: 3,
@@ -112,16 +110,20 @@ const initialState = (): PlannerState => {
       bannerfieldLevel: 0,
       ...initialSafeTime(),
     }],
+    players: [{
+      id: defPlayerId,
+      name: 'Defender 1',
+      ...initialSafeTime(),
+    }],
     targets: [{
       id: 't1',
-      name: 'Primary target',
+      name: 'Village 1',
       x: 50,
       y: 50,
       fake: false,
-      playerId: '',
+      playerId: defPlayerId,
       ...initialSafeTime(),
     }],
-    players: [],
   };
 };
 
@@ -147,7 +149,6 @@ export function decodeState(hashOrSearch?: string): PlannerState {
     } catch {}
   }
 
-  // 1. Try compact format ('p' parameter)
   if (rawP) {
     const compactParsed = decodeCompactPlan(rawP);
     if (compactParsed) {
@@ -166,22 +167,41 @@ export function decodeState(hashOrSearch?: string): PlannerState {
 
       const cleanPlayers: Player[] = compactParsed.players.map((player, idx) => ({
         id: player.id || `p${idx + 1}`,
-        name: player.name || `Player ${idx + 1}`,
+        name: player.name || `Defender ${idx + 1}`,
         safeEnabled: Boolean(player.safeEnabled),
         safeStart: player.safeStart || '22:00',
         safeEnd: player.safeEnd || '04:00',
       }));
+
+      if (cleanPlayers.length === 0) {
+        compactParsed.targets.forEach((tgt, idx) => {
+          const pId = `p${idx + 1}`;
+          cleanPlayers.push({
+            id: pId,
+            name: tgt.name || `Defender ${idx + 1}`,
+            safeEnabled: Boolean(tgt.safeEnabled),
+            safeStart: tgt.safeStart || '22:00',
+            safeEnd: tgt.safeEnd || '04:00',
+          });
+          tgt.playerId = pId;
+        });
+      }
+      if (cleanPlayers.length === 0) {
+        cleanPlayers.push({
+          id: 'p1',
+          name: 'Defender 1',
+          ...initialSafeTime(),
+        });
+      }
       const playerIds = new Set(cleanPlayers.map((player) => player.id));
 
       const cleanTargets: Target[] = (compactParsed.targets.length ? compactParsed.targets : fallback.targets).map((tgt, idx) => ({
         id: tgt.id || `t${idx + 1}`,
-        name: tgt.name || `Target ${idx + 1}`,
+        name: tgt.name || `Village ${idx + 1}`,
         x: Number(tgt.x) || 0,
         y: Number(tgt.y) || 0,
         fake: Boolean(tgt.fake),
-        // A dangling owner reference drops back to the village's own window
-        // rather than leaving a target pointing at nothing.
-        playerId: tgt.playerId && playerIds.has(tgt.playerId) ? tgt.playerId : '',
+        playerId: tgt.playerId && playerIds.has(tgt.playerId) ? tgt.playerId : cleanPlayers[0].id,
         safeEnabled: Boolean(tgt.safeEnabled),
         safeStart: tgt.safeStart || '22:00',
         safeEnd: tgt.safeEnd || '04:00',
@@ -197,7 +217,6 @@ export function decodeState(hashOrSearch?: string): PlannerState {
     }
   }
 
-  // 2. Fall back to legacy full JSON format ('plan' parameter)
   if (rawPlan) {
     try {
       if (rawPlan.startsWith('%7B') || rawPlan.startsWith('%7b')) {
@@ -223,16 +242,51 @@ export function decodeState(hashOrSearch?: string): PlannerState {
           };
         });
 
+        const legacyPlayers: Player[] = Array.isArray(parsed.players) && parsed.players.length > 0
+          ? parsed.players.map((p, idx) => {
+              const safe = enforceMaxSafeWindow(p?.safeStart || '22:00', p?.safeEnd || '04:00', 'start');
+              return {
+                id: p.id || `p${idx + 1}`,
+                name: p.name || `Defender ${idx + 1}`,
+                safeEnabled: Boolean(p.safeEnabled),
+                safeStart: safe.safeStart,
+                safeEnd: safe.safeEnd,
+              };
+            })
+          : [];
+
+        if (legacyPlayers.length === 0) {
+          parsed.targets.forEach((tgt, idx) => {
+            const pId = `p${idx + 1}`;
+            const safe = enforceMaxSafeWindow(tgt?.safeStart || '22:00', tgt?.safeEnd || '04:00', 'start');
+            legacyPlayers.push({
+              id: pId,
+              name: tgt?.name || `Defender ${idx + 1}`,
+              safeEnabled: Boolean(tgt?.safeEnabled),
+              safeStart: safe.safeStart,
+              safeEnd: safe.safeEnd,
+            });
+            if (tgt) tgt.playerId = pId;
+          });
+        }
+        if (legacyPlayers.length === 0) {
+          legacyPlayers.push({
+            id: 'p1',
+            name: 'Defender 1',
+            ...initialSafeTime(),
+          });
+        }
+        const playerIds = new Set(legacyPlayers.map((p) => p.id));
+
         const cleanTargets: Target[] = (parsed.targets.length ? parsed.targets : fallback.targets).map((tgt, idx) => {
           const safe = enforceMaxSafeWindow(tgt?.safeStart || '22:00', tgt?.safeEnd || '04:00', 'start');
           return {
             id: typeof tgt?.id === 'string' && tgt.id ? tgt.id : `t${idx + 1}`,
-            name: typeof tgt?.name === 'string' && tgt.name ? tgt.name : `Target ${idx + 1}`,
+            name: typeof tgt?.name === 'string' && tgt.name ? tgt.name : `Village ${idx + 1}`,
             x: Number(tgt?.x) || 0,
             y: Number(tgt?.y) || 0,
-            // The legacy JSON format predates players and fake marks.
             fake: Boolean(tgt?.fake),
-            playerId: '',
+            playerId: tgt?.playerId && playerIds.has(tgt.playerId) ? tgt.playerId : legacyPlayers[0].id,
             safeEnabled: Boolean(tgt?.safeEnabled),
             safeStart: safe.safeStart,
             safeEnd: safe.safeEnd,
@@ -248,7 +302,7 @@ export function decodeState(hashOrSearch?: string): PlannerState {
             : fallback.serverSpeed,
           attackers: cleanAttackers,
           targets: cleanTargets,
-          players: [],
+          players: legacyPlayers,
         };
       }
     } catch {}
@@ -257,12 +311,8 @@ export function decodeState(hashOrSearch?: string): PlannerState {
   return fallback;
 }
 
-/**
- * Local-time display is a viewer preference, not part of the plan: a shared
- * link should describe the operation and nothing about how the sender happens
- * to be reading it. So it is deliberately kept out of the URL and remembered
- * on this machine instead — the one thing here that outlives the fragment.
- */
+const nextId = (prefix: string) => prefix + Math.random().toString(36).slice(2, 8);
+
 const LOCAL_PREF_KEY = 'thronewake.showLocalTime';
 
 function readShowLocal(): boolean {
@@ -276,14 +326,11 @@ function readShowLocal(): boolean {
 function writeShowLocal(value: boolean): void {
   try {
     window.localStorage.setItem(LOCAL_PREF_KEY, value ? '1' : '0');
-  } catch {
-    // Private browsing or a blocked store — the toggle still works this session.
-  }
+  } catch {}
 }
 
 const plannerHash = (state: PlannerState) => `tool=operations&p=${encodeCompactPlan(state)}`;
 
-/** A single instant, always in UTC, with the viewer's own clock beneath it. */
 function Stamp({
   date,
   showLocal,
@@ -313,13 +360,10 @@ function ownerWindow(owner: SafeTimeOwner): SafeWindow {
   };
 }
 
-const nextId = (prefix: string) => prefix + Math.random().toString(36).slice(2, 8);
-
 function numberFromInput(value: string): number {
   return Number(value) || 0;
 }
 
-/** Keyboard-friendly coordinate input that handles negative numbers and intermediate typing smoothly. */
 interface CoordInputProps {
   value: number;
   onChange: (val: number) => void;
@@ -335,7 +379,6 @@ function CoordInput({ value, onChange, ariaLabel }: CoordInputProps) {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value;
-    // Allow typing "-", empty string, or positive/negative integer
     if (raw === '' || raw === '-') {
       setLocalText(raw);
       return;
@@ -374,7 +417,6 @@ function CoordInput({ value, onChange, ariaLabel }: CoordInputProps) {
   );
 }
 
-/** Keyboard-friendly 24-hour time input (HH:mm) that prevents digit swallowing. */
 interface Time24InputProps {
   value: string;
   onChange: (value: string) => void;
@@ -398,61 +440,62 @@ function Time24Input({
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value;
-    let cleaned = raw.replace(/[^\d:]/g, '');
-    if (cleaned.length > 5) cleaned = cleaned.slice(0, 5);
-    setLocalText(cleaned);
-
-    // If it matches valid HH:mm pattern, sync with parent immediately
-    if (/^([01]\d|2[0-3]):[0-5]\d$/.test(cleaned)) {
-      onChange(cleaned);
+    setLocalText(raw);
+    if (/^([01]?\d|2[0-3]):[0-5]\d$/.test(raw)) {
+      onChange(raw);
     }
   };
 
   const handleBlur = () => {
-    if (!localText.trim()) {
+    const match = /^(\d{1,2}):?(\d{0,2})$/.exec(localText.trim());
+    if (match) {
+      let h = parseInt(match[1], 10);
+      let m = parseInt(match[2] || '0', 10);
+      if (isNaN(h) || h < 0) h = 0;
+      if (h > 23) h = 23;
+      if (isNaN(m) || m < 0) m = 0;
+      if (m > 59) m = 59;
+      const formatted = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+      setLocalText(formatted);
+      onChange(formatted);
+    } else {
       setLocalText(value);
-      return;
     }
-    const formatted = formatClock(parseClock(localText));
-    setLocalText(formatted);
-    onChange(formatted);
   };
 
   return (
     <input
       className={className}
       type="text"
-      maxLength={5}
+      inputMode="numeric"
+      disabled={disabled}
       placeholder={placeholder}
       value={localText}
-      disabled={disabled}
       onChange={handleChange}
       onBlur={handleBlur}
-      onFocus={(e) => e.target.select()}
     />
   );
 }
 
 function SafeTimeFields({
   owner,
-  label,
+  label = 'Safe Hours',
   onChange,
 }: {
   owner: SafeTimeOwner;
-  label: string;
+  label?: string;
   onChange: (patch: Partial<SafeTimeOwner>) => void;
 }) {
-  const isOvernight = parseClock(owner.safeStart) > parseClock(owner.safeEnd);
-  const durMinutes = safeWindowDurationMinutes(parseClock(owner.safeStart), parseClock(owner.safeEnd));
-  const durHours = (durMinutes / 60).toFixed(1).replace(/\.0$/, '');
+  const duration = safeWindowDurationMinutes(parseClock(owner.safeStart), parseClock(owner.safeEnd));
+  const isCapped = duration >= 360;
 
-  const handleStartChange = (safeStart: string) => {
-    const updated = enforceMaxSafeWindow(safeStart, owner.safeEnd, 'start');
+  const handleStartChange = (val: string) => {
+    const updated = enforceMaxSafeWindow(val, owner.safeEnd, 'start');
     onChange(updated);
   };
 
-  const handleEndChange = (safeEnd: string) => {
-    const updated = enforceMaxSafeWindow(owner.safeStart, safeEnd, 'end');
+  const handleEndChange = (val: string) => {
+    const updated = enforceMaxSafeWindow(owner.safeStart, val, 'end');
     onChange(updated);
   };
 
@@ -463,13 +506,13 @@ function SafeTimeFields({
           <input
             type="checkbox"
             checked={owner.safeEnabled}
-            onChange={(event) => onChange({ safeEnabled: event.target.checked })}
+            onChange={(e) => onChange({ safeEnabled: e.target.checked })}
           />
-          <span className="op-toggle__indicator" />
+          <span className="op-toggle__indicator" aria-hidden="true" />
           <span className="op-toggle__title">{label}</span>
         </label>
         <span className="op-safetime__tag">
-          {owner.safeEnabled ? `${durHours}h active` : 'Disabled'}
+          {owner.safeEnabled ? `${owner.safeStart}–${owner.safeEnd} UTC` : 'Disabled'}
         </span>
       </div>
 
@@ -477,7 +520,7 @@ function SafeTimeFields({
         <div className="op-safetime__body">
           <div className="op-safetime__inputs">
             <label className="op-field-time">
-              <span className="op-field-time__label">From (UTC)</span>
+              <span className="op-field-time__label">Start</span>
               <Time24Input
                 value={owner.safeStart}
                 onChange={handleStartChange}
@@ -485,7 +528,7 @@ function SafeTimeFields({
               />
             </label>
             <label className="op-field-time">
-              <span className="op-field-time__label">Until (UTC)</span>
+              <span className="op-field-time__label">End</span>
               <Time24Input
                 value={owner.safeEnd}
                 onChange={handleEndChange}
@@ -493,12 +536,10 @@ function SafeTimeFields({
               />
             </label>
           </div>
+
           <div className="op-safetime__footer-meta">
             <span className="op-safetime__window-type">
-              {isOvernight ? '🌙 Overnight window (crosses 00:00 UTC)' : '☀️ Same-day window'} · Max 6h
-            </span>
-            <span className="op-safetime__range-badge">
-              {owner.safeStart} – {owner.safeEnd} UTC
+              ({Math.round(duration / 60)}h window{isCapped ? ' · 6h cap' : ''})
             </span>
           </div>
         </div>
@@ -507,31 +548,157 @@ function SafeTimeFields({
   );
 }
 
-function TargetCard({
+// ── Web Audio Dual-Stage Chimes ───────────────────────────────────────────
+
+function play1MinChime() {
+  try {
+    const AudioContextClass =
+      window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextClass) return;
+    const ctx = new AudioContextClass();
+    if (ctx.state === 'suspended') {
+      ctx.resume();
+    }
+    const notes = [
+      { freq: 1046.5, time: 0, dur: 0.16 }, // C6
+      { freq: 1318.5, time: 0.14, dur: 0.16 }, // E6
+      { freq: 1568.0, time: 0.28, dur: 0.35 }, // G6
+    ];
+    notes.forEach(({ freq, time, dur }) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, ctx.currentTime + time);
+      gain.gain.setValueAtTime(0, ctx.currentTime + time);
+      gain.gain.linearRampToValueAtTime(0.25, ctx.currentTime + time + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + time + dur);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(ctx.currentTime + time);
+      osc.stop(ctx.currentTime + time + dur + 0.05);
+    });
+  } catch {}
+}
+
+function playCountdownBeep(secondRemaining: number) {
+  try {
+    const AudioContextClass =
+      window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextClass) return;
+    const ctx = new AudioContextClass();
+    if (ctx.state === 'suspended') {
+      ctx.resume();
+    }
+    if (secondRemaining > 0) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      gain.gain.setValueAtTime(0, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.3, ctx.currentTime + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.08);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.09);
+    } else {
+      const tones = [
+        { freq: 1318.5, time: 0, dur: 0.12 }, // E6
+        { freq: 1760.0, time: 0.08, dur: 0.25 }, // A6
+      ];
+      tones.forEach(({ freq, time, dur }) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, ctx.currentTime + time);
+        gain.gain.setValueAtTime(0, ctx.currentTime + time);
+        gain.gain.linearRampToValueAtTime(0.35, ctx.currentTime + time + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + time + dur);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(ctx.currentTime + time);
+        osc.stop(ctx.currentTime + time + dur + 0.05);
+      });
+    }
+  } catch {}
+}
+
+function test5sCountdownSequence() {
+  let count = 5;
+  playCountdownBeep(count);
+  const timer = setInterval(() => {
+    count -= 1;
+    playCountdownBeep(count);
+    if (count <= 0) {
+      clearInterval(timer);
+    }
+  }, 1000);
+}
+
+function getCountdownInfo(sendDate: Date, now: Date) {
+  const diffSec = Math.floor((sendDate.getTime() - now.getTime()) / 1000);
+  if (diffSec < 0) {
+    const pastSec = Math.abs(diffSec);
+    const pastMin = Math.floor(pastSec / 60);
+    const pastHrs = Math.floor(pastMin / 60);
+    let label = '';
+    if (pastHrs > 0) {
+      label = `Passed (${pastHrs}h ${pastMin % 60}m ago)`;
+    } else if (pastMin > 0) {
+      label = `Passed (${pastMin}m ago)`;
+    } else {
+      label = `Passed (${pastSec}s ago)`;
+    }
+    return {
+      diffSec,
+      label,
+      tier: 'past' as const,
+    };
+  }
+
+  const hrs = Math.floor(diffSec / 3600);
+  const mins = Math.floor((diffSec % 3600) / 60);
+  const secs = diffSec % 60;
+  const timeStr = `${hrs > 0 ? String(hrs).padStart(2, '0') + 'h ' : ''}${String(mins).padStart(2, '0')}m ${String(secs).padStart(2, '0')}s`;
+
+  let tier: 'future' | 'urgent' | 'imminent' = 'future';
+  if (diffSec <= 60) {
+    tier = 'imminent';
+  } else if (diffSec <= 900) {
+    tier = 'urgent';
+  }
+
+  return {
+    diffSec,
+    label: `in ${timeStr}`,
+    tier,
+  };
+}
+
+/** Renders a single village row under a Defender Player */
+function VillageStrip({
   target,
   index,
-  players,
+  player,
   canRemove,
   onPatch,
   onRemove,
 }: {
   target: Target;
   index: number;
-  players: Player[];
+  player: Player;
   canRemove: boolean;
   onPatch: (patch: Partial<Target>) => void;
   onRemove: () => void;
 }) {
-  const inherited = resolveSafeTime(target, players);
-
   return (
-    <article className="op-card op-card--target">
-      {/* Row 1: Name + Coordinates + Remove Button */}
-      <div className="op-card__header-row">
+    <article className={`op-strip-card op-strip-card--target ${target.fake ? 'is-fake' : 'is-real'}`}>
+      <div className="op-strip-card__identity">
         <span className="op-card__idx">#{index + 1}</span>
         <input
           className="text-input op-card__name"
-          aria-label="Target name"
+          aria-label="Village name"
+          placeholder="Village name"
           value={target.name}
           onChange={(event) => onPatch({ name: event.target.value })}
         />
@@ -541,7 +708,7 @@ function TargetCard({
             <CoordInput
               value={target.x}
               onChange={(x) => onPatch({ x })}
-              ariaLabel="Target X coordinate"
+              ariaLabel="Village X coordinate"
             />
           </label>
           <label className="coord-field">
@@ -549,76 +716,57 @@ function TargetCard({
             <CoordInput
               value={target.y}
               onChange={(y) => onPatch({ y })}
-              ariaLabel="Target Y coordinate"
+              ariaLabel="Village Y coordinate"
             />
           </label>
         </div>
-        <button
-          type="button"
-          className="op-remove"
-          aria-label={'Remove ' + target.name}
-          disabled={!canRemove}
-          onClick={onRemove}
-        >
-          ×
-        </button>
       </div>
 
-      {/* Row 2: Owner and whether this hit is real or a diversion */}
-      <div className="op-target-meta">
-        <label className="op-modifier-field">
-          <span className="op-field-label">Player</span>
-          <select
-            className="select op-select-solid"
-            value={target.playerId}
-            onChange={(event) => onPatch({ playerId: event.target.value })}
+      <div className="op-strip-card__target-meta">
+        <div className="op-fake-group" role="group" aria-label="Attack type">
+          <button
+            type="button"
+            className={`pill pill--tiny op-fake-pill ${target.fake ? '' : 'is-real'}`}
+            aria-pressed={!target.fake}
+            onClick={() => onPatch({ fake: false })}
           >
-            <option value="">Own safe hours</option>
-            {players.map((player) => (
-              <option key={player.id} value={player.id}>{player.name}</option>
-            ))}
-          </select>
-        </label>
-
-        <div className="op-modifier-field">
-          <span className="op-field-label">Attack Type</span>
-          <div className="op-fake-group" role="group" aria-label="Attack type">
-            <button
-              type="button"
-              className={`pill pill--tiny op-fake-pill ${target.fake ? '' : 'is-real'}`}
-              aria-pressed={!target.fake}
-              onClick={() => onPatch({ fake: false })}
-            >
-              Real
-            </button>
-            <button
-              type="button"
-              className={`pill pill--tiny op-fake-pill ${target.fake ? 'is-fake' : ''}`}
-              aria-pressed={target.fake}
-              onClick={() => onPatch({ fake: true })}
-            >
-              Fake
-            </button>
-          </div>
+            Real
+          </button>
+          <button
+            type="button"
+            className={`pill pill--tiny op-fake-pill ${target.fake ? 'is-fake' : ''}`}
+            aria-pressed={target.fake}
+            onClick={() => onPatch({ fake: true })}
+          >
+            Fake
+          </button>
         </div>
       </div>
 
-      {/* Bottom: Safe Time Configuration */}
-      <div className="op-card__footer">
-        {target.playerId ? (
-          <p className="op-inherited">
-            {inherited.safeEnabled
-              ? `Inherits ${inherited.sourceName}: ${inherited.safeStart}–${inherited.safeEnd} UTC`
-              : `${inherited.sourceName} has no safe hours set`}
-          </p>
-        ) : (
-          <SafeTimeFields
-            owner={target}
-            label="Defender Safe Hours"
-            onChange={onPatch}
-          />
-        )}
+      <div className="op-strip-card__safetime">
+        <span
+          className="op-inherited-tag"
+          title={
+            player.safeEnabled
+              ? `${player.name}: ${player.safeStart}–${player.safeEnd} UTC`
+              : `${player.name} has no safe hours`
+          }
+        >
+          ↳ {player.safeEnabled
+            ? `Inherits ${player.name} (${player.safeStart}–${player.safeEnd} UTC)`
+            : `Inherits ${player.name} (No safe hours)`}
+        </span>
       </div>
+
+      <button
+        type="button"
+        className="op-remove"
+        aria-label={'Remove ' + target.name}
+        disabled={!canRemove}
+        onClick={onRemove}
+      >
+        ×
+      </button>
     </article>
   );
 }
@@ -689,8 +837,6 @@ function SafetimeChecksCell({ route, showLocal }: { route: PlannedRoute; showLoc
     formatDateTime(date, seconds)
     + (showLocal ? ` · ${formatLocalDateTime(date, seconds)}` : '');
 
-  // Names whoever actually owns the window, so an inherited one is not
-  // mistaken for something set on the village.
   const defenderLabel = route.targetSafe.sourceName ?? route.target.name;
   const defenderWindowText = route.targetSafe.safeEnabled
     ? `${defenderLabel} safe time: ${route.targetSafe.safeStart}–${route.targetSafe.safeEnd} UTC`
@@ -899,8 +1045,7 @@ function DailySchedule({
   showLocal: boolean;
 }) {
   const attackers = [...new Map(routes.map((item) => [item.attacker.id, item.attacker])).values()];
-  // Villages of one player share a window, so they collapse into a single lane
-  // keyed by the player — otherwise five villages draw five identical bars.
+
   const defenderKey = (target: Target) => target.playerId || target.id;
   const defenders = [...new Map(routes.map((item) => [
     defenderKey(item.target),
@@ -910,9 +1055,14 @@ function DailySchedule({
       window: ownerWindow(item.targetSafe),
     },
   ])).values()];
+
   const selectedDefenderKey = defenderKey(route.target);
   const sendPosition = Math.min(100, Math.max(0, minuteOfDay(route.send) / 14.4));
   const landPosition = Math.min(100, Math.max(0, minuteOfDay(route.land) / 14.4));
+
+  const defenderVillages = routes
+    .filter((r) => r.attacker.id === route.attacker.id && defenderKey(r.target) === selectedDefenderKey)
+    .map((r) => r.target);
 
   const handleSelectAttacker = (attackerId: string) => {
     const nextRoute = routes.find(
@@ -923,8 +1073,6 @@ function DailySchedule({
     }
   };
 
-  // A defender lane covers every village of one player, so match on the lane's
-  // key rather than a single target id.
   const handleSelectDefender = (laneKey: string) => {
     const nextRoute = routes.find(
       (r) => r.attacker.id === route.attacker.id && defenderKey(r.target) === laneKey
@@ -936,19 +1084,15 @@ function DailySchedule({
 
   return (
     <section className="panel op-schedule">
-      <div className="op-section-head">
-        <div>
-          <h2 className="panel__title">Daily safe-time schedule · UTC</h2>
-          <p className="op-section-copy">
-            Selected route: <strong>{route.attacker.name}</strong> → <strong>{route.target.name}</strong>. Click any lane or route row to switch.
-          </p>
+      <div className="op-section-head op-schedule__header-wrap">
+        <h2 className="panel__title">Daily safe-time schedule · UTC</h2>
+        <div className="op-schedule__status-group">
+          <span className={'op-status ' + (route.possible ? 'is-possible' : 'is-blocked')}>
+            {route.possible ? 'All Checks Clear ✓' : 'Route Blocked ✕'}
+          </span>
         </div>
-        <span className={'op-status ' + (route.possible ? 'is-possible' : 'is-blocked')}>
-          {route.possible ? 'All Checks Clear' : 'Route Blocked'}
-        </span>
       </div>
 
-      {/* Accurately positioned 00:00 to 24:00 timeline axis */}
       <div className="schedule__axis-row" aria-hidden="true">
         <span className="schedule__axis-spacer" />
         <div className="schedule__axis-track">
@@ -984,11 +1128,9 @@ function DailySchedule({
         />
       ))}
 
-      {/* Movement row displaying selected route safe-time boxes and vertical pins */}
       <div className="schedule__row schedule__row--events">
         <span className="schedule__label">Movement</span>
         <div className="schedule__track schedule__track--events">
-          {/* Selected Attacker Safe Window overlays */}
           {route.attackerWindow.enabled && safeSegments(route.attackerWindow).map((seg) => (
             <span
               key={`mov-atk-${seg.start}-${seg.end}`}
@@ -997,13 +1139,8 @@ function DailySchedule({
                 '--left': (seg.start / 14.4) + '%',
                 '--width': ((seg.end - seg.start) / 14.4) + '%',
               } as CSSProperties}
-              title={`${route.attacker.name} Safe Window: ${route.attacker.safeStart}–${route.attacker.safeEnd} UTC`}
-            >
-              <span className="schedule__movement-safe-tag">Attacker Safe</span>
-            </span>
+            />
           ))}
-
-          {/* Selected Defender Safe Window overlays */}
           {route.targetWindow.enabled && safeSegments(route.targetWindow).map((seg) => (
             <span
               key={`mov-def-${seg.start}-${seg.end}`}
@@ -1012,13 +1149,10 @@ function DailySchedule({
                 '--left': (seg.start / 14.4) + '%',
                 '--width': ((seg.end - seg.start) / 14.4) + '%',
               } as CSSProperties}
-              title={`${route.targetSafe.sourceName ?? route.target.name} Safe Window: ${route.targetSafe.safeStart}–${route.targetSafe.safeEnd} UTC`}
-            >
-              <span className="schedule__movement-safe-tag">Defender Safe</span>
-            </span>
+            />
           ))}
 
-          {/* Send Pin */}
+          {/* Send Pin: Badge on top, line in middle, head at bottom touching track */}
           <div
             className="schedule__pin schedule__pin--send"
             style={{ left: `${sendPosition}%` }}
@@ -1037,7 +1171,7 @@ function DailySchedule({
             <div className="schedule__pin-head" />
           </div>
 
-          {/* Land Pin */}
+          {/* Land Pin: Head at top touching track, line in middle, badge at bottom */}
           <div
             className="schedule__pin schedule__pin--land"
             style={{ left: `${landPosition}%` }}
@@ -1057,6 +1191,31 @@ function DailySchedule({
           </div>
         </div>
       </div>
+
+      {/* Village switcher bar placed at bottom under Movement track */}
+      {defenderVillages.length > 1 && (
+        <div className="schedule__villages-footer">
+          <span className="schedule__villages-label">Villages ({route.targetSafe.sourceName ?? route.target.name}):</span>
+          <div className="schedule__village-pills">
+            {defenderVillages.map((village) => {
+              const isCurrent = village.id === route.target.id;
+              const vRoute = routes.find((r) => r.attacker.id === route.attacker.id && r.target.id === village.id);
+              return (
+                <button
+                  key={village.id}
+                  type="button"
+                  className={`pill pill--tiny ${isCurrent ? 'pill--primary' : ''}`}
+                  onClick={() => vRoute && onSelectRoute(vRoute.key)}
+                  title={vRoute ? `Send: ${formatClock(minuteOfDay(vRoute.send), true)} UTC` : undefined}
+                >
+                  {isCurrent ? '● ' : '○ '}{village.name} ({village.x}|{village.y}){village.fake ? ' [Fake]' : ''}
+                  {vRoute && <span className="schedule__pill-time"> · {formatClock(minuteOfDay(vRoute.send), true)} UTC</span>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </section>
   );
 }
@@ -1065,9 +1224,24 @@ export function OperationPlanner() {
   const [state, setState] = useState<PlannerState>(() => decodeState());
   const [showLocal, setShowLocal] = useState<boolean>(readShowLocal);
   const [selectedKey, setSelectedKey] = useState('');
+  const [filterAttacker, setFilterAttacker] = useState<string>('all');
+  const [filterTarget, setFilterTarget] = useState<string>('all');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'possible' | 'blocked'>('all');
+  const [filterType, setFilterType] = useState<'all' | 'real' | 'fake'>('all');
+  const [alarmEnabled, setAlarmEnabled] = useState<boolean>(true);
+  const [alarmAttackerId, setAlarmAttackerId] = useState<string>('all');
+  const [now, setNow] = useState<Date>(() => new Date());
   const zoneLabel = useMemo(() => localZoneLabel(), []);
 
-  // Sync state whenever hash or popstate changes (e.g. pasted URL, bookmark, back/forward)
+  // Live 1-second ticker for countdown
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNow(new Date());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Sync state whenever hash or popstate changes
   useEffect(() => {
     const handleHashChange = () => {
       setState(decodeState());
@@ -1104,9 +1278,6 @@ export function OperationPlanner() {
     writeShowLocal(showLocal);
   }, [showLocal]);
 
-  // `decodeState` guarantees a parseable landing, so this fallback should never
-  // fire. It is pinned to a ref anyway: recomputing `new Date()` inside a memo
-  // would make every route time drift on an unrelated re-render.
   const fallbackLanding = useRef<Date | null>(null);
 
   const parsedLanding = useMemo(() => {
@@ -1173,41 +1344,53 @@ export function OperationPlanner() {
       }),
     );
 
-    // Sort routes chronologically by Send time ascending (earliest departure first)
     return computed.sort((a, b) => a.send.getTime() - b.send.getTime());
   }, [state.attackers, state.targets, state.players, state.serverSpeed, parsedLanding]);
 
   const selectedRoute = routes.find((route) => route.key === selectedKey) ?? routes[0];
 
-  /**
-   * Target cards, bucketed by owner. A player keeps their bucket even with no
-   * villages in it yet, so the "+ Village" button has somewhere to live;
-   * unassigned villages collect in a final bucket.
-   */
-  const targetGroups = useMemo(() => {
-    const groups: Array<{
-      key: string;
-      label: string;
-      player: Player | null;
-      targets: Target[];
-    }> = state.players.map((player) => ({
-      key: player.id,
-      label: player.name,
-      player,
-      targets: state.targets.filter((target) => target.playerId === player.id),
-    }));
+  const visibleRoutes = useMemo(() => {
+    return routes.filter((route) => {
+      if (filterAttacker !== 'all' && route.attacker.id !== filterAttacker) return false;
+      if (filterTarget !== 'all' && route.target.id !== filterTarget) return false;
+      if (filterStatus === 'possible' && !route.possible) return false;
+      if (filterStatus === 'blocked' && route.possible) return false;
+      if (filterType === 'real' && route.target.fake) return false;
+      if (filterType === 'fake' && !route.target.fake) return false;
+      return true;
+    });
+  }, [routes, filterAttacker, filterTarget, filterStatus, filterType]);
 
-    const unassigned = state.targets.filter((target) => !target.playerId);
-    if (unassigned.length) {
-      groups.push({
-        key: '',
-        label: 'Unassigned villages',
-        player: null,
-        targets: unassigned,
-      });
+  // Audio alert tracking for 1-minute chime & 5-second countdown ticks
+  const alerted1MinRef = useRef<Set<string>>(new Set());
+  const lastBeepSecRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!alarmEnabled) return;
+    const nowMs = now.getTime();
+    for (const route of routes) {
+      // Alarm ONLY for designated "You" army (or all if selected)
+      if (alarmAttackerId !== 'all' && route.attacker.id !== alarmAttackerId) {
+        continue;
+      }
+      const diffSec = Math.floor((route.send.getTime() - nowMs) / 1000);
+      const alertKey = `${route.key}_${route.send.getTime()}`;
+
+      // Stage 1: 1-minute out chime (between 55s and 60s)
+      if (diffSec >= 55 && diffSec <= 60 && !alerted1MinRef.current.has(alertKey)) {
+        alerted1MinRef.current.add(alertKey);
+        play1MinChime();
+      }
+
+      // Stage 2: 5-second final countdown beeps (5, 4, 3, 2, 1, 0)
+      if (diffSec >= 0 && diffSec <= 5) {
+        if (lastBeepSecRef.current !== diffSec) {
+          lastBeepSecRef.current = diffSec;
+          playCountdownBeep(diffSec);
+        }
+      }
     }
-    return groups;
-  }, [state.players, state.targets]);
+  }, [now, routes, alarmEnabled, alarmAttackerId]);
 
   const patchAttacker = (id: string, patch: Partial<Attacker>) => {
     setState((current) => ({
@@ -1241,64 +1424,100 @@ export function OperationPlanner() {
     }));
   };
 
-  const addTarget = (playerId = '') => {
-    setState((current) => {
-      const owner = current.players.find((player) => player.id === playerId);
-      return {
-        ...current,
-        targets: [...current.targets, {
-          id: nextId('t'),
-          name: owner
-            ? `${owner.name} village ${current.targets.filter((t) => t.playerId === playerId).length + 1}`
-            : 'Target ' + (current.targets.length + 1),
-          x: 0,
-          y: 0,
-          fake: false,
-          playerId: owner ? owner.id : '',
-          ...initialSafeTime(),
-        }],
-      };
-    });
-  };
-
   const patchPlayer = (id: string, patch: Partial<Player>) => {
-    setState((current) => ({
-      ...current,
-      players: current.players.map((player) =>
-        player.id === id ? { ...player, ...patch } : player),
-    }));
-  };
-
-  const addPlayer = () => {
     setState((current) => {
-      const player: Player = {
-        id: nextId('p'),
-        name: 'Player ' + (current.players.length + 1),
-        ...initialSafeTime(),
-        safeEnabled: true,
+      const updatedPlayers = current.players.map((p) =>
+        p.id === id ? { ...p, ...patch } : p);
+      const targetPlayer = updatedPlayers.find((p) => p.id === id);
+      const updatedTargets = current.targets.map((t) => {
+        if (t.playerId === id && targetPlayer) {
+          return {
+            ...t,
+            safeEnabled: targetPlayer.safeEnabled,
+            safeStart: targetPlayer.safeStart,
+            safeEnd: targetPlayer.safeEnd,
+          };
+        }
+        return t;
+      });
+      return {
+        ...current,
+        players: updatedPlayers,
+        targets: updatedTargets,
       };
-      return { ...current, players: [...current.players, player] };
     });
   };
 
-  /** Removing a player leaves its villages in place, holding the window they
-   *  had been inheriting, so a misclick does not silently unprotect them. */
-  const removePlayer = (id: string) => {
+  const addDefender = () => {
     setState((current) => {
-      const owner = current.players.find((player) => player.id === id);
+      const pId = nextId('p');
+      const tId = nextId('t');
+      const pNum = current.players.length + 1;
+      const newPlayer: Player = {
+        id: pId,
+        name: 'Defender ' + pNum,
+        ...initialSafeTime(),
+      };
+      const newTarget: Target = {
+        id: tId,
+        name: 'Village 1',
+        x: 0,
+        y: 0,
+        fake: false,
+        playerId: pId,
+        ...initialSafeTime(),
+      };
       return {
         ...current,
-        players: current.players.filter((player) => player.id !== id),
-        targets: current.targets.map((target) =>
-          target.playerId === id
-            ? {
-                ...target,
-                playerId: '',
-                safeEnabled: owner ? owner.safeEnabled : target.safeEnabled,
-                safeStart: owner ? owner.safeStart : target.safeStart,
-                safeEnd: owner ? owner.safeEnd : target.safeEnd,
-              }
-            : target),
+        players: [...current.players, newPlayer],
+        targets: [...current.targets, newTarget],
+      };
+    });
+  };
+
+  const removeDefender = (playerId: string) => {
+    setState((current) => {
+      if (current.players.length <= 1) return current;
+      return {
+        ...current,
+        players: current.players.filter((p) => p.id !== playerId),
+        targets: current.targets.filter((t) => t.playerId !== playerId),
+      };
+    });
+  };
+
+  const addVillage = (playerId: string) => {
+    setState((current) => {
+      const player = current.players.find((p) => p.id === playerId);
+      if (!player) return current;
+      const existingVillages = current.targets.filter((t) => t.playerId === playerId);
+      const newTarget: Target = {
+        id: nextId('t'),
+        name: `Village ${existingVillages.length + 1}`,
+        x: 0,
+        y: 0,
+        fake: false,
+        playerId: playerId,
+        safeEnabled: player.safeEnabled,
+        safeStart: player.safeStart,
+        safeEnd: player.safeEnd,
+      };
+      return {
+        ...current,
+        targets: [...current.targets, newTarget],
+      };
+    });
+  };
+
+  const removeVillage = (targetId: string) => {
+    setState((current) => {
+      const target = current.targets.find((t) => t.id === targetId);
+      if (!target) return current;
+      const playerVillages = current.targets.filter((t) => t.playerId === target.playerId);
+      if (playerVillages.length <= 1) return current;
+      return {
+        ...current,
+        targets: current.targets.filter((t) => t.id !== targetId),
       };
     });
   };
@@ -1390,50 +1609,96 @@ export function OperationPlanner() {
         </p>
       </section>
 
-      <div className="op-rosters">
+      {/* Stacked Full-Width Sections: Attackers on top, Targets below */}
+      <div className="op-sections-stacked">
         {/* Attackers Section */}
-        <section className="panel op-roster op-roster--attackers">
+        <section className="panel op-section-full op-section-full--attackers">
           <div className="op-section-head">
             <div className="op-section-head__title-group">
               <span className="op-section-tag op-section-tag--attacker">Attackers</span>
               <h2 className="panel__title">Attacking Armies ({state.attackers.length})</h2>
-              <p className="op-section-copy">Configure slowest troop, speed modifiers, and base coordinates.</p>
+              <p className="op-section-copy">Configure slowest troop, speed modifiers, coordinates, and safe hours.</p>
             </div>
             <button type="button" className="pill pill--tiny pill--primary" onClick={addAttacker}>
               + Add Attacker
             </button>
           </div>
 
-          <div className="op-cards">
+          <div className="op-strip-list">
             {state.attackers.map((attacker, index) => (
-              <article className="op-card op-card--attacker" key={attacker.id}>
-                {/* Row 1: Name + Coordinates + Remove Button */}
-                <div className="op-card__header-row">
-                  <span className="op-card__idx">#{index + 1}</span>
-                  <input
-                    className="text-input op-card__name"
-                    aria-label="Attacker name"
-                    value={attacker.name}
-                    onChange={(event) => patchAttacker(attacker.id, { name: event.target.value })}
-                  />
-                  <div className="coord-inline">
-                    <label className="coord-field">
-                      <span className="coord-field__tag">X</span>
-                      <CoordInput
-                        value={attacker.x}
-                        onChange={(x) => patchAttacker(attacker.id, { x })}
-                        ariaLabel="Attacker X coordinate"
-                      />
-                    </label>
-                    <label className="coord-field">
-                      <span className="coord-field__tag">Y</span>
-                      <CoordInput
-                        value={attacker.y}
-                        onChange={(y) => patchAttacker(attacker.id, { y })}
-                        ariaLabel="Attacker Y coordinate"
-                      />
-                    </label>
+              <article className="op-strip-card op-strip-card--attacker" key={attacker.id}>
+                {/* Top Strip: Identity + Troop + Modifiers + Remove */}
+                <div className="op-strip-card__top">
+                  <div className="op-strip-card__identity">
+                    <span className="op-card__idx">#{index + 1}</span>
+                    <input
+                      className="text-input op-card__name"
+                      aria-label="Attacker name"
+                      placeholder="Player / Village"
+                      value={attacker.name}
+                      onChange={(event) => patchAttacker(attacker.id, { name: event.target.value })}
+                    />
+                    <div className="coord-inline">
+                      <label className="coord-field">
+                        <span className="coord-field__tag">X</span>
+                        <CoordInput
+                          value={attacker.x}
+                          onChange={(x) => patchAttacker(attacker.id, { x })}
+                          ariaLabel="Attacker X coordinate"
+                        />
+                      </label>
+                      <label className="coord-field">
+                        <span className="coord-field__tag">Y</span>
+                        <CoordInput
+                          value={attacker.y}
+                          onChange={(y) => patchAttacker(attacker.id, { y })}
+                          ariaLabel="Attacker Y coordinate"
+                        />
+                      </label>
+                    </div>
                   </div>
+
+                  <div className="op-strip-card__military">
+                    <div className="op-strip-card__unit">
+                      <UnitGridPicker
+                        unitRef={attacker.unitRef}
+                        onChange={(newRef) => patchAttacker(attacker.id, { unitRef: newRef })}
+                      />
+                    </div>
+
+                    <div className="op-strip-card__modifiers">
+                      <label className="op-modifier-inline" title="Speed Artifact">
+                        <span className="op-modifier-inline__tag">Artifact</span>
+                        <select
+                          className="select op-select-solid-sm"
+                          value={attacker.artifactMultiplier}
+                          onChange={(event) => patchAttacker(attacker.id, {
+                            artifactMultiplier: Number(event.target.value) as Attacker['artifactMultiplier'],
+                          })}
+                        >
+                          <option value={1}>1.0×</option>
+                          <option value={1.5}>1.5×</option>
+                          <option value={2}>2.0×</option>
+                        </select>
+                      </label>
+
+                      <label className="op-modifier-inline" title="Bannerfield Level (+20% speed per level beyond 20 fields)">
+                        <span className="op-modifier-inline__tag">Bannerfield</span>
+                        <input
+                          className="text-input op-input-solid-sm"
+                          type="number"
+                          min={0}
+                          max={20}
+                          value={attacker.bannerfieldLevel}
+                          onChange={(event) => patchAttacker(attacker.id, {
+                            bannerfieldLevel: Math.min(20, Math.max(0, numberFromInput(event.target.value))),
+                          })}
+                        />
+                        <span className="bannerfield-bonus-tag-sm">+{attacker.bannerfieldLevel * 20}%</span>
+                      </label>
+                    </div>
+                  </div>
+
                   <button
                     type="button"
                     className="op-remove"
@@ -1449,54 +1714,8 @@ export function OperationPlanner() {
                   </button>
                 </div>
 
-                {/* Row 2: Slowest Troop Grid Picker */}
-                <div className="op-card__troop-section">
-                  <span className="op-field-label">Slowest Troop</span>
-                  <UnitGridPicker
-                    unitRef={attacker.unitRef}
-                    onChange={(newRef) => patchAttacker(attacker.id, { unitRef: newRef })}
-                  />
-                </div>
-
-                {/* Row 3: Modifiers (Artifact & Bannerfield) */}
-                <div className="op-modifiers-card">
-                  <label className="op-modifier-field">
-                    <span className="op-field-label">Speed Artifact</span>
-                    <select
-                      className="select op-select-solid"
-                      value={attacker.artifactMultiplier}
-                      onChange={(event) => patchAttacker(attacker.id, {
-                        artifactMultiplier: Number(event.target.value) as Attacker['artifactMultiplier'],
-                      })}
-                    >
-                      <option value={1}>1.0× (None)</option>
-                      <option value={1.5}>1.5× (Small / Unique)</option>
-                      <option value={2}>2.0× (Large)</option>
-                    </select>
-                  </label>
-
-                  <label className="op-modifier-field">
-                    <span className="op-field-label">Bannerfield Lvl</span>
-                    <div className="bannerfield-input-wrap">
-                      <input
-                        className="text-input op-input-solid"
-                        type="number"
-                        min={0}
-                        max={20}
-                        value={attacker.bannerfieldLevel}
-                        onChange={(event) => patchAttacker(attacker.id, {
-                          bannerfieldLevel: Math.min(20, Math.max(0, numberFromInput(event.target.value))),
-                        })}
-                      />
-                      <span className="bannerfield-bonus-tag">
-                        +{attacker.bannerfieldLevel * 20}% &gt;20f
-                      </span>
-                    </div>
-                  </label>
-                </div>
-
-                {/* Bottom: Safe Time Configuration */}
-                <div className="op-card__footer">
+                {/* Bottom Strip: Dedicated Safe Hours */}
+                <div className="op-strip-card__bottom">
                   <SafeTimeFields
                     owner={attacker}
                     label="Attacker Safe Hours"
@@ -1508,114 +1727,244 @@ export function OperationPlanner() {
           </div>
         </section>
 
-        {/* Targets Section */}
-        <section className="panel op-roster op-roster--targets">
+        {/* Defenders Section */}
+        <section className="panel op-section-full op-section-full--defenders">
           <div className="op-section-head">
             <div className="op-section-head__title-group">
-              <span className="op-section-tag op-section-tag--target">Targets</span>
-              <h2 className="panel__title">Target Destinations ({state.targets.length})</h2>
-              <p className="op-section-copy">Set target coordinates and defender safe window protection.</p>
+              <span className="op-section-tag op-section-tag--target">Defenders</span>
+              <h2 className="panel__title">Target Defenders ({state.players.length})</h2>
+              <p className="op-section-copy">
+                Each defender account defines its safe hours once. All villages under an account inherit its safe hours.
+              </p>
             </div>
             <div className="op-section-head__actions">
-              <button type="button" className="pill pill--tiny" onClick={addPlayer}>
-                + Add Player
-              </button>
-              <button type="button" className="pill pill--tiny pill--primary" onClick={() => addTarget()}>
-                + Add Target
+              <button type="button" className="pill pill--tiny pill--primary" onClick={addDefender}>
+                + Add Defender
               </button>
             </div>
           </div>
 
-          {state.players.length === 0 && (
-            <p className="op-players__empty">
-              Add a player to hold one safe window, then attach their villages to it instead of
-              retyping the hours for every village.
-            </p>
-          )}
+          <div className="op-defenders-list">
+            {state.players.map((player, pIdx) => {
+              const playerVillages = state.targets.filter((t) => t.playerId === player.id);
+              return (
+                <div className="op-target-group is-player" key={player.id}>
+                  {/* Defender Player Header */}
+                  <div className="op-target-group__head">
+                    <div className="op-target-group__player-title">
+                      <span className="op-target-group__icon">👤</span>
+                      <span className="op-card__idx">#{pIdx + 1}</span>
+                      <input
+                        className="text-input op-player__name"
+                        aria-label="Defender account name"
+                        value={player.name}
+                        onChange={(event) => patchPlayer(player.id, { name: event.target.value })}
+                        placeholder="Defender name"
+                      />
+                      <span className="op-target-group__meta">
+                        {playerVillages.length} {playerVillages.length === 1 ? 'village' : 'villages'}
+                      </span>
+                    </div>
 
-          {/* Villages are listed under the player they belong to. Cards are
-              appended in the order they were created, which interleaves owners
-              once more than one player is in play. */}
-          {targetGroups.map((group) => (
-            <div
-              className={`op-target-group ${group.player ? 'is-player' : 'is-loose'}`}
-              key={group.key || 'unassigned'}
-            >
-              <div className="op-target-group__head">
-                {group.player ? (
-                  <input
-                    className="text-input op-player__name"
-                    aria-label="Player name"
-                    value={group.player.name}
-                    onChange={(event) => patchPlayer(group.key, { name: event.target.value })}
-                  />
-                ) : (
-                  <span className="op-target-group__name">{group.label}</span>
-                )}
-                <span className="op-target-group__meta">
-                  {group.targets.length} {group.targets.length === 1 ? 'village' : 'villages'}
-                </span>
-                {group.player && (
-                  <>
-                    <button
-                      type="button"
-                      className="pill pill--tiny"
-                      onClick={() => addTarget(group.key)}
-                    >
-                      + Village
-                    </button>
-                    <button
-                      type="button"
-                      className="op-remove"
-                      aria-label={'Remove ' + group.player.name}
-                      onClick={() => removePlayer(group.key)}
-                    >
-                      ×
-                    </button>
-                  </>
-                )}
-              </div>
+                    <div className="op-target-group__player-safetime">
+                      <SafeTimeFields
+                        owner={player}
+                        label={`${player.name} Safe Hours`}
+                        onChange={(patch) => patchPlayer(player.id, patch)}
+                      />
+                    </div>
 
-              {/* One safe window for the whole group — every village inherits it. */}
-              {group.player && (
-                <SafeTimeFields
-                  owner={group.player}
-                  label={`${group.player.name} Safe Hours`}
-                  onChange={(patch) => patchPlayer(group.key, patch)}
-                />
-              )}
+                    <div className="op-target-group__actions">
+                      <button
+                        type="button"
+                        className="pill pill--tiny"
+                        onClick={() => addVillage(player.id)}
+                        title={`Add another village targeted on ${player.name}`}
+                      >
+                        + Add Village
+                      </button>
+                      <button
+                        type="button"
+                        className="op-remove"
+                        aria-label={'Remove ' + player.name}
+                        disabled={state.players.length <= 1}
+                        onClick={() => removeDefender(player.id)}
+                        title={state.players.length <= 1 ? 'At least one defender account is required' : 'Remove defender and all attached villages'}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
 
-              <div className="op-cards">
-                {group.targets.map((target, index) => (
-                  <TargetCard
-                    key={target.id}
-                    target={target}
-                    index={index}
-                    players={state.players}
-                    canRemove={state.targets.length > 1}
-                    onPatch={(patch) => patchTarget(target.id, patch)}
-                    onRemove={() =>
-                      setState((current) => ({
-                        ...current,
-                        targets: current.targets.filter((item) => item.id !== target.id),
-                      }))}
-                  />
-                ))}
-              </div>
-            </div>
-          ))}
+                  {/* Villages List under this Defender */}
+                  <div className="op-strip-list">
+                    {playerVillages.map((target, vIdx) => (
+                      <VillageStrip
+                        key={target.id}
+                        target={target}
+                        index={vIdx}
+                        player={player}
+                        canRemove={playerVillages.length > 1}
+                        onPatch={(patch) => patchTarget(target.id, patch)}
+                        onRemove={() => removeVillage(target.id)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </section>
       </div>
 
       {/* Results Section */}
       <section className="panel op-results">
-        <div className="op-section-head">
+        <div className="op-section-head op-results__head-wrap">
           <div>
             <h2 className="panel__title">Route Plan (Sorted by Send Time)</h2>
             <p className="op-section-copy">
               Click anywhere on a row to inspect its schedule. {routes.filter((route) => route.possible).length} of {routes.length} routes clear all safetime checks
               {' · '}{routes.filter((route) => !route.target.fake).length} real, {routes.filter((route) => route.target.fake).length} fake.
             </p>
+          </div>
+
+          {/* Alarm Control Button Toolbar */}
+          <div className="op-alarm-toolbar">
+            <button
+              type="button"
+              className={`pill pill--alarm ${alarmEnabled ? 'is-enabled' : 'is-muted'}`}
+              onClick={() => setAlarmEnabled((prev) => !prev)}
+              title={alarmEnabled ? 'Audio alert enabled (1m chime & 5s countdown beeps). Click to mute.' : 'Sound alert is muted. Click to enable.'}
+            >
+              {alarmEnabled ? '🔔 Alarm: ON' : '🔕 Alarm: Muted'}
+            </button>
+            <label className="op-alarm-select-label" title="Choose which attacker army triggers launch sound alarms (independent of viewing filters)">
+              <span className="op-alarm-select-tag">Army:</span>
+              <select
+                className="select op-select-solid-sm op-alarm-select"
+                value={alarmAttackerId}
+                onChange={(e) => setAlarmAttackerId(e.target.value)}
+                aria-label="Select attacker army for audio alarm"
+              >
+                <option value="all">All Armies</option>
+                {state.attackers.map((atk) => (
+                  <option key={atk.id} value={atk.id}>
+                    {atk.name} (You)
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button
+              type="button"
+              className="pill pill--tiny"
+              onClick={play1MinChime}
+              title="Test 1-minute melodic warning chime"
+            >
+              Test 1m
+            </button>
+            <button
+              type="button"
+              className="pill pill--tiny"
+              onClick={test5sCountdownSequence}
+              title="Test 5-second countdown beeps (5..4..3..2..1..0)"
+            >
+              ⏱️ Test 5s
+            </button>
+          </div>
+        </div>
+
+        {/* Route Filter Toolbar */}
+        <div className="op-filter-toolbar">
+          <div className="op-filter-group">
+            <label className="op-filter-label">
+              <span>Attacker:</span>
+              <select
+                className="select op-select-filter"
+                value={filterAttacker}
+                onChange={(e) => setFilterAttacker(e.target.value)}
+                aria-label="Filter routes by attacker"
+              >
+                <option value="all">All Attackers ({state.attackers.length})</option>
+                {state.attackers.map((atk) => {
+                  const count = routes.filter((r) => r.attacker.id === atk.id).length;
+                  return (
+                    <option key={atk.id} value={atk.id}>
+                      {atk.name} ({count} routes)
+                    </option>
+                  );
+                })}
+              </select>
+            </label>
+
+            <label className="op-filter-label">
+              <span>Target:</span>
+              <select
+                className="select op-select-filter"
+                value={filterTarget}
+                onChange={(e) => setFilterTarget(e.target.value)}
+                aria-label="Filter routes by target"
+              >
+                <option value="all">All Targets ({state.targets.length})</option>
+                {state.targets.map((tgt) => {
+                  const count = routes.filter((r) => r.target.id === tgt.id).length;
+                  return (
+                    <option key={tgt.id} value={tgt.id}>
+                      {tgt.name} ({count} routes)
+                    </option>
+                  );
+                })}
+              </select>
+            </label>
+          </div>
+
+          <div className="op-filter-pills-group">
+            <div className="op-filter-pills" role="group" aria-label="Filter by route viability">
+              <button
+                type="button"
+                className={`pill pill--tiny ${filterStatus === 'all' ? 'is-active' : ''}`}
+                onClick={() => setFilterStatus('all')}
+              >
+                All Status ({routes.length})
+              </button>
+              <button
+                type="button"
+                className={`pill pill--tiny pill--clear-filter ${filterStatus === 'possible' ? 'is-active' : ''}`}
+                onClick={() => setFilterStatus('possible')}
+              >
+                Clear ({routes.filter((r) => r.possible).length})
+              </button>
+              <button
+                type="button"
+                className={`pill pill--tiny pill--blocked-filter ${filterStatus === 'blocked' ? 'is-active' : ''}`}
+                onClick={() => setFilterStatus('blocked')}
+              >
+                Blocked ({routes.filter((r) => !r.possible).length})
+              </button>
+            </div>
+
+            <div className="op-filter-pills" role="group" aria-label="Filter by attack type">
+              <button
+                type="button"
+                className={`pill pill--tiny ${filterType === 'all' ? 'is-active' : ''}`}
+                onClick={() => setFilterType('all')}
+              >
+                All Types
+              </button>
+              <button
+                type="button"
+                className={`pill pill--tiny ${filterType === 'real' ? 'is-active' : ''}`}
+                onClick={() => setFilterType('real')}
+              >
+                Real ({routes.filter((r) => !r.target.fake).length})
+              </button>
+              <button
+                type="button"
+                className={`pill pill--tiny ${filterType === 'fake' ? 'is-active' : ''}`}
+                onClick={() => setFilterType('fake')}
+              >
+                Fake ({routes.filter((r) => r.target.fake).length})
+              </button>
+            </div>
           </div>
         </div>
 
@@ -1626,6 +1975,7 @@ export function OperationPlanner() {
                 <th>Route</th>
                 <th>Distance</th>
                 <th>Travel Duration</th>
+                <th>Launch In</th>
                 <th>Send Time (UTC)</th>
                 <th>Land Time (UTC)</th>
                 <th>
@@ -1634,63 +1984,79 @@ export function OperationPlanner() {
               </tr>
             </thead>
             <tbody>
-              {routes.map((route) => (
-                <tr
-                  key={route.key}
-                  className={`op-route-row ${(selectedRoute?.key === route.key ? 'is-selected ' : '') + (route.possible ? 'is-possible' : 'is-blocked')}`}
-                  onClick={() => setSelectedKey(route.key)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      setSelectedKey(route.key);
-                    }
-                  }}
-                >
-                  <td data-label="Route">
-                    <div className="op-route-summary">
-                      <div className="op-route-button__names">
-                        <strong className="op-route-attacker">{route.attacker.name}</strong>
-                        <span className="op-route-arrow">→</span>
-                        <strong className="op-route-target">{route.target.name}</strong>
-                        <span className="op-route-coords">({route.target.x}|{route.target.y})</span>
-                        <span className={`op-hit-tag ${route.target.fake ? 'is-fake' : 'is-real'}`}>
-                          {route.target.fake ? 'Fake' : 'Real'}
-                        </span>
-                      </div>
-                      <span className="op-route-unit-hint">
-                        {lookup(route.attacker.unitRef).unit.name} ({lookup(route.attacker.unitRef).unit.speed} f/h)
-                        {route.targetSafe.sourceName ? ` · ${route.targetSafe.sourceName}` : ''}
-                      </span>
-                    </div>
-                  </td>
-                  <td data-label="Distance">
-                    <span className="tabular-stat">{route.distance.toFixed(2)}</span> fields
-                  </td>
-                  <td data-label="Travel Duration">
-                    <span className="travel-stat">{formatDuration(route.travel)}</span>
-                  </td>
-                  <td data-label="Send Time (UTC)">
-                    <Stamp
-                      date={route.send}
-                      showLocal={showLocal}
-                      seconds
-                      className="op-timestamp op-timestamp--send"
-                    />
-                  </td>
-                  <td data-label="Land Time (UTC)">
-                    <Stamp
-                      date={route.land}
-                      showLocal={showLocal}
-                      className="op-timestamp op-timestamp--land"
-                    />
-                  </td>
-                  <td data-label="Safetime Checks">
-                    <SafetimeChecksCell route={route} showLocal={showLocal} />
+              {visibleRoutes.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="op-routes-empty">
+                    No routes match the selected filters.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                visibleRoutes.map((route) => {
+                  const countdown = getCountdownInfo(route.send, now);
+                  return (
+                    <tr
+                      key={route.key}
+                      className={`op-route-row ${(selectedRoute?.key === route.key ? 'is-selected ' : '') + (route.possible ? 'is-possible' : 'is-blocked')}`}
+                      onClick={() => setSelectedKey(route.key)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          setSelectedKey(route.key);
+                        }
+                      }}
+                    >
+                      <td data-label="Route">
+                        <div className="op-route-summary">
+                          <div className="op-route-button__names">
+                            <strong className="op-route-attacker">{route.attacker.name}</strong>
+                            <span className="op-route-arrow">→</span>
+                            <strong className="op-route-target">{route.target.name}</strong>
+                            <span className="op-route-coords">({route.target.x}|{route.target.y})</span>
+                            <span className={`op-hit-tag ${route.target.fake ? 'is-fake' : 'is-real'}`}>
+                              {route.target.fake ? 'Fake' : 'Real'}
+                            </span>
+                          </div>
+                          <span className="op-route-unit-hint">
+                            {lookup(route.attacker.unitRef).unit.name} ({lookup(route.attacker.unitRef).unit.speed} f/h)
+                            {route.targetSafe.sourceName ? ` · ${route.targetSafe.sourceName}` : ''}
+                          </span>
+                        </div>
+                      </td>
+                      <td data-label="Distance">
+                        <span className="tabular-stat">{route.distance.toFixed(2)}</span> fields
+                      </td>
+                      <td data-label="Travel Duration">
+                        <span className="travel-stat">{formatDuration(route.travel)}</span>
+                      </td>
+                      <td data-label="Launch In">
+                        <span className={`op-countdown-tag op-countdown-tag--${countdown.tier}`}>
+                          {countdown.label}
+                        </span>
+                      </td>
+                      <td data-label="Send Time (UTC)">
+                        <Stamp
+                          date={route.send}
+                          showLocal={showLocal}
+                          seconds
+                          className="op-timestamp op-timestamp--send"
+                        />
+                      </td>
+                      <td data-label="Land Time (UTC)">
+                        <Stamp
+                          date={route.land}
+                          showLocal={showLocal}
+                          className="op-timestamp op-timestamp--land"
+                        />
+                      </td>
+                      <td data-label="Safetime Checks">
+                        <SafetimeChecksCell route={route} showLocal={showLocal} />
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
@@ -1707,3 +2073,4 @@ export function OperationPlanner() {
     </div>
   );
 }
+

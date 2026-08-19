@@ -2,7 +2,7 @@
  * Human-maintained release notes. Bump `APP_VERSION` and add an entry here
  * whenever a change is worth telling a returning user about.
  */
-export const APP_VERSION = '1.5.6';
+export const APP_VERSION = '1.6.0';
 
 export interface ChangelogEntry {
   version: string;
@@ -12,16 +12,29 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
-      version: '1.5.6',
-      date: '2026-08-17',
-      changes: [
-        'Operation Planner: targeted players — set safe hours once per player and attach their villages to it.',
-        'Operation Planner: target cards are grouped under the player who owns them, with unassigned villages listed separately.',
-        'Operation Planner: mark each target Real or Fake; shown as a badge in the route plan with a real/fake tally.',
-        'Operation Planner: route plan now shows each target’s coordinates.',
-        'Operation Planner: optional local-time display alongside UTC, remembered per device and kept out of shared links.',
-        'Operation Planner: share links can no longer be truncated by a name containing URL characters.',
-      ],
+    version: '1.6.0',
+    date: '2026-08-19',
+    changes: [
+      'Operation Planner: player-centric defender management — configure safe hours once per defender account, with compact village rows.',
+      'Operation Planner: dual-stage launch sound alarms — 1-minute melodic warning chime (C6-E6-G6) and 5-second countdown beeps with launch chime.',
+      'Operation Planner: designated "You" army alarm selector — choose which attacker army triggers launch sound alarms, independent of table filters.',
+      'Operation Planner: live 1-second countdown ticker with color-coded urgency tiers (imminent, urgent, future, past).',
+      'Operation Planner: route plan filters — filter routes by Attacker, Target, Viability status (Clear vs Blocked), and Attack type (Real vs Fake).',
+      'Operation Planner: pristine daily safe-time schedule timeline with streamlined header, bottom village switcher pills, and symmetric pin alignments.',
+      'Operation Planner: dark mode native selects and high-contrast dropdowns.',
+    ],
+  },
+  {
+    version: '1.5.6',
+    date: '2026-08-17',
+    changes: [
+      'Operation Planner: targeted players — set safe hours once per player and attach their villages to it.',
+      'Operation Planner: target cards are grouped under the player who owns them, with unassigned villages listed separately.',
+      'Operation Planner: mark each target Real or Fake; shown as a badge in the route plan with a real/fake tally.',
+      'Operation Planner: route plan now shows each target’s coordinates.',
+      'Operation Planner: optional local-time display alongside UTC, remembered per device and kept out of shared links.',
+      'Operation Planner: share links can no longer be truncated by a name containing URL characters.',
+    ],
   },
   {
     version: '1.5.5',
