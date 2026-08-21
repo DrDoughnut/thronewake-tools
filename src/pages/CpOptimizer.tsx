@@ -168,28 +168,44 @@ export function CpOptimizer() {
     }));
   };
 
-  const toggleCapital = () => {
-    const nextIsCapital = !activeVillage.isCapital;
-    let updatedBuildings = activeVillage.buildings;
-    if (nextIsCapital) {
-      updatedBuildings = updatedBuildings.map((b) => (b.gid === RESIDENCE_GID ? { ...b, gid: PALACE_GID } : b));
-    } else {
-      updatedBuildings = updatedBuildings.map((b) => (b.gid === PALACE_GID ? { ...b, gid: RESIDENCE_GID } : b));
-    }
+  const setAsCapital = () => {
+    if (activeVillage.isCapital) return; // Already the sole capital
 
-    patchActiveVillage({
-      isCapital: nextIsCapital,
-      buildings: updatedBuildings,
-    });
+    setAppState((prev) => ({
+      ...prev,
+      villages: prev.villages.map((v) => {
+        if (v.id === activeVillage.id) {
+          // Designate as the new sole capital
+          return {
+            ...v,
+            isCapital: true,
+            buildings: v.buildings.map((b) =>
+              b.gid === RESIDENCE_GID ? { ...b, gid: PALACE_GID } : b
+            ),
+          };
+        } else if (v.isCapital) {
+          // Revert previous capital to regular village
+          return {
+            ...v,
+            isCapital: false,
+            buildings: v.buildings.map((b) =>
+              b.gid === PALACE_GID ? { ...b, gid: RESIDENCE_GID } : b
+            ),
+          };
+        }
+        return v;
+      }),
+    }));
   };
 
   const addVillage = () => {
     const newId = 'v' + Date.now();
+    const hasCapital = appState.villages.some((v) => v.isCapital);
     const newV: VillageState = {
       ...defaultVillage(),
       id: newId,
       name: 'Village ' + (appState.villages.length + 1),
-      isCapital: appState.villages.length === 0,
+      isCapital: !hasCapital,
       faction: activeVillage.faction,
     };
     setAppState((prev) => ({
@@ -202,11 +218,28 @@ export function CpOptimizer() {
   const removeVillage = (vId: string) => {
     if (appState.villages.length <= 1) return;
     setAppState((prev) => {
-      const nextList = prev.villages.filter((v) => v.id !== vId);
+      const remaining = prev.villages.filter((v) => v.id !== vId);
+      const nextActiveId = prev.activeVillageId === vId ? remaining[0].id : prev.activeVillageId;
+      const hasCapital = remaining.some((v) => v.isCapital);
+
+      const nextVillages = !hasCapital && remaining.length > 0
+        ? remaining.map((v, idx) =>
+            idx === 0
+              ? {
+                  ...v,
+                  isCapital: true,
+                  buildings: v.buildings.map((b) =>
+                    b.gid === RESIDENCE_GID ? { ...b, gid: PALACE_GID } : b
+                  ),
+                }
+              : v
+          )
+        : remaining;
+
       return {
         ...prev,
-        activeVillageId: prev.activeVillageId === vId ? nextList[0].id : prev.activeVillageId,
-        villages: nextList,
+        activeVillageId: nextActiveId,
+        villages: nextVillages,
       };
     });
   };
@@ -332,7 +365,7 @@ export function CpOptimizer() {
     <div className="cp-optimizer-page">
       {/* Header Bar */}
       <div className="cp-header-wrap">
-        <div>
+        <div className="cp-header-title-group">
           <h1 className="tool-header__title">
             {optimizerMetric === 'pop' ? '👥 Population Build-Order Optimizer' : '🏛️ Culture Point Build-Order Optimizer'}
           </h1>
@@ -343,9 +376,9 @@ export function CpOptimizer() {
           </p>
         </div>
 
-        <div className="cp-header-controls" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div className="cp-header-controls">
           {/* Mode Switcher Toggle */}
-          <div className="pill-group" style={{ display: 'flex' }}>
+          <div className="pill-group">
             <button
               type="button"
               className={'pill ' + (optimizerMetric === 'cp' ? 'pill--primary is-active' : '')}
@@ -371,7 +404,7 @@ export function CpOptimizer() {
             onClick={copyShareLink}
             title="Copy shareable link with village setup to clipboard"
           >
-            {copied ? '✓ Copied!' : '🔗 Copy Share Link'}
+            {copied ? '✓ Copied!' : '🔗 Share'}
           </button>
         </div>
       </div>
@@ -528,10 +561,10 @@ export function CpOptimizer() {
                   <button
                     type="button"
                     className={'pill pill--toggle ' + (activeVillage.isCapital ? 'is-active' : '')}
-                    onClick={toggleCapital}
-                    title={activeVillage.isCapital ? 'Capital uses Palace' : 'Non-Capital uses Residence'}
+                    onClick={setAsCapital}
+                    title={activeVillage.isCapital ? 'This village is your sole Capital (uses Palace)' : 'Designate this village as your sole realm Capital (converts Residence to Palace)'}
                   >
-                    {activeVillage.isCapital ? '👑 Capital (Palace) ✓' : '🏠 Residence (Non-Capital)'}
+                    {activeVillage.isCapital ? '👑 Capital (Palace) ✓' : '🏠 Make Capital'}
                   </button>
                   <button
                     type="button"

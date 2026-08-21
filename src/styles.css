@@ -2625,17 +2625,22 @@ select:focus, .select:focus, .text-input:focus {
 
 .cp-header-wrap {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
 }
 
+.cp-header-title-group {
+  min-width: 0;
+  flex: 1;
+}
+
 .cp-header-controls {
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+  gap: 10px;
+  flex-shrink: 0;
 }
 
 /* Optimizer Layout: Left Sidebar + Right Content */
@@ -3030,7 +3035,7 @@ select:focus, .select:focus, .text-input:focus {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 14px;
+  gap: 12px;
   padding: 10px 14px;
   background: hsl(220, 20%, 9%);
   border: 1px solid hsl(220, 15%, 20%);
@@ -3046,7 +3051,7 @@ select:focus, .select:focus, .text-input:focus {
 .cp-rec-card__left {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   flex: 1;
   min-width: 0;
 }
@@ -3056,17 +3061,22 @@ select:focus, .select:focus, .text-input:focus {
   font-weight: 750;
   color: var(--text-faint);
   min-width: 24px;
+  flex-shrink: 0;
 }
 
 .cp-rec-card__title-group {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
 }
 
 .cp-rec-card__name {
   font-size: 13.5px;
   color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .cp-rec-card__level {
@@ -3080,6 +3090,7 @@ select:focus, .select:focus, .text-input:focus {
   gap: 6px;
   color: var(--text-dim);
   font-size: 11px;
+  white-space: nowrap;
 }
 
 .cp-tag--req {
@@ -3091,6 +3102,7 @@ select:focus, .select:focus, .text-input:focus {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-shrink: 0;
 }
 
 .cp-efficiency-badge {
@@ -3101,6 +3113,8 @@ select:focus, .select:focus, .text-input:focus {
   background: color-mix(in srgb, #10ac84 20%, transparent);
   color: #1dd1a1;
   border: 1px solid color-mix(in srgb, #10ac84 40%, transparent);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .cp-efficiency-badge.is-req {

@@ -733,5 +733,33 @@ describe('the CP optimizer tool', () => {
     expect(container.textContent).toContain('Daily CP Production');
     expect(container.textContent).toContain('res/CP');
   });
+
+  it('enforces a single capital rule when adding villages and designating new capitals', () => {
+    const initialCards = container.querySelectorAll('.cp-village-card-v');
+    const initialCount = initialCards.length;
+
+    // Add a new village
+    const addBtn = container.querySelector('.cp-sidebar .pill--primary') as HTMLElement;
+    click(addBtn);
+
+    const villageCards = container.querySelectorAll('.cp-village-card-v');
+    expect(villageCards).toHaveLength(initialCount + 1);
+
+    // Newly added village is active and Non-Capital (Residence)
+    const newCard = villageCards[villageCards.length - 1];
+    expect(newCard.textContent).toContain('Residence');
+
+    // Click "Make Capital" on the new village
+    const makeCapBtn = [...container.querySelectorAll('.cp-setting-item--toggles .pill--toggle')].find(
+      (b) => b.textContent?.includes('Capital')
+    ) as HTMLElement;
+    expect(makeCapBtn).toBeTruthy();
+    click(makeCapBtn);
+
+    // Now the new village is Capital (Palace) and the previous capital is Non-Capital (Residence)
+    const updatedCards = container.querySelectorAll('.cp-village-card-v');
+    expect(updatedCards[updatedCards.length - 1].textContent).toContain('Palace');
+    expect(updatedCards[0].textContent).toContain('Residence');
+  });
 });
 

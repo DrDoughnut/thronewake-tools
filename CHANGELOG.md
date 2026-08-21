@@ -1,0 +1,82 @@
+# Changelog
+
+All notable changes to the **Thronewake Tools** suite are documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+---
+
+## [1.7.0] - 2026-08-21
+
+### Added
+- **Culture Point (CP) & Population (Pop) Build-Order Optimizer**:
+  - Top header toggle switch between **[🏛️ CP Mode]** and **[👥 Pop Mode]**.
+  - **CP Mode**: Mathematical sequence ranking for cheapest resources per Culture Point gained (`res/CP`), factoring in 18-field average bonus, building CP, and Thronewake City flat +200 CP/day + 25% boost.
+  - **Population Mode**: Mathematical sequence ranking for cheapest resources per Population gained (`res/Pop`), prioritizing infrastructure, troop buildings, and economic growth.
+  - **Dynamic Multi-Village Realm Sidebar**: Add, remove, and vertically reorder villages in your realm with live individual and empire-wide production/population statistics.
+  - **Prerequisite & Storage Invariant Gating**: Topological resolution ensuring Warehouse and Granary upgrades are automatically scheduled prior to any candidate building whose cost exceeds current storage capacity.
+  - **Faction-Exclusive Buildings**: Accurate modeling for Trapper (Vaeloria / Gauls), Stormbrew Works (Stormfang Clans / Teutons Capital), and Rider's Wells (Embermark Dominion / Romans).
+  - **Universal Wall Modeling**: Unified Watch Tower wall using Gaul cost formula across all factions.
+  - **Expedition Camp**: Support for hero mansion equivalent building with Main Building 3 and Rally Point 1 prerequisites.
+  - **High-Resolution Artwork**: 37 webp building icons rendered at 58px × 58px with rounded borders and drop shadows.
+  - **Shareable URLs**: Compressed URL hash encoding/decoding (`v1_...`) supporting instant setup sharing.
+- **Single Capital Realm Enforcement**:
+  - Enforced strict single-capital rule across the entire realm. Designating a new Capital automatically updates the former capital to a regular village and converts Palace ↔ Residence.
+
+### Fixed
+- Fixed text clipping, overflow, and line-wrapping in the header and recommendation cards when toggling Population mode.
+- Prevented multiple capitals from coexisting in multi-village configurations.
+
+### Acknowledgements
+- Optimization algorithms and dependency chain solver adapted from **Zdeněk Kunovjánek's** ([@Qira95](https://github.com/Qira95)) [kingdomoptimizer](https://github.com/Qira95/kingdomoptimizer).
+
+---
+
+## [1.6.0] - 2026-08-18
+
+### Added
+- **Operation Planner Enhancements**:
+  - Player-centric defender grouping and target assignment.
+  - Dual-stage alarms (30m pre-warning + launch buzzer).
+  - Multi-army coordination across attackers and targets with slowest troop speed calculation.
+  - Bannerfield long-range speed bonus and 24-hour UTC safe-time protection checks.
+  - Compact plan URL serialization and Discord-safe link sharing.
+
+---
+
+## [1.5.6] - 2026-08-16
+
+### Added
+- Targets overhaul with fake/real target classification.
+- Local time conversion and UTC countdown timers.
+
+---
+
+## [1.5.5] - 2026-08-15
+
+### Added
+- Interactive timeline lane selection and hover effects for daily schedule visualization.
+
+---
+
+## [1.5.4] - 2026-08-14
+
+### Added
+- URL character sanitization and landing time validation improvements.
+- Contributor documentation.
+
+---
+
+## [1.5.3] - 2026-08-13
+
+### Added
+- Discord-safe URL encoding and rich OpenGraph embed previews.
+
+---
+
+## [1.0.0] - 2026-08-10
+
+### Initial Release
+- **Unit Attributes**: Ranks units and mixed pairs by resource, crop, or time constraints with Smithy and faction building modifiers.
+- **Army Calculator**: Multi-queue parallel training time, cost, and combat strength calculation.
