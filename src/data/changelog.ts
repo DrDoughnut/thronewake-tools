@@ -2,7 +2,7 @@
  * Human-maintained release notes. Bump `APP_VERSION` and add an entry here
  * whenever a change is worth telling a returning user about.
  */
-export const APP_VERSION = '1.6.0';
+export const APP_VERSION = '1.7.0';
 
 export interface ChangelogEntry {
   version: string;
@@ -11,6 +11,21 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '1.7.0',
+    date: '2026-08-21',
+    changes: [
+      'CP & Population Build-Order Optimizer: brand new tool providing mathematically optimal building upgrade sequences for cheapest Culture Points (res/CP) and Population growth (res/Pop).',
+      'Dual Optimization Modes: instant switch between CP Mode and Population Mode with live village and empire-wide production/population metrics.',
+      'Multi-Village Realm Management: add, manage, and vertically reorder villages in your realm with shared URL state.',
+      'Single Capital Realm Rule: enforced strict single-capital invariant across multi-village realms with automatic Palace ↔ Residence conversion.',
+      'Prerequisite & Storage Gating: automatic scheduling of prerequisite chains and storage expansions (Warehouse & Granary) before candidate buildings.',
+      'Quick-Jump Level Dropdowns: direct level dropdown selectors (Lvl 1–20) alongside step increment/decrement buttons.',
+      'Faction-Exclusive Buildings: full modeling for Trapper (Vaeloria), Stormbrew Works (Stormfang Capital), and Rider’s Wells (Embermark).',
+      'Clean Infinity Badges: zero-gain and prerequisite steps cleanly formatted as ∞ res/Pop and ∞ res/CP.',
+      'Credits: optimization algorithms adapted from Zdeněk Kunovjánek (@Qira95 kingdomoptimizer).',
+    ],
+  },
   {
     version: '1.6.0',
     date: '2026-08-19',
