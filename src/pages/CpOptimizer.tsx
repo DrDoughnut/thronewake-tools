@@ -869,18 +869,23 @@ export function CpOptimizer() {
                             <img src={iconUrl} alt="" className="cp-building-icon" aria-hidden="true" />
                           )}
                           <div className="cp-rec-card__title-group">
-                            <strong className="cp-rec-card__name">
-                              {rec.name} <span className="cp-rec-card__level">Level {rec.level}</span>
-                            </strong>
-                            <span className="cp-rec-card__sub">
+                            <div className="cp-rec-card__title-row">
+                              <strong className="cp-rec-card__name">{rec.name}</strong>
+                              <span className="cp-rec-card__level">Lvl {rec.level}</span>
+                            </div>
+                            <div className="cp-rec-card__sub">
                               {rec.target ? (
-                                <span className="cp-tag cp-tag--req">Req. for {resolveTargetLabel(rec.target)}</span>
+                                <span className="cp-tag cp-tag--req" title={'Required for ' + resolveTargetLabel(rec.target)}>
+                                  Req. for {resolveTargetLabel(rec.target)}
+                                </span>
                               ) : (
-                                <span>{optimizerMetric === 'pop' ? `+${rec.popGain} Pop` : `+${rec.cpGain} CP/d`}</span>
+                                <span className="cp-tag cp-tag--gain">
+                                  {optimizerMetric === 'pop' ? `+${rec.popGain} Pop` : `+${rec.cpGain} CP/d`}
+                                </span>
                               )}
                               <span className="cp-rec-card__sep">·</span>
-                              <span>Total: {rec.levelCost.toLocaleString()} res</span>
-                            </span>
+                              <span className="cp-rec-card__cost">{rec.levelCost.toLocaleString()} res</span>
+                            </div>
                           </div>
                         </div>
 
