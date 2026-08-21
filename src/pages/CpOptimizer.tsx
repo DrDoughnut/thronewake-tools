@@ -24,7 +24,7 @@ import {
   PALACE_GID,
   RESIDENCE_GID,
 } from '../engine/cpOptimizer';
-import { factions } from '../data/factions';
+import { playableFactions } from '../data/factions';
 import { buildingIcon } from '../icons';
 
 const STORAGE_KEY = 'thronewake.cpOptimizer.state.v1';
@@ -582,7 +582,7 @@ export function CpOptimizer() {
                       value={activeVillage.faction}
                       onChange={(e) => patchActiveVillage({ faction: e.target.value })}
                     >
-                      {factions.map((f) => (
+                      {playableFactions.map((f) => (
                         <option key={f.key} value={f.key}>
                           {f.name}
                         </option>

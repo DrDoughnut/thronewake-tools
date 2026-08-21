@@ -118,8 +118,8 @@ export const unitSetGroups: UnitSetGroup[] = [
 
   {
     key: 'ancients',
-    name: 'The Ancients',
-    hint: 'Non-playable stoneborn units. They have no training cost or training time, so cost- and time-based ratings do not apply to them.',
+    name: 'The Ancients (NPC)',
+    hint: 'Non-playable NPC stoneborn units. They have no training cost or training time, so cost- and time-based ratings do not apply to them.',
     stats: 'combat',
     sets: one(
       `${ANC}/stonepike`, `${ANC}/carved_warrior`, `${ANC}/monolith_warden`,
