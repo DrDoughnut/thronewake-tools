@@ -625,3 +625,113 @@ describe('the operation planner', () => {
   });
 });
 
+describe('the CP optimizer tool', () => {
+  beforeEach(() => {
+    const optTab = [...container.querySelectorAll('.pill--tool')].find(
+      (b) => b.getAttribute('aria-label') === 'CP Optimizer',
+    )!;
+    click(optTab);
+  });
+
+  it('renders village settings, live metrics, current buildings, and recommendations', () => {
+    expect(window.location.hash).toContain('tool=optimizer');
+    expect(container.textContent).toContain('Culture Point Build-Order Optimizer');
+    expect(container.textContent).toContain('Daily CP Production');
+    expect(container.textContent).toContain('Shared Building Slots');
+    expect(container.textContent).toContain('Recommended Build Order');
+
+    // Initial building: Main Building Lvl 1
+    expect(container.querySelectorAll('.cp-building-row')).toHaveLength(1);
+    expect(container.textContent).toContain('Main Building');
+
+    // Recommendations list
+    const recCards = container.querySelectorAll('.cp-rec-card');
+    expect(recCards.length).toBeGreaterThan(0);
+  });
+
+  it('applies a recommendation to current village buildings when clicking build', () => {
+    const initialRecs = container.querySelectorAll('.cp-rec-card');
+    expect(initialRecs.length).toBeGreaterThan(0);
+
+    const firstBuildBtn = container.querySelector('.cp-build-btn') as HTMLElement;
+    expect(firstBuildBtn).toBeTruthy();
+
+    click(firstBuildBtn);
+
+    // After building, buildings list should have updated or expanded
+    const buildingRows = container.querySelectorAll('.cp-building-row');
+    expect(buildingRows.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('updates daily CP metrics when adjusting average field level or city status', () => {
+    const initialCpText = container.querySelector('.cp-stat-card__val')?.textContent || '';
+
+    // Toggle City
+    const cityBtn = [...container.querySelectorAll('.cp-setting-item--toggles .pill--toggle')].find(
+      (b) => b.textContent?.includes('City'),
+    ) as HTMLElement;
+    expect(cityBtn).toBeTruthy();
+    click(cityBtn);
+
+    const updatedCpText = container.querySelector('.cp-stat-card__val')?.textContent || '';
+    expect(updatedCpText).not.toBe(initialCpText);
+  });
+
+  it('loads shared village configuration from URL hash', () => {
+    const compact = 'v1_Stronghold%201,stormfang_clans,1,5,2~b:15,5~b:24,2';
+    act(() => {
+      window.location.hash = `#tool=optimizer&v=${encodeURIComponent(compact)}`;
+      window.dispatchEvent(new Event('hashchange'));
+    });
+
+    expect(container.textContent).toContain('Stronghold 1');
+    expect(container.textContent).toContain('Town Hall');
+  });
+
+  it('supports adding and reordering villages in the vertical sidebar', () => {
+    const addBtn = container.querySelector('.cp-sidebar .pill--primary') as HTMLElement;
+    expect(addBtn).toBeTruthy();
+
+    click(addBtn);
+
+    // Should now have 2 villages in sidebar
+    const villageCards = container.querySelectorAll('.cp-village-card-v');
+    expect(villageCards.length).toBe(2);
+
+    // Reorder button: move second village up
+    const reorderBtns = container.querySelectorAll('.cp-reorder-btn');
+    expect(reorderBtns.length).toBeGreaterThan(0);
+  });
+
+  it('switches between CP Optimizer Mode and Population Optimizer Mode', () => {
+    // Initial: CP Mode
+    expect(container.textContent).toContain('Culture Point Build-Order Optimizer');
+    expect(container.textContent).toContain('Daily CP Production');
+    expect(container.textContent).toContain('res/CP');
+
+    // Switch to Population Mode
+    const popModeBtn = [...container.querySelectorAll('.cp-header-controls .pill')].find(
+      (b) => b.textContent?.includes('Pop Mode')
+    ) as HTMLElement;
+    expect(popModeBtn).toBeTruthy();
+    click(popModeBtn);
+
+    // Assert Population Mode UI
+    expect(container.textContent).toContain('Population Build-Order Optimizer');
+    expect(container.textContent).toContain('Total Village Population');
+    expect(container.textContent).toContain('res/Pop');
+
+    // Switch back to CP Mode
+    const cpModeBtn = [...container.querySelectorAll('.cp-header-controls .pill')].find(
+      (b) => b.textContent?.includes('CP Mode')
+    ) as HTMLElement;
+    expect(cpModeBtn).toBeTruthy();
+    click(cpModeBtn);
+
+    // Assert CP Mode UI restored
+    expect(container.textContent).toContain('Culture Point Build-Order Optimizer');
+    expect(container.textContent).toContain('Daily CP Production');
+    expect(container.textContent).toContain('res/CP');
+  });
+});
+

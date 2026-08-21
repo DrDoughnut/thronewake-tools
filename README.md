@@ -5,7 +5,7 @@ whole thing is static files, and every number is computed in your browser.
 Deploy it to GitHub Pages, Netlify, S3, or open `dist/index.html` from a USB
 stick; it works the same.
 
-Three tools so far:
+Four tools so far:
 
 - **Unit Attributes** — ranks every unit (or mixed pair) by whatever is actually
   limiting you: resources, grain, or hours.
@@ -15,6 +15,9 @@ Three tools so far:
 - **Operation Planner** — coordinates complex multi-army operations across
   attackers and targets with slowest troop speed, artifact speed multipliers,
   Bannerfield long-range bonus, and 24-hour UTC safe-time protection checks.
+- **CP Build-Order Optimizer** — multi-village Culture Points (CP) production
+  dashboard and build-order optimizer tailored for Thronewake mechanics, city
+  bonuses, faction exclusives, dedicated slot handling, and storage prerequisite gating.
 
 All apply smithy upgrades and faction-specific buildings where relevant.
 
@@ -212,8 +215,8 @@ formula by about 0.08% and the two extra constants have no stated basis, so the
 documented form is what ships. If in-game numbers ever disagree with this tool,
 that curve is the first thing to re-check.
 
-## Contributors
+## Contributors & Acknowledgements
 
 - **Joseph Ghanimah** ([@DrDoughnut](https://github.com/DrDoughnut))
-- **Zdeněk Kunovjánek** ([@Qira95](https://github.com/Qira95)) — URL character sanitization, landing time validation, and dependency maintenance
+- **Zdeněk Kunovjánek** ([@Qira95](https://github.com/Qira95)) — CP Build-Order Optimization engine & algorithms adapted from [kingdomoptimizer](https://github.com/Qira95/kingdomoptimizer), URL character sanitization, landing time validation, and dependency maintenance.
 

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Changelog } from './components/Changelog';
 import { APP_VERSION } from './data/changelog';
 import { ArmyCalculator } from './pages/ArmyCalculator';
+import { CpOptimizer } from './pages/CpOptimizer';
 import { OperationPlanner } from './pages/OperationPlanner';
 import { UnitAttributes } from './pages/UnitAttributes';
 
@@ -45,10 +46,21 @@ const TOOLS: Tool[] = [
       'Travel uses the slowest troop in each army. Bannerfield adds 20% speed per level to the part of a journey beyond 20 fields.',
     render: () => <OperationPlanner />,
   },
+  {
+    key: 'optimizer',
+    name: 'CP Optimizer',
+    icon: '🏛️',
+    blurb:
+      'Compute the cheapest, mathematically optimal building upgrade sequence to maximize Culture Points per resource spent.',
+    footer:
+      'Culture Point calculations factor in building levels, resource field averages, city bonuses, and slot constraints.',
+    render: () => <CpOptimizer />,
+  },
 ];
 
 const readTool = (): string => {
   const key = new URLSearchParams(window.location.hash.replace(/^#/, '')).get('tool');
+  if (key === 'cp-optimizer') return 'optimizer';
   return TOOLS.some((t) => t.key === key) ? key! : TOOLS[0].key;
 };
 
