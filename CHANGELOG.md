@@ -23,8 +23,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Shareable URLs**: Compressed URL hash encoding/decoding (`v1_...`) supporting instant setup sharing.
 - **Single Capital Realm Enforcement**:
   - Enforced strict single-capital rule across the entire realm. Designating a new Capital automatically updates the former capital to a regular village and converts Palace ↔ Residence.
+- **Quick-Jump Building Level Dropdown**:
+  - Added an interactive `<select>` dropdown inside each building row to jump directly to any level from 1 to 20 without having to click the increment button 20 times.
 
 ### Fixed
+- Fixed Embassy (GID 18) and Expedition Camp (GID 37) population tables where marginal population increments had been saved instead of cumulative totals.
+- Formatted zero-gain and sentinel efficiency scores to cleanly render `∞ res/Pop` and `∞ res/CP` instead of large sentinel integers or division-by-zero errors.
 - Fixed text clipping, overflow, and line-wrapping in the header and recommendation cards when toggling Population mode.
 - Prevented multiple capitals from coexisting in multi-village configurations.
 

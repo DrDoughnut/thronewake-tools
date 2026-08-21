@@ -3606,7 +3606,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "clay": 165,
         "iron": 190,
         "crop": 100,
-        "pop": 2,
+        "pop": 5,
         "cp": 6,
         "time": 2620,
         "effects": {
@@ -3619,7 +3619,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "clay": 215,
         "iron": 245,
         "crop": 130,
-        "pop": 2,
+        "pop": 7,
         "cp": 7,
         "time": 3340,
         "effects": {
@@ -3632,7 +3632,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "clay": 275,
         "iron": 315,
         "crop": 170,
-        "pop": 2,
+        "pop": 9,
         "cp": 8,
         "time": 4170,
         "effects": {
@@ -3645,7 +3645,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "clay": 350,
         "iron": 405,
         "crop": 215,
-        "pop": 2,
+        "pop": 11,
         "cp": 10,
         "time": 5140,
         "effects": {
@@ -3658,7 +3658,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "clay": 445,
         "iron": 515,
         "crop": 275,
-        "pop": 2,
+        "pop": 13,
         "cp": 12,
         "time": 6260,
         "effects": {
@@ -3671,7 +3671,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "clay": 570,
         "iron": 660,
         "crop": 350,
-        "pop": 2,
+        "pop": 15,
         "cp": 14,
         "time": 7570,
         "effects": {
@@ -3684,7 +3684,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "clay": 730,
         "iron": 845,
         "crop": 450,
-        "pop": 2,
+        "pop": 17,
         "cp": 17,
         "time": 9080,
         "effects": {
@@ -3697,7 +3697,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "clay": 935,
         "iron": 1080,
         "crop": 575,
-        "pop": 2,
+        "pop": 19,
         "cp": 21,
         "time": 10830,
         "effects": {
@@ -3710,7 +3710,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "clay": 1200,
         "iron": 1385,
         "crop": 740,
-        "pop": 2,
+        "pop": 21,
         "cp": 25,
         "time": 12860,
         "effects": {
@@ -3723,7 +3723,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "clay": 1535,
         "iron": 1770,
         "crop": 945,
-        "pop": 3,
+        "pop": 24,
         "cp": 30,
         "time": 15220,
         "effects": {
@@ -3736,7 +3736,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "clay": 1965,
         "iron": 2265,
         "crop": 1210,
-        "pop": 3,
+        "pop": 27,
         "cp": 36,
         "time": 17950,
         "effects": {
@@ -3749,7 +3749,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "clay": 2515,
         "iron": 2900,
         "crop": 1545,
-        "pop": 3,
+        "pop": 30,
         "cp": 43,
         "time": 21130,
         "effects": {
@@ -3762,7 +3762,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "clay": 3220,
         "iron": 3715,
         "crop": 1980,
-        "pop": 3,
+        "pop": 33,
         "cp": 51,
         "time": 24810,
         "effects": {
@@ -3775,7 +3775,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "clay": 4120,
         "iron": 4755,
         "crop": 2535,
-        "pop": 3,
+        "pop": 36,
         "cp": 62,
         "time": 29080,
         "effects": {
@@ -3788,7 +3788,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "clay": 5275,
         "iron": 6085,
         "crop": 3245,
-        "pop": 3,
+        "pop": 39,
         "cp": 74,
         "time": 34030,
         "effects": {
@@ -3801,7 +3801,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "clay": 6750,
         "iron": 7790,
         "crop": 4155,
-        "pop": 3,
+        "pop": 42,
         "cp": 89,
         "time": 39770,
         "effects": {
@@ -3814,7 +3814,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "clay": 8640,
         "iron": 9970,
         "crop": 5315,
-        "pop": 3,
+        "pop": 45,
         "cp": 106,
         "time": 46440,
         "effects": {
@@ -3827,7 +3827,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "clay": 11060,
         "iron": 12760,
         "crop": 6805,
-        "pop": 3,
+        "pop": 48,
         "cp": 128,
         "time": 54170,
         "effects": {
@@ -3840,7 +3840,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "clay": 14155,
         "iron": 16335,
         "crop": 8710,
-        "pop": 3,
+        "pop": 51,
         "cp": 153,
         "time": 63130,
         "effects": {
@@ -8333,7 +8333,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "clay": 890,
         "iron": 930,
         "crop": 320,
-        "pop": 1,
+        "pop": 3,
         "cp": 1,
         "time": 2300,
         "effects": {}
@@ -8344,7 +8344,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "clay": 1185,
         "iron": 1240,
         "crop": 425,
-        "pop": 1,
+        "pop": 4,
         "cp": 2,
         "time": 2300,
         "effects": {}
@@ -8355,7 +8355,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "clay": 1575,
         "iron": 1645,
         "crop": 565,
-        "pop": 1,
+        "pop": 5,
         "cp": 2,
         "time": 2300,
         "effects": {}
@@ -8366,7 +8366,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "clay": 2095,
         "iron": 2190,
         "crop": 750,
-        "pop": 1,
+        "pop": 6,
         "cp": 2,
         "time": 2300,
         "effects": {}
@@ -8377,7 +8377,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "clay": 2790,
         "iron": 2915,
         "crop": 1000,
-        "pop": 2,
+        "pop": 8,
         "cp": 3,
         "time": 2300,
         "effects": {}
@@ -8388,7 +8388,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "clay": 3710,
         "iron": 3875,
         "crop": 1330,
-        "pop": 2,
+        "pop": 10,
         "cp": 4,
         "time": 2300,
         "effects": {}
@@ -8399,7 +8399,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "clay": 4930,
         "iron": 5155,
         "crop": 1765,
-        "pop": 2,
+        "pop": 12,
         "cp": 4,
         "time": 2300,
         "effects": {}
@@ -8410,7 +8410,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "clay": 6560,
         "iron": 6855,
         "crop": 2350,
-        "pop": 2,
+        "pop": 14,
         "cp": 5,
         "time": 2300,
         "effects": {}
@@ -8421,7 +8421,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "clay": 8725,
         "iron": 9115,
         "crop": 3125,
-        "pop": 2,
+        "pop": 16,
         "cp": 6,
         "time": 2300,
         "effects": {}
@@ -8432,7 +8432,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "clay": 11605,
         "iron": 12125,
         "crop": 4155,
-        "pop": 2,
+        "pop": 18,
         "cp": 7,
         "time": 2300,
         "effects": {}
@@ -8443,7 +8443,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "clay": 15435,
         "iron": 16125,
         "crop": 5530,
-        "pop": 2,
+        "pop": 20,
         "cp": 9,
         "time": 2300,
         "effects": {}
@@ -8454,7 +8454,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "clay": 20525,
         "iron": 21445,
         "crop": 7350,
-        "pop": 2,
+        "pop": 22,
         "cp": 11,
         "time": 2300,
         "effects": {}
@@ -8465,7 +8465,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "clay": 27300,
         "iron": 28520,
         "crop": 9780,
-        "pop": 2,
+        "pop": 24,
         "cp": 13,
         "time": 2300,
         "effects": {}
@@ -8476,7 +8476,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "clay": 36310,
         "iron": 37935,
         "crop": 13005,
-        "pop": 2,
+        "pop": 26,
         "cp": 15,
         "time": 2300,
         "effects": {}
@@ -8487,7 +8487,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "clay": 48290,
         "iron": 50450,
         "crop": 17300,
-        "pop": 3,
+        "pop": 29,
         "cp": 18,
         "time": 2300,
         "effects": {}
@@ -8498,7 +8498,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "clay": 64225,
         "iron": 67100,
         "crop": 23005,
-        "pop": 3,
+        "pop": 32,
         "cp": 22,
         "time": 2300,
         "effects": {}
@@ -8509,7 +8509,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "clay": 85420,
         "iron": 89245,
         "crop": 30600,
-        "pop": 3,
+        "pop": 35,
         "cp": 27,
         "time": 2300,
         "effects": {}
@@ -8520,7 +8520,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "clay": 113605,
         "iron": 118695,
         "crop": 40695,
-        "pop": 3,
+        "pop": 38,
         "cp": 32,
         "time": 2300,
         "effects": {}
@@ -8531,7 +8531,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "clay": 151095,
         "iron": 157865,
         "crop": 54125,
-        "pop": 3,
+        "pop": 41,
         "cp": 38,
         "time": 2300,
         "effects": {}

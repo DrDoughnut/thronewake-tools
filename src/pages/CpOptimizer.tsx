@@ -295,6 +295,20 @@ export function CpOptimizer() {
     });
   };
 
+  const setBuildingLevel = (bId: string, level: number) => {
+    const targetB = activeVillage.buildings.find((b) => b.id === bId);
+    if (!targetB) return;
+    const catalogEntry = BUILDINGS_BY_GID.get(targetB.gid);
+    const maxL = catalogEntry ? catalogEntry.maxLevel : 20;
+    const nextLevel = Math.max(1, Math.min(maxL, level));
+
+    patchActiveVillage({
+      buildings: activeVillage.buildings.map((b) =>
+        b.id === bId ? { ...b, level: nextLevel } : b
+      ),
+    });
+  };
+
   const removeBuilding = (bId: string) => {
     patchActiveVillage({
       buildings: activeVillage.buildings.filter((b) => b.id !== bId),
@@ -765,7 +779,18 @@ export function CpOptimizer() {
                         >
                           -
                         </button>
-                        <span className="cp-building-row__level">Lvl {b.level}</span>
+                        <select
+                          className="cp-level-select"
+                          value={b.level}
+                          onChange={(e) => setBuildingLevel(b.id, Number(e.target.value))}
+                          title="Select level directly"
+                        >
+                          {Array.from({ length: maxL }, (_, i) => i + 1).map((lvl) => (
+                            <option key={lvl} value={lvl}>
+                              Lvl {lvl}
+                            </option>
+                          ))}
+                        </select>
                         <button
                           type="button"
                           className="pill pill--tiny"
@@ -843,8 +868,12 @@ export function CpOptimizer() {
                             {rec.isReqStep
                               ? 'Prereq Step'
                               : optimizerMetric === 'pop'
-                              ? Math.round(rec.costPerPopGain) + ' res/Pop'
-                              : Math.round(rec.costPerCpGain) + ' res/CP'}
+                              ? (rec.popGain <= 0 || rec.costPerPopGain >= 999999 || !isFinite(rec.costPerPopGain)
+                                  ? '∞ res/Pop'
+                                  : Math.round(rec.costPerPopGain).toLocaleString() + ' res/Pop')
+                              : (rec.cpGain <= 0 || rec.costPerCpGain >= 999999 || !isFinite(rec.costPerCpGain)
+                                  ? '∞ res/CP'
+                                  : Math.round(rec.costPerCpGain).toLocaleString() + ' res/CP')}
                           </span>
 
                           <button

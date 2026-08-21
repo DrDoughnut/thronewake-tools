@@ -761,5 +761,31 @@ describe('the CP optimizer tool', () => {
     expect(updatedCards[updatedCards.length - 1].textContent).toContain('Palace');
     expect(updatedCards[0].textContent).toContain('Residence');
   });
+
+  it('updates building level directly via the dropdown selector', () => {
+    const select = container.querySelector('.cp-level-select') as HTMLSelectElement;
+    expect(select).toBeTruthy();
+
+    act(() => {
+      select.value = '15';
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+
+    const updatedSelect = container.querySelector('.cp-level-select') as HTMLSelectElement;
+    expect(updatedSelect.value).toBe('15');
+  });
+
+  it('renders infinity efficiency badges without large sentinel numbers or div-by-zero errors', () => {
+    // Switch to Pop Mode
+    const popModeBtn = [...container.querySelectorAll('.cp-header-controls .pill')].find(
+      (b) => b.textContent?.includes('Pop Mode')
+    ) as HTMLElement;
+    click(popModeBtn);
+
+    // Make sure no 999999 or NaN shows up in badges
+    const badges = Array.from(container.querySelectorAll('.cp-efficiency-badge')).map((b) => b.textContent);
+    expect(badges.some((t) => t?.includes('999999'))).toBe(false);
+    expect(badges.some((t) => t?.includes('NaN'))).toBe(false);
+  });
 });
 

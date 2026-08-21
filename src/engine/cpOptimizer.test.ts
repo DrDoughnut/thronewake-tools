@@ -328,5 +328,25 @@ describe('CP Build-Order Optimizer Engine', () => {
     if (crannyIndex !== -1 && mbIndex !== -1) {
       expect(mbIndex).toBeLessThan(crannyIndex);
     }
+
+    // Verify Embassy (gid 18) and Expedition Camp (gid 37) cumulative pop
+    const emb = BUILDINGS_BY_GID.get(18)!;
+    expect(emb.levels[0].pop).toBe(3); // Level 1 = 3 pop
+    expect(emb.levels[9].pop).toBe(21); // Level 10 = 21 pop
+    expect(emb.levels[19].pop).toBe(51); // Level 20 = 51 pop
+
+    const camp = BUILDINGS_BY_GID.get(37)!;
+    expect(camp.levels[0].pop).toBe(2); // Level 1 = 2 pop
+    expect(camp.levels[9].pop).toBe(16); // Level 10 = 16 pop
+    expect(camp.levels[19].pop).toBe(41); // Level 20 = 41 pop
+
+    // Embassy in village contributes accurately to villageBuildingPop
+    const vWithEmbassy: VillageState = {
+      ...v,
+      buildings: [
+        { id: 'b1', gid: 18, level: 10 }, // Embassy lvl 10 = 21 pop
+      ],
+    };
+    expect(villageBuildingPop(vWithEmbassy)).toBe(21);
   });
 });
