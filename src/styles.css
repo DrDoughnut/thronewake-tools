@@ -2816,8 +2816,15 @@ select:focus, .select:focus, .text-input:focus {
 
 .cp-top-grid, .cp-workspace-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 16px;
+}
+
+.cp-settings-panel,
+.cp-dashboard-panel,
+.cp-buildings-panel,
+.cp-recommendations-panel {
+  min-width: 0;
 }
 
 .cp-settings-grid {

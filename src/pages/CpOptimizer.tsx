@@ -84,6 +84,27 @@ function loadInitialState(): OptimizerAppState {
   };
 }
 
+function formatEfficiencyBadge(rec: OptimizerStep, metric: OptimizerMetric): string {
+  if (rec.isReqStep) return 'Prereq Step';
+  if (metric === 'pop') {
+    if (rec.popGain <= 0 || rec.costPerPopGain >= 999999 || !isFinite(rec.costPerPopGain)) {
+      return '∞ res/Pop';
+    }
+    if (rec.costPerPopGain >= 100000) {
+      return `${Math.round(rec.costPerPopGain / 1000)}k res/Pop`;
+    }
+    return `${Math.round(rec.costPerPopGain).toLocaleString()} res/Pop`;
+  } else {
+    if (rec.cpGain <= 0 || rec.costPerCpGain >= 999999 || !isFinite(rec.costPerCpGain)) {
+      return '∞ res/CP';
+    }
+    if (rec.costPerCpGain >= 100000) {
+      return `${Math.round(rec.costPerCpGain / 1000)}k res/CP`;
+    }
+    return `${Math.round(rec.costPerCpGain).toLocaleString()} res/CP`;
+  }
+}
+
 export function CpOptimizer() {
   const [appState, setAppState] = useState<OptimizerAppState>(() => loadInitialState());
   const [copied, setCopied] = useState(false);
@@ -865,15 +886,7 @@ export function CpOptimizer() {
 
                         <div className="cp-rec-card__right">
                           <span className={'cp-efficiency-badge ' + (rec.isReqStep ? 'is-req' : '')}>
-                            {rec.isReqStep
-                              ? 'Prereq Step'
-                              : optimizerMetric === 'pop'
-                              ? (rec.popGain <= 0 || rec.costPerPopGain >= 999999 || !isFinite(rec.costPerPopGain)
-                                  ? '∞ res/Pop'
-                                  : Math.round(rec.costPerPopGain).toLocaleString() + ' res/Pop')
-                              : (rec.cpGain <= 0 || rec.costPerCpGain >= 999999 || !isFinite(rec.costPerCpGain)
-                                  ? '∞ res/CP'
-                                  : Math.round(rec.costPerCpGain).toLocaleString() + ' res/CP')}
+                            {formatEfficiencyBadge(rec, optimizerMetric)}
                           </span>
 
                           <button
