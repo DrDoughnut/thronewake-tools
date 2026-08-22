@@ -821,3 +821,36 @@ describe('the CP optimizer tool', () => {
   });
 });
 
+describe('the Building Stats tool', () => {
+  beforeEach(() => {
+    const bldgTab = [...container.querySelectorAll('.pill--tool')].find(
+      (b) => b.getAttribute('aria-label') === 'Building Stats',
+    )!;
+    click(bldgTab);
+  });
+
+  it('renders category tabs, search input, building cards, and level progression table', () => {
+    expect(window.location.hash).toContain('tool=buildings');
+    expect(container.textContent).toContain('Building Stats');
+    expect(container.textContent).toContain('Town Hall');
+    expect(container.textContent).toContain('Main Building Level:');
+    expect(container.textContent).toContain('🪵 Wood');
+    expect(container.textContent).toContain('Total Cost to Lvl');
+
+    // Table rows exist
+    const rows = container.querySelectorAll('.bs-table tbody tr');
+    expect(rows.length).toBeGreaterThan(0);
+  });
+
+  it('switches buildings when clicking a card in the grid', () => {
+    const whCard = [...container.querySelectorAll('.bs-card')].find(
+      (c) => c.textContent?.includes('Warehouse')
+    ) as HTMLElement;
+    expect(whCard).toBeTruthy();
+    click(whCard);
+
+    expect(window.location.hash).toContain('b=warehouse');
+    expect(container.querySelector('.bs-hero__title')?.textContent).toBe('Warehouse');
+  });
+});
+

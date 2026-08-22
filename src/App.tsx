@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Changelog } from './components/Changelog';
 import { APP_VERSION } from './data/changelog';
 import { ArmyCalculator } from './pages/ArmyCalculator';
+import { BuildingStats } from './pages/BuildingStats';
 import { CpOptimizer } from './pages/CpOptimizer';
 import { OperationPlanner } from './pages/OperationPlanner';
 import { UnitAttributes } from './pages/UnitAttributes';
@@ -56,11 +57,22 @@ const TOOLS: Tool[] = [
       'Culture Point calculations factor in building levels, resource field averages, city bonuses, and slot constraints.',
     render: () => <CpOptimizer />,
   },
+  {
+    key: 'buildings',
+    name: 'Building Stats',
+    icon: '📖',
+    blurb:
+      'Explore detailed stats, resource upgrade costs, culture points, construction times, and building effects across all levels 1–22.',
+    footer:
+      'Building stats and construction time formulas reflect live game data, Main Building speed scaling, and City level 22 maximums.',
+    render: () => <BuildingStats />,
+  },
 ];
 
 const readTool = (): string => {
   const key = new URLSearchParams(window.location.hash.replace(/^#/, '')).get('tool');
   if (key === 'cp-optimizer') return 'optimizer';
+  if (key === 'building-stats' || key === 'catalog') return 'buildings';
   return TOOLS.some((t) => t.key === key) ? key! : TOOLS[0].key;
 };
 

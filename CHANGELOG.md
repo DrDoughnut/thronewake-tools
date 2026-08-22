@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.8.0] - 2026-08-22
+
+### Added
+- **Building Stats & Encyclopedia Tool (`📖 Building Stats`)**:
+  - **Comprehensive Building Catalog**: Interactive reference browsing all 37 structures with high-resolution 58px artwork, descriptions, and category tags (`Resources`, `Infrastructure`, `Military`).
+  - **Full Level 1–22 Progression Tables**: Detailed data tables presenting resource costs (Wood, Clay, Iron, Crop, Total), Population (`Pop` & `+Δ`), Culture Points (`CP/d` & `+Δ`), efficiency ratios (`res/CP` & `res/Pop`), construction time, and formatted building effects across every level.
+  - **Main Building Speed Modifier Slider (Lvl 1–20)**: Real-time slider recalculating exact construction times at any Main Building level using live game scaling formulas.
+  - **City Level 22 Support**: Integrated special City badges and exact progression stats for City-upgradeable buildings (Town Hall, Warehouse, Granary, Barracks, Stable, Workshop).
+  - **Category & Tribe Filters**: Filter structures by Category and Tribe exclusivity (Embermark Dominion, Stormfang Clans, Vaeloria), or perform live text searches by building name and effect keywords.
+  - **Aggregate Cost & Stat Summary**: Metric cards summarizing total resources to max level, total construction time at current MB level, maximum population, and maximum culture points.
+  - **Deep-Link State Sharing**: Syncs building selection and MB level directly to URL hash (`#tool=buildings&b=town-hall&mb=20`) for direct sharing.
+
 ## [1.7.0] - 2026-08-21
 
 ### Added

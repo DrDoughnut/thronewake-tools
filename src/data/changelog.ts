@@ -2,7 +2,7 @@
  * Human-maintained release notes. Bump `APP_VERSION` and add an entry here
  * whenever a change is worth telling a returning user about.
  */
-export const APP_VERSION = '1.7.0';
+export const APP_VERSION = '1.8.0';
 
 export interface ChangelogEntry {
   version: string;
@@ -11,6 +11,19 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '1.8.0',
+    date: '2026-08-22',
+    changes: [
+      'Building Stats & Encyclopedia: brand new interactive reference tool inspecting complete stats, costs, construction times, culture points, and effects across all 37 buildings.',
+      'Comprehensive Level 1–22 Progression Tables: view Wood, Clay, Iron, Crop, Total Cost, Pop (+Δ), CP/d (+Δ), res/CP & res/Pop efficiency scores, and formatted building effects for every level.',
+      'Main Building Speed Slider: interactive Lvl 1–20 MB controller dynamically recalculating real-time construction durations for all building levels.',
+      'City Level 22 Support: dedicated visual badges and stats for the 6 City-upgradeable buildings reaching Level 22 (Town Hall, Warehouse, Granary, Barracks, Stable, Workshop).',
+      'Category & Tribe Filtering: filter buildings by Category (Resources, Infrastructure, Military) and Tribe requirements (Embermark, Stormfang, Vaeloria), or search live by name and effects.',
+      'Aggregate Cost & Stat Cards: instant summary cards showing total resources to max level, total construction time at current MB level, max population, and max culture points.',
+      'Deep Linking & Shareable URLs: syncs selected building and MB level directly to the URL hash (#tool=buildings&b=town-hall&mb=20).',
+    ],
+  },
   {
     version: '1.7.0',
     date: '2026-08-21',
