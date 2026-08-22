@@ -437,22 +437,6 @@ export function BuildingStats() {
               <span className="bs-selection-tip">
                 💡 <strong>Interactive Range:</strong> Click row <strong>A</strong> then row <strong>B</strong> in the table below to sum a level range (3rd click resets to full).
               </span>
-              {rangeSummary.isCustomRange && (
-                <button
-                  type="button"
-                  className="pill pill--tiny pill--secondary"
-                  onClick={() =>
-                    setSelection({
-                      step: 0,
-                      firstLevel: null,
-                      startLevel: 0,
-                      endLevel: maxLvl,
-                    })
-                  }
-                >
-                  Reset to Full (Lvl 0 → {maxLvl})
-                </button>
-              )}
             </div>
 
             {/* Dynamic Summary Cards */}
