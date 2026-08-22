@@ -62,7 +62,7 @@ describe('safe time', () => {
     ]);
   });
 
-  it('reports each of the four blocking checks separately', () => {
+  it('reports each of the three blocking checks separately', () => {
     const checks = safeChecks(
       at(23),
       at(12),
@@ -70,7 +70,6 @@ describe('safe time', () => {
       { enabled: true, start: 660, end: 780 },
     );
     expect(checks).toEqual({
-      landAttacker: false,
       landDefender: true,
       sendAttacker: true,
       sendDefender: false,

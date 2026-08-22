@@ -19,7 +19,6 @@ export interface TravelModifiers {
 }
 
 export interface SafeChecks {
-  landAttacker: boolean;
   landDefender: boolean;
   sendAttacker: boolean;
   sendDefender: boolean;
@@ -108,7 +107,6 @@ export function safeChecks(
   defender: SafeWindow,
 ): SafeChecks {
   return {
-    landAttacker: isInSafeWindow(land, attacker),
     landDefender: isInSafeWindow(land, defender),
     sendAttacker: isInSafeWindow(send, attacker),
     sendDefender: isInSafeWindow(send, defender),

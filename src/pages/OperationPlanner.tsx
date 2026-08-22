@@ -814,13 +814,12 @@ function SafetimeHeaderTooltip() {
           >
             <div className="safetime-tooltip-card__title">How Safetime Checks Work</div>
             <p className="safetime-tooltip-card__copy">
-              A route is marked <strong>Possible</strong> only when all 4 conditions are clear (✓):
+              A route is marked <strong>Possible</strong> only when all 3 conditions are clear (✓):
             </p>
             <ul className="safetime-tooltip-card__list">
-              <li><strong>Check A:</strong> Landing does not fall into the Attacker’s safe hours.</li>
-              <li><strong>Check B:</strong> Landing does not fall into the Defender’s safe hours.</li>
-              <li><strong>Check C:</strong> Send (launch) does not fall into the Attacker’s safe hours.</li>
-              <li><strong>Check D:</strong> Send (launch) does not fall into the Defender’s safe hours.</li>
+              <li><strong>Check A:</strong> Landing does not fall into the Defender’s safe hours.</li>
+              <li><strong>Check B:</strong> Send (launch) does not fall into the Attacker’s safe hours.</li>
+              <li><strong>Check C:</strong> Send (launch) does not fall into the Defender’s safe hours.</li>
             </ul>
             <p className="safetime-tooltip-card__footer">
               Hover any route’s check dots to see the detailed evaluation.
@@ -861,22 +860,13 @@ function SafetimeChecksCell({ route, showLocal }: { route: PlannedRoute; showLoc
   const checks = [
     {
       code: 'A',
-      title: 'Land / Attacker Safe Time',
-      blocked: route.checks.landAttacker,
-      time: `Land: ${stamp(route.land)}`,
-      windowText: route.attacker.safeEnabled
-        ? `${route.attacker.name} safe time: ${route.attacker.safeStart}–${route.attacker.safeEnd} UTC`
-        : `${route.attacker.name} has no safe time`,
-    },
-    {
-      code: 'B',
       title: 'Land / Defender Safe Time',
       blocked: route.checks.landDefender,
       time: `Land: ${stamp(route.land)}`,
       windowText: defenderWindowText,
     },
     {
-      code: 'C',
+      code: 'B',
       title: 'Send / Attacker Safe Time',
       blocked: route.checks.sendAttacker,
       time: `Send: ${stamp(route.send, true)}`,
@@ -885,7 +875,7 @@ function SafetimeChecksCell({ route, showLocal }: { route: PlannedRoute; showLoc
         : `${route.attacker.name} has no safe time`,
     },
     {
-      code: 'D',
+      code: 'C',
       title: 'Send / Defender Safe Time',
       blocked: route.checks.sendDefender,
       time: `Send: ${stamp(route.send, true)}`,
