@@ -178,24 +178,24 @@ describe('CP Build-Order Optimizer Engine', () => {
     // City allows levels 1-22 for WH, Granary, Barracks, Stable, Workshop, and Town Hall (GID 15)
     const th = BUILDINGS_BY_GID.get(TOWN_HALL_GID)!;
     expect(th.name).toBe('Town Hall');
-    expect(th.levels[21].cp).toBe(138); // Level 22 Town Hall = 138 CP
+    expect(th.levels[21].cp).toBe(110); // Level 22 Town Hall = 110 CP (from Thronewake game bundle)
 
     const wh = BUILDINGS_BY_GID.get(WAREHOUSE_GID)!;
-    expect(wh.levels[21].cp).toBe(69);  // Level 22 Warehouse = 69 CP
+    expect(wh.levels[21].cp).toBe(55);  // Level 22 Warehouse = 55 CP
     expect(wh.levels[21].effects.storageWarehouse).toBe(125000);
 
     const gr = BUILDINGS_BY_GID.get(GRANARY_GID)!;
-    expect(gr.levels[21].cp).toBe(69);  // Level 22 Granary = 69 CP
+    expect(gr.levels[21].cp).toBe(55);  // Level 22 Granary = 55 CP
     expect(gr.levels[21].effects.storageGranary).toBe(125000);
 
     const bar = BUILDINGS_BY_GID.get(19)!;
-    expect(bar.levels[21].cp).toBe(69); // Level 22 Barracks = 69 CP
+    expect(bar.levels[21].cp).toBe(55); // Level 22 Barracks = 55 CP
 
     const stb = BUILDINGS_BY_GID.get(20)!;
-    expect(stb.levels[21].cp).toBe(138); // Level 22 Stable = 138 CP
+    expect(stb.levels[21].cp).toBe(110); // Level 22 Stable = 110 CP
 
     const ws = BUILDINGS_BY_GID.get(21)!;
-    expect(ws.levels[21].cp).toBe(207); // Level 22 Workshop = 207 CP
+    expect(ws.levels[21].cp).toBe(166); // Level 22 Workshop = 166 CP
 
     // In a normal village (non-city), max level is 20
     expect(getBuildingMaxLevel(TOWN_HALL_GID, false)).toBe(20);

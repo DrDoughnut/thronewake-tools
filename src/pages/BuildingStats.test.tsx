@@ -63,8 +63,8 @@ describe('BuildingStats Component & Effect Helpers', () => {
     expect(container.textContent).toContain('Lvl 21');
     expect(container.textContent).toContain('Lvl 22');
 
-    // Level 22 CP for Town Hall is 138
-    expect(container.textContent).toContain('+138');
+    // Level 22 CP for Town Hall is 110 (from Thronewake game bundle)
+    expect(container.textContent).toContain('+110');
   });
 
   it('displays all 3 categories (Resources, Infrastructure, Military) horizontally with all buildings visible', () => {

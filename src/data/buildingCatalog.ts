@@ -1171,7 +1171,7 @@ export const BUILDINGS: CatalogBuilding[] = [
     "slug": "sawmill",
     "name": "Sawmill",
     "category": "Resources",
-    "maxLevel": 5,
+    "maxLevel": 8,
     "cultureBase": 1,
     "effects": [
       "productionBoost1"
@@ -1234,7 +1234,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 4,
-        "time": 15825,
+        "time": 15830,
         "wood": 3035,
         "clay": 2215,
         "iron": 1690,
@@ -1247,7 +1247,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 5,
-        "time": 24938,
+        "time": 24940,
         "wood": 5460,
         "clay": 3990,
         "iron": 3045,
@@ -1257,6 +1257,39 @@ export const BUILDINGS: CatalogBuilding[] = [
         "effects": {
           "productionBoost1": 0.25
         }
+      },
+      {
+        "level": 6,
+        "time": 39156,
+        "wood": 9830,
+        "clay": 7180,
+        "iron": 5480,
+        "crop": 1700,
+        "pop": 14,
+        "cp": 3,
+        "effects": {}
+      },
+      {
+        "level": 7,
+        "time": 61475,
+        "wood": 17690,
+        "clay": 12930,
+        "iron": 9865,
+        "crop": 3060,
+        "pop": 16,
+        "cp": 3,
+        "effects": {}
+      },
+      {
+        "level": 8,
+        "time": 96516,
+        "wood": 31840,
+        "clay": 23270,
+        "iron": 17760,
+        "crop": 5510,
+        "pop": 18,
+        "cp": 4,
+        "effects": {}
       }
     ]
   },
@@ -1265,7 +1298,7 @@ export const BUILDINGS: CatalogBuilding[] = [
     "slug": "brickyard",
     "name": "Brickyard",
     "category": "Resources",
-    "maxLevel": 5,
+    "maxLevel": 8,
     "cultureBase": 1,
     "effects": [
       "productionBoost2"
@@ -1328,7 +1361,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 4,
-        "time": 15285,
+        "time": 15290,
         "wood": 2565,
         "clay": 2800,
         "iron": 1865,
@@ -1341,7 +1374,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 5,
-        "time": 24128,
+        "time": 24130,
         "wood": 4620,
         "clay": 5040,
         "iron": 3360,
@@ -1351,6 +1384,39 @@ export const BUILDINGS: CatalogBuilding[] = [
         "effects": {
           "productionBoost2": 0.25
         }
+      },
+      {
+        "level": 6,
+        "time": 37884,
+        "wood": 8315,
+        "clay": 9070,
+        "iron": 6050,
+        "crop": 945,
+        "pop": 13,
+        "cp": 3,
+        "effects": {}
+      },
+      {
+        "level": 7,
+        "time": 59478,
+        "wood": 14970,
+        "clay": 16330,
+        "iron": 10885,
+        "crop": 1700,
+        "pop": 15,
+        "cp": 3,
+        "effects": {}
+      },
+      {
+        "level": 8,
+        "time": 93380,
+        "wood": 26945,
+        "clay": 29390,
+        "iron": 19595,
+        "crop": 3060,
+        "pop": 17,
+        "cp": 4,
+        "effects": {}
       }
     ]
   },
@@ -1359,7 +1425,7 @@ export const BUILDINGS: CatalogBuilding[] = [
     "slug": "iron-foundry",
     "name": "Iron Foundry",
     "category": "Resources",
-    "maxLevel": 5,
+    "maxLevel": 8,
     "cultureBase": 1,
     "effects": [
       "productionBoost3"
@@ -1435,7 +1501,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 5,
-        "time": 30405,
+        "time": 30410,
         "wood": 2100,
         "clay": 4725,
         "iron": 5355,
@@ -1445,6 +1511,39 @@ export const BUILDINGS: CatalogBuilding[] = [
         "effects": {
           "productionBoost3": 0.25
         }
+      },
+      {
+        "level": 6,
+        "time": 47744,
+        "wood": 3780,
+        "clay": 8505,
+        "iron": 9640,
+        "crop": 2270,
+        "pop": 21,
+        "cp": 3,
+        "effects": {}
+      },
+      {
+        "level": 7,
+        "time": 74958,
+        "wood": 6800,
+        "clay": 15310,
+        "iron": 17350,
+        "crop": 4080,
+        "pop": 24,
+        "cp": 3,
+        "effects": {}
+      },
+      {
+        "level": 8,
+        "time": 117684,
+        "wood": 12250,
+        "clay": 27550,
+        "iron": 31230,
+        "crop": 7350,
+        "pop": 27,
+        "cp": 4,
+        "effects": {}
       }
     ]
   },
@@ -1453,7 +1552,7 @@ export const BUILDINGS: CatalogBuilding[] = [
     "slug": "grain-mill",
     "name": "Grain Mill",
     "category": "Resources",
-    "maxLevel": 5,
+    "maxLevel": 8,
     "cultureBase": 1,
     "effects": [
       "productionBoost4"
@@ -1522,7 +1621,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 5,
-        "time": 19065,
+        "time": 19070,
         "wood": 5250,
         "clay": 4620,
         "iron": 3990,
@@ -1532,6 +1631,39 @@ export const BUILDINGS: CatalogBuilding[] = [
         "effects": {
           "productionBoost4": 0.25
         }
+      },
+      {
+        "level": 6,
+        "time": 29940,
+        "wood": 9450,
+        "clay": 8315,
+        "iron": 7180,
+        "crop": 23425,
+        "pop": 13,
+        "cp": 3,
+        "effects": {}
+      },
+      {
+        "level": 7,
+        "time": 47006,
+        "wood": 17010,
+        "clay": 14970,
+        "iron": 12930,
+        "crop": 37200,
+        "pop": 15,
+        "cp": 3,
+        "effects": {}
+      },
+      {
+        "level": 8,
+        "time": 73799,
+        "wood": 30620,
+        "clay": 26945,
+        "iron": 23270,
+        "crop": 59720,
+        "pop": 17,
+        "cp": 4,
+        "effects": {}
       }
     ]
   },
@@ -1659,10 +1791,10 @@ export const BUILDINGS: CatalogBuilding[] = [
       {
         "level": 1,
         "time": 2000,
-        "wood": 140,
-        "clay": 180,
-        "iron": 100,
-        "crop": 0,
+        "wood": 130,
+        "clay": 160,
+        "iron": 90,
+        "crop": 40,
         "pop": 1,
         "cp": 1,
         "effects": {
@@ -1672,10 +1804,10 @@ export const BUILDINGS: CatalogBuilding[] = [
       {
         "level": 2,
         "time": 2620,
-        "wood": 185,
-        "clay": 240,
-        "iron": 135,
-        "crop": 0,
+        "wood": 165,
+        "clay": 205,
+        "iron": 115,
+        "crop": 50,
         "pop": 2,
         "cp": 1,
         "effects": {
@@ -1684,11 +1816,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 3,
-        "time": 3339,
-        "wood": 250,
-        "clay": 320,
-        "iron": 175,
-        "crop": 0,
+        "time": 3340,
+        "wood": 215,
+        "clay": 260,
+        "iron": 145,
+        "crop": 65,
         "pop": 3,
         "cp": 2,
         "effects": {
@@ -1697,11 +1829,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 4,
-        "time": 4173,
-        "wood": 330,
-        "clay": 425,
-        "iron": 235,
-        "crop": 0,
+        "time": 4170,
+        "wood": 275,
+        "clay": 335,
+        "iron": 190,
+        "crop": 85,
         "pop": 4,
         "cp": 2,
         "effects": {
@@ -1710,11 +1842,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 5,
-        "time": 5141,
-        "wood": 440,
-        "clay": 565,
-        "iron": 315,
-        "crop": 0,
+        "time": 5140,
+        "wood": 350,
+        "clay": 430,
+        "iron": 240,
+        "crop": 105,
         "pop": 5,
         "cp": 2,
         "effects": {
@@ -1723,11 +1855,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 6,
-        "time": 6264,
-        "wood": 585,
-        "clay": 750,
-        "iron": 415,
-        "crop": 0,
+        "time": 6260,
+        "wood": 445,
+        "clay": 550,
+        "iron": 310,
+        "crop": 135,
         "pop": 6,
         "cp": 3,
         "effects": {
@@ -1736,11 +1868,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 7,
-        "time": 7566,
-        "wood": 775,
-        "clay": 995,
-        "iron": 555,
-        "crop": 0,
+        "time": 7570,
+        "wood": 570,
+        "clay": 705,
+        "iron": 395,
+        "crop": 175,
         "pop": 7,
         "cp": 4,
         "effects": {
@@ -1749,11 +1881,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 8,
-        "time": 9077,
-        "wood": 1030,
-        "clay": 1325,
-        "iron": 735,
-        "crop": 0,
+        "time": 9080,
+        "wood": 730,
+        "clay": 900,
+        "iron": 505,
+        "crop": 225,
         "pop": 8,
         "cp": 4,
         "effects": {
@@ -1762,11 +1894,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 9,
-        "time": 10829,
-        "wood": 1370,
-        "clay": 1760,
-        "iron": 980,
-        "crop": 0,
+        "time": 10830,
+        "wood": 935,
+        "clay": 1155,
+        "iron": 650,
+        "crop": 290,
         "pop": 9,
         "cp": 5,
         "effects": {
@@ -1775,11 +1907,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 10,
-        "time": 12861,
-        "wood": 1825,
-        "clay": 2345,
-        "iron": 1300,
-        "crop": 0,
+        "time": 12860,
+        "wood": 1200,
+        "clay": 1475,
+        "iron": 830,
+        "crop": 370,
         "pop": 10,
         "cp": 6,
         "effects": {
@@ -1788,11 +1920,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 11,
-        "time": 15219,
-        "wood": 2425,
-        "clay": 3115,
-        "iron": 1730,
-        "crop": 0,
+        "time": 15220,
+        "wood": 1535,
+        "clay": 1890,
+        "iron": 1065,
+        "crop": 470,
         "pop": 12,
         "cp": 7,
         "effects": {
@@ -1801,11 +1933,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 12,
-        "time": 17954,
-        "wood": 3225,
-        "clay": 4145,
-        "iron": 2305,
-        "crop": 0,
+        "time": 17950,
+        "wood": 1965,
+        "clay": 2420,
+        "iron": 1360,
+        "crop": 605,
         "pop": 14,
         "cp": 9,
         "effects": {
@@ -1814,11 +1946,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 13,
-        "time": 21127,
-        "wood": 4290,
-        "clay": 5515,
-        "iron": 3065,
-        "crop": 0,
+        "time": 21130,
+        "wood": 2515,
+        "clay": 3095,
+        "iron": 1740,
+        "crop": 775,
         "pop": 16,
         "cp": 11,
         "effects": {
@@ -1827,11 +1959,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 14,
-        "time": 24807,
-        "wood": 5705,
-        "clay": 7335,
-        "iron": 4075,
-        "crop": 0,
+        "time": 24810,
+        "wood": 3220,
+        "clay": 3960,
+        "iron": 2230,
+        "crop": 990,
         "pop": 18,
         "cp": 13,
         "effects": {
@@ -1840,11 +1972,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 15,
-        "time": 29077,
-        "wood": 7585,
-        "clay": 9755,
-        "iron": 5420,
-        "crop": 0,
+        "time": 29080,
+        "wood": 4120,
+        "clay": 5070,
+        "iron": 2850,
+        "crop": 1270,
         "pop": 20,
         "cp": 15,
         "effects": {
@@ -1853,11 +1985,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 16,
-        "time": 34029,
-        "wood": 10090,
-        "clay": 12975,
-        "iron": 7205,
-        "crop": 0,
+        "time": 34030,
+        "wood": 5275,
+        "clay": 6490,
+        "iron": 3650,
+        "crop": 1625,
         "pop": 22,
         "cp": 18,
         "effects": {
@@ -1866,11 +1998,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 17,
-        "time": 39774,
-        "wood": 13420,
-        "clay": 17255,
-        "iron": 9585,
-        "crop": 0,
+        "time": 39770,
+        "wood": 6750,
+        "clay": 8310,
+        "iron": 4675,
+        "crop": 2075,
         "pop": 24,
         "cp": 22,
         "effects": {
@@ -1879,11 +2011,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 18,
-        "time": 46437,
-        "wood": 17850,
-        "clay": 22950,
-        "iron": 12750,
-        "crop": 0,
+        "time": 46440,
+        "wood": 8640,
+        "clay": 10635,
+        "iron": 5980,
+        "crop": 2660,
         "pop": 26,
         "cp": 27,
         "effects": {
@@ -1892,11 +2024,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 19,
-        "time": 54167,
-        "wood": 23740,
-        "clay": 30520,
-        "iron": 16955,
-        "crop": 0,
+        "time": 54170,
+        "wood": 11060,
+        "clay": 13610,
+        "iron": 7655,
+        "crop": 3405,
         "pop": 28,
         "cp": 32,
         "effects": {
@@ -1905,11 +2037,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 20,
-        "time": 63134,
-        "wood": 31575,
-        "clay": 40595,
-        "iron": 22550,
-        "crop": 0,
+        "time": 63130,
+        "wood": 14155,
+        "clay": 17420,
+        "iron": 9800,
+        "crop": 4355,
         "pop": 30,
         "cp": 38,
         "effects": {
@@ -1918,26 +2050,26 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 21,
-        "time": 73535,
-        "wood": 41995,
-        "clay": 53990,
-        "iron": 29990,
-        "crop": 0,
-        "pop": 32,
-        "cp": 51,
+        "time": 73540,
+        "wood": 18120,
+        "clay": 22300,
+        "iron": 12545,
+        "crop": 5575,
+        "pop": 33,
+        "cp": 46,
         "effects": {
           "storageWarehouse": 100000
         }
       },
       {
         "level": 22,
-        "time": 85601,
-        "wood": 55855,
-        "clay": 71805,
-        "iron": 39885,
-        "crop": 0,
-        "pop": 34,
-        "cp": 69,
+        "time": 85600,
+        "wood": 23195,
+        "clay": 28545,
+        "iron": 16055,
+        "crop": 7135,
+        "pop": 36,
+        "cp": 55,
         "effects": {
           "storageWarehouse": 125000
         }
@@ -1979,10 +2111,10 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 2,
-        "time": 2156,
-        "wood": 105,
-        "clay": 135,
-        "iron": 95,
+        "time": 2160,
+        "wood": 100,
+        "clay": 130,
+        "iron": 90,
         "crop": 25,
         "pop": 2,
         "cp": 1,
@@ -1992,10 +2124,10 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 3,
-        "time": 2801,
-        "wood": 140,
-        "clay": 175,
-        "iron": 125,
+        "time": 2800,
+        "wood": 130,
+        "clay": 165,
+        "iron": 115,
         "crop": 35,
         "pop": 3,
         "cp": 2,
@@ -2005,11 +2137,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 4,
-        "time": 3549,
-        "wood": 190,
-        "clay": 235,
-        "iron": 165,
-        "crop": 45,
+        "time": 3550,
+        "wood": 170,
+        "clay": 210,
+        "iron": 145,
+        "crop": 40,
         "pop": 4,
         "cp": 2,
         "effects": {
@@ -2018,11 +2150,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 5,
-        "time": 4417,
-        "wood": 250,
-        "clay": 315,
-        "iron": 220,
-        "crop": 65,
+        "time": 4420,
+        "wood": 215,
+        "clay": 270,
+        "iron": 190,
+        "crop": 55,
         "pop": 5,
         "cp": 2,
         "effects": {
@@ -2031,11 +2163,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 6,
-        "time": 5424,
-        "wood": 335,
-        "clay": 415,
-        "iron": 290,
-        "crop": 85,
+        "time": 5420,
+        "wood": 275,
+        "clay": 345,
+        "iron": 240,
+        "crop": 70,
         "pop": 6,
         "cp": 3,
         "effects": {
@@ -2044,11 +2176,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 7,
-        "time": 6591,
-        "wood": 445,
-        "clay": 555,
-        "iron": 385,
-        "crop": 110,
+        "time": 6590,
+        "wood": 350,
+        "clay": 440,
+        "iron": 310,
+        "crop": 90,
         "pop": 7,
         "cp": 4,
         "effects": {
@@ -2057,11 +2189,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 8,
-        "time": 7946,
-        "wood": 590,
-        "clay": 735,
-        "iron": 515,
-        "crop": 145,
+        "time": 7950,
+        "wood": 450,
+        "clay": 565,
+        "iron": 395,
+        "crop": 115,
         "pop": 8,
         "cp": 4,
         "effects": {
@@ -2070,11 +2202,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 9,
-        "time": 9517,
-        "wood": 785,
-        "clay": 980,
-        "iron": 685,
-        "crop": 195,
+        "time": 9520,
+        "wood": 575,
+        "clay": 720,
+        "iron": 505,
+        "crop": 145,
         "pop": 9,
         "cp": 5,
         "effects": {
@@ -2084,10 +2216,10 @@ export const BUILDINGS: CatalogBuilding[] = [
       {
         "level": 10,
         "time": 11340,
-        "wood": 1040,
-        "clay": 1300,
-        "iron": 910,
-        "crop": 260,
+        "wood": 740,
+        "clay": 920,
+        "iron": 645,
+        "crop": 185,
         "pop": 10,
         "cp": 6,
         "effects": {
@@ -2096,11 +2228,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 11,
-        "time": 13455,
-        "wood": 1385,
-        "clay": 1730,
-        "iron": 1210,
-        "crop": 345,
+        "time": 13450,
+        "wood": 945,
+        "clay": 1180,
+        "iron": 825,
+        "crop": 235,
         "pop": 12,
         "cp": 7,
         "effects": {
@@ -2109,11 +2241,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 12,
-        "time": 15907,
-        "wood": 1845,
-        "clay": 2305,
-        "iron": 1610,
-        "crop": 460,
+        "time": 15910,
+        "wood": 1210,
+        "clay": 1510,
+        "iron": 1060,
+        "crop": 300,
         "pop": 14,
         "cp": 9,
         "effects": {
@@ -2122,11 +2254,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 13,
-        "time": 18753,
-        "wood": 2450,
-        "clay": 3065,
-        "iron": 2145,
-        "crop": 615,
+        "time": 18750,
+        "wood": 1545,
+        "clay": 1935,
+        "iron": 1355,
+        "crop": 385,
         "pop": 16,
         "cp": 11,
         "effects": {
@@ -2135,11 +2267,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 14,
-        "time": 22053,
-        "wood": 3260,
-        "clay": 4075,
-        "iron": 2850,
-        "crop": 815,
+        "time": 22050,
+        "wood": 1980,
+        "clay": 2475,
+        "iron": 1735,
+        "crop": 495,
         "pop": 18,
         "cp": 13,
         "effects": {
@@ -2148,11 +2280,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 15,
-        "time": 25882,
-        "wood": 4335,
-        "clay": 5420,
-        "iron": 3795,
-        "crop": 1085,
+        "time": 25880,
+        "wood": 2535,
+        "clay": 3170,
+        "iron": 2220,
+        "crop": 635,
         "pop": 20,
         "cp": 15,
         "effects": {
@@ -2161,11 +2293,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 16,
-        "time": 30323,
-        "wood": 5765,
-        "clay": 7205,
-        "iron": 5045,
-        "crop": 1440,
+        "time": 30320,
+        "wood": 3245,
+        "clay": 4055,
+        "iron": 2840,
+        "crop": 810,
         "pop": 22,
         "cp": 18,
         "effects": {
@@ -2174,11 +2306,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 17,
-        "time": 35474,
-        "wood": 7670,
-        "clay": 9585,
-        "iron": 6710,
-        "crop": 1915,
+        "time": 35470,
+        "wood": 4155,
+        "clay": 5190,
+        "iron": 3635,
+        "crop": 1040,
         "pop": 24,
         "cp": 22,
         "effects": {
@@ -2188,10 +2320,10 @@ export const BUILDINGS: CatalogBuilding[] = [
       {
         "level": 18,
         "time": 41450,
-        "wood": 10200,
-        "clay": 12750,
-        "iron": 8925,
-        "crop": 2550,
+        "wood": 5315,
+        "clay": 6645,
+        "iron": 4650,
+        "crop": 1330,
         "pop": 26,
         "cp": 27,
         "effects": {
@@ -2200,11 +2332,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 19,
-        "time": 48382,
-        "wood": 13565,
-        "clay": 16955,
-        "iron": 11870,
-        "crop": 3390,
+        "time": 48380,
+        "wood": 6805,
+        "clay": 8505,
+        "iron": 5955,
+        "crop": 1700,
         "pop": 28,
         "cp": 32,
         "effects": {
@@ -2213,11 +2345,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 20,
-        "time": 56423,
-        "wood": 18040,
-        "clay": 22550,
-        "iron": 15785,
-        "crop": 4510,
+        "time": 56420,
+        "wood": 8710,
+        "clay": 10890,
+        "iron": 7620,
+        "crop": 2180,
         "pop": 30,
         "cp": 38,
         "effects": {
@@ -2226,26 +2358,26 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 21,
-        "time": 65751,
-        "wood": 23995,
-        "clay": 29990,
-        "iron": 20995,
-        "crop": 6000,
-        "pop": 32,
-        "cp": 51,
+        "time": 65750,
+        "wood": 11150,
+        "clay": 13940,
+        "iron": 9755,
+        "crop": 2790,
+        "pop": 33,
+        "cp": 46,
         "effects": {
           "storageGranary": 100000
         }
       },
       {
         "level": 22,
-        "time": 76571,
-        "wood": 31915,
-        "clay": 39885,
-        "iron": 27925,
-        "crop": 7980,
-        "pop": 34,
-        "cp": 69,
+        "time": 76570,
+        "wood": 14270,
+        "clay": 17840,
+        "iron": 12490,
+        "crop": 3570,
+        "pop": 36,
+        "cp": 55,
         "effects": {
           "storageGranary": 125000
         }
@@ -2301,7 +2433,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 3,
-        "time": 3339,
+        "time": 3340,
         "wood": 295,
         "clay": 410,
         "iron": 820,
@@ -2312,7 +2444,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 4,
-        "time": 4173,
+        "time": 4170,
         "wood": 375,
         "clay": 525,
         "iron": 1050,
@@ -2323,7 +2455,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 5,
-        "time": 5141,
+        "time": 5140,
         "wood": 485,
         "clay": 670,
         "iron": 1340,
@@ -2334,7 +2466,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 6,
-        "time": 6264,
+        "time": 6260,
         "wood": 620,
         "clay": 860,
         "iron": 1720,
@@ -2345,7 +2477,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 7,
-        "time": 7566,
+        "time": 7570,
         "wood": 790,
         "clay": 1100,
         "iron": 2200,
@@ -2356,7 +2488,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 8,
-        "time": 9077,
+        "time": 9080,
         "wood": 1015,
         "clay": 1405,
         "iron": 2815,
@@ -2367,7 +2499,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 9,
-        "time": 10829,
+        "time": 10830,
         "wood": 1295,
         "clay": 1800,
         "iron": 3605,
@@ -2378,7 +2510,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 10,
-        "time": 12861,
+        "time": 12860,
         "wood": 1660,
         "clay": 2305,
         "iron": 4610,
@@ -2389,7 +2521,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 11,
-        "time": 15219,
+        "time": 15220,
         "wood": 2125,
         "clay": 2950,
         "iron": 5905,
@@ -2400,7 +2532,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 12,
-        "time": 17954,
+        "time": 17950,
         "wood": 2720,
         "clay": 3780,
         "iron": 7555,
@@ -2411,7 +2543,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 13,
-        "time": 21127,
+        "time": 21130,
         "wood": 3480,
         "clay": 4835,
         "iron": 9670,
@@ -2422,7 +2554,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 14,
-        "time": 24807,
+        "time": 24810,
         "wood": 4455,
         "clay": 6190,
         "iron": 12380,
@@ -2433,7 +2565,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 15,
-        "time": 29077,
+        "time": 29080,
         "wood": 5705,
         "clay": 7925,
         "iron": 15845,
@@ -2444,7 +2576,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 16,
-        "time": 34029,
+        "time": 34030,
         "wood": 7300,
         "clay": 10140,
         "iron": 20280,
@@ -2455,7 +2587,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 17,
-        "time": 39774,
+        "time": 39770,
         "wood": 9345,
         "clay": 12980,
         "iron": 25960,
@@ -2466,7 +2598,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 18,
-        "time": 46437,
+        "time": 46440,
         "wood": 11965,
         "clay": 16615,
         "iron": 33230,
@@ -2477,7 +2609,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 19,
-        "time": 54167,
+        "time": 54170,
         "wood": 15315,
         "clay": 21270,
         "iron": 42535,
@@ -2488,7 +2620,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 20,
-        "time": 63134,
+        "time": 63130,
         "wood": 19600,
         "clay": 27225,
         "iron": 54445,
@@ -2521,12 +2653,12 @@ export const BUILDINGS: CatalogBuilding[] = [
     "levels": [
       {
         "level": 1,
-        "time": 3500,
-        "wood": 1750,
-        "clay": 2250,
-        "iron": 1530,
+        "time": 2300,
+        "wood": 700,
+        "clay": 670,
+        "iron": 700,
         "crop": 240,
-        "pop": 1,
+        "pop": 2,
         "cp": 1,
         "effects": {
           "troopSpeedBoost": 0.1
@@ -2534,12 +2666,12 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 2,
-        "time": 4360,
-        "wood": 2240,
-        "clay": 2880,
-        "iron": 1960,
-        "crop": 305,
-        "pop": 2,
+        "time": 2670,
+        "wood": 930,
+        "clay": 890,
+        "iron": 930,
+        "crop": 320,
+        "pop": 3,
         "cp": 1,
         "effects": {
           "troopSpeedBoost": 0.2
@@ -2547,12 +2679,12 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 3,
-        "time": 5358,
-        "wood": 2865,
-        "clay": 3685,
-        "iron": 2505,
-        "crop": 395,
-        "pop": 3,
+        "time": 3090,
+        "wood": 1240,
+        "clay": 1185,
+        "iron": 1240,
+        "crop": 425,
+        "pop": 4,
         "cp": 2,
         "effects": {
           "troopSpeedBoost": 0.3
@@ -2560,12 +2692,12 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 4,
-        "time": 6515,
-        "wood": 3670,
-        "clay": 4720,
-        "iron": 3210,
-        "crop": 505,
-        "pop": 4,
+        "time": 3590,
+        "wood": 1645,
+        "clay": 1575,
+        "iron": 1645,
+        "crop": 565,
+        "pop": 5,
         "cp": 2,
         "effects": {
           "troopSpeedBoost": 0.4
@@ -2573,12 +2705,12 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 5,
-        "time": 7857,
-        "wood": 4700,
-        "clay": 6040,
-        "iron": 4105,
-        "crop": 645,
-        "pop": 5,
+        "time": 4160,
+        "wood": 2190,
+        "clay": 2095,
+        "iron": 2190,
+        "crop": 750,
+        "pop": 6,
         "cp": 2,
         "effects": {
           "troopSpeedBoost": 0.5
@@ -2586,12 +2718,12 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 6,
-        "time": 9414,
-        "wood": 6015,
-        "clay": 7730,
-        "iron": 5255,
-        "crop": 825,
-        "pop": 6,
+        "time": 4830,
+        "wood": 2915,
+        "clay": 2790,
+        "iron": 2915,
+        "crop": 1000,
+        "pop": 8,
         "cp": 3,
         "effects": {
           "troopSpeedBoost": 0.6
@@ -2599,12 +2731,12 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 7,
-        "time": 11221,
-        "wood": 7695,
-        "clay": 9895,
-        "iron": 6730,
-        "crop": 1055,
-        "pop": 7,
+        "time": 5600,
+        "wood": 3875,
+        "clay": 3710,
+        "iron": 3875,
+        "crop": 1330,
+        "pop": 10,
         "cp": 4,
         "effects": {
           "troopSpeedBoost": 0.7
@@ -2612,12 +2744,12 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 8,
-        "time": 13316,
-        "wood": 9850,
-        "clay": 12665,
-        "iron": 8615,
-        "crop": 1350,
-        "pop": 8,
+        "time": 6500,
+        "wood": 5155,
+        "clay": 4930,
+        "iron": 5155,
+        "crop": 1765,
+        "pop": 12,
         "cp": 4,
         "effects": {
           "troopSpeedBoost": 0.8
@@ -2625,12 +2757,12 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 9,
-        "time": 15746,
-        "wood": 12610,
-        "clay": 16215,
-        "iron": 11025,
-        "crop": 1730,
-        "pop": 9,
+        "time": 7540,
+        "wood": 6855,
+        "clay": 6560,
+        "iron": 6855,
+        "crop": 2350,
+        "pop": 14,
         "cp": 5,
         "effects": {
           "troopSpeedBoost": 0.9
@@ -2638,12 +2770,12 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 10,
-        "time": 18566,
-        "wood": 16140,
-        "clay": 20755,
-        "iron": 14110,
-        "crop": 2215,
-        "pop": 10,
+        "time": 8750,
+        "wood": 9115,
+        "clay": 8725,
+        "iron": 9115,
+        "crop": 3125,
+        "pop": 16,
         "cp": 6,
         "effects": {
           "troopSpeedBoost": 1
@@ -2651,12 +2783,12 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 11,
-        "time": 21836,
-        "wood": 20660,
-        "clay": 26565,
-        "iron": 18065,
-        "crop": 2835,
-        "pop": 12,
+        "time": 10150,
+        "wood": 12125,
+        "clay": 11605,
+        "iron": 12125,
+        "crop": 4155,
+        "pop": 18,
         "cp": 7,
         "effects": {
           "troopSpeedBoost": 1.1
@@ -2664,12 +2796,12 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 12,
-        "time": 25630,
-        "wood": 26445,
-        "clay": 34000,
-        "iron": 23120,
-        "crop": 3625,
-        "pop": 14,
+        "time": 11770,
+        "wood": 16125,
+        "clay": 15435,
+        "iron": 16125,
+        "crop": 5530,
+        "pop": 20,
         "cp": 9,
         "effects": {
           "troopSpeedBoost": 1.2
@@ -2677,12 +2809,12 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 13,
-        "time": 30031,
-        "wood": 33850,
-        "clay": 43520,
-        "iron": 29595,
-        "crop": 4640,
-        "pop": 16,
+        "time": 13650,
+        "wood": 21445,
+        "clay": 20525,
+        "iron": 21445,
+        "crop": 7350,
+        "pop": 22,
         "cp": 11,
         "effects": {
           "troopSpeedBoost": 1.3
@@ -2690,12 +2822,12 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 14,
-        "time": 35136,
-        "wood": 43330,
-        "clay": 55705,
-        "iron": 37880,
-        "crop": 5940,
-        "pop": 18,
+        "time": 15840,
+        "wood": 28520,
+        "clay": 27300,
+        "iron": 28520,
+        "crop": 9780,
+        "pop": 24,
         "cp": 13,
         "effects": {
           "troopSpeedBoost": 1.4
@@ -2703,12 +2835,12 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 15,
-        "time": 41058,
-        "wood": 55460,
-        "clay": 71305,
-        "iron": 48490,
-        "crop": 7605,
-        "pop": 20,
+        "time": 18370,
+        "wood": 37935,
+        "clay": 36310,
+        "iron": 37935,
+        "crop": 13005,
+        "pop": 26,
         "cp": 15,
         "effects": {
           "troopSpeedBoost": 1.5
@@ -2716,12 +2848,12 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 16,
-        "time": 47927,
-        "wood": 70990,
-        "clay": 91270,
-        "iron": 62065,
-        "crop": 9735,
-        "pop": 22,
+        "time": 21310,
+        "wood": 50450,
+        "clay": 48290,
+        "iron": 50450,
+        "crop": 17300,
+        "pop": 29,
         "cp": 18,
         "effects": {
           "troopSpeedBoost": 1.6
@@ -2729,12 +2861,12 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 17,
-        "time": 55896,
-        "wood": 90865,
-        "clay": 116825,
-        "iron": 79440,
-        "crop": 12460,
-        "pop": 24,
+        "time": 24720,
+        "wood": 67100,
+        "clay": 64225,
+        "iron": 67100,
+        "crop": 23005,
+        "pop": 32,
         "cp": 22,
         "effects": {
           "troopSpeedBoost": 1.7
@@ -2742,12 +2874,12 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 18,
-        "time": 65139,
-        "wood": 116305,
-        "clay": 149540,
-        "iron": 101685,
-        "crop": 15950,
-        "pop": 26,
+        "time": 28680,
+        "wood": 89245,
+        "clay": 85420,
+        "iron": 89245,
+        "crop": 30600,
+        "pop": 35,
         "cp": 27,
         "effects": {
           "troopSpeedBoost": 1.8
@@ -2755,12 +2887,12 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 19,
-        "time": 75861,
-        "wood": 148875,
-        "clay": 191410,
-        "iron": 130160,
-        "crop": 20415,
-        "pop": 28,
+        "time": 33260,
+        "wood": 118695,
+        "clay": 113605,
+        "iron": 118695,
+        "crop": 40695,
+        "pop": 38,
         "cp": 32,
         "effects": {
           "troopSpeedBoost": 1.9
@@ -2768,12 +2900,12 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 20,
-        "time": 88299,
-        "wood": 190560,
-        "clay": 245005,
-        "iron": 166600,
-        "crop": 26135,
-        "pop": 30,
+        "time": 38590,
+        "wood": 157865,
+        "clay": 151095,
+        "iron": 157865,
+        "crop": 54125,
+        "pop": 41,
         "cp": 38,
         "effects": {
           "troopSpeedBoost": 2
@@ -2795,7 +2927,7 @@ export const BUILDINGS: CatalogBuilding[] = [
     "levels": [
       {
         "level": 1,
-        "time": 2000,
+        "time": 2500,
         "wood": 70,
         "clay": 40,
         "iron": 60,
@@ -2809,9 +2941,9 @@ export const BUILDINGS: CatalogBuilding[] = [
       {
         "level": 2,
         "time": 2620,
-        "wood": 95,
-        "clay": 55,
-        "iron": 80,
+        "wood": 90,
+        "clay": 50,
+        "iron": 75,
         "crop": 25,
         "pop": 3,
         "cp": 3,
@@ -2821,10 +2953,10 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 3,
-        "time": 3339,
-        "wood": 125,
-        "clay": 70,
-        "iron": 105,
+        "time": 3220,
+        "wood": 115,
+        "clay": 65,
+        "iron": 100,
         "crop": 35,
         "pop": 4,
         "cp": 3,
@@ -2834,11 +2966,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 4,
-        "time": 4173,
-        "wood": 165,
-        "clay": 95,
-        "iron": 140,
-        "crop": 45,
+        "time": 3880,
+        "wood": 145,
+        "clay": 85,
+        "iron": 125,
+        "crop": 40,
         "pop": 5,
         "cp": 4,
         "effects": {
@@ -2847,11 +2979,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 5,
-        "time": 5141,
-        "wood": 220,
-        "clay": 125,
-        "iron": 190,
-        "crop": 65,
+        "time": 4610,
+        "wood": 190,
+        "clay": 105,
+        "iron": 160,
+        "crop": 55,
         "pop": 6,
         "cp": 5,
         "effects": {
@@ -2860,11 +2992,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 6,
-        "time": 6264,
-        "wood": 290,
-        "clay": 165,
-        "iron": 250,
-        "crop": 85,
+        "time": 5410,
+        "wood": 240,
+        "clay": 135,
+        "iron": 205,
+        "crop": 70,
         "pop": 8,
         "cp": 6,
         "effects": {
@@ -2873,11 +3005,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 7,
-        "time": 7566,
-        "wood": 385,
-        "clay": 220,
-        "iron": 330,
-        "crop": 110,
+        "time": 6300,
+        "wood": 310,
+        "clay": 175,
+        "iron": 265,
+        "crop": 90,
         "pop": 10,
         "cp": 7,
         "effects": {
@@ -2886,11 +3018,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 8,
-        "time": 9077,
-        "wood": 515,
-        "clay": 295,
-        "iron": 440,
-        "crop": 145,
+        "time": 7280,
+        "wood": 395,
+        "clay": 225,
+        "iron": 340,
+        "crop": 115,
         "pop": 12,
         "cp": 9,
         "effects": {
@@ -2899,11 +3031,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 9,
-        "time": 10829,
-        "wood": 685,
-        "clay": 390,
-        "iron": 585,
-        "crop": 195,
+        "time": 8380,
+        "wood": 505,
+        "clay": 290,
+        "iron": 430,
+        "crop": 145,
         "pop": 14,
         "cp": 10,
         "effects": {
@@ -2912,11 +3044,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 10,
-        "time": 12861,
-        "wood": 910,
-        "clay": 520,
-        "iron": 780,
-        "crop": 260,
+        "time": 9590,
+        "wood": 645,
+        "clay": 370,
+        "iron": 555,
+        "crop": 185,
         "pop": 16,
         "cp": 12,
         "effects": {
@@ -2925,11 +3057,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 11,
-        "time": 15219,
-        "wood": 1210,
-        "clay": 695,
-        "iron": 1040,
-        "crop": 345,
+        "time": 10940,
+        "wood": 825,
+        "clay": 470,
+        "iron": 710,
+        "crop": 235,
         "pop": 18,
         "cp": 15,
         "effects": {
@@ -2938,11 +3070,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 12,
-        "time": 17954,
-        "wood": 1610,
-        "clay": 920,
-        "iron": 1380,
-        "crop": 460,
+        "time": 12440,
+        "wood": 1060,
+        "clay": 605,
+        "iron": 905,
+        "crop": 300,
         "pop": 20,
         "cp": 18,
         "effects": {
@@ -2951,11 +3083,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 13,
-        "time": 21127,
-        "wood": 2145,
-        "clay": 1225,
-        "iron": 1840,
-        "crop": 615,
+        "time": 14120,
+        "wood": 1355,
+        "clay": 775,
+        "iron": 1160,
+        "crop": 385,
         "pop": 22,
         "cp": 21,
         "effects": {
@@ -2964,11 +3096,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 14,
-        "time": 24807,
-        "wood": 2850,
-        "clay": 1630,
-        "iron": 2445,
-        "crop": 815,
+        "time": 15980,
+        "wood": 1735,
+        "clay": 990,
+        "iron": 1485,
+        "crop": 495,
         "pop": 24,
         "cp": 26,
         "effects": {
@@ -2977,11 +3109,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 15,
-        "time": 29077,
-        "wood": 3795,
-        "clay": 2170,
-        "iron": 3250,
-        "crop": 1085,
+        "time": 18050,
+        "wood": 2220,
+        "clay": 1270,
+        "iron": 1900,
+        "crop": 635,
         "pop": 26,
         "cp": 31,
         "effects": {
@@ -2990,11 +3122,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 16,
-        "time": 34029,
-        "wood": 5045,
-        "clay": 2885,
-        "iron": 4325,
-        "crop": 1440,
+        "time": 20370,
+        "wood": 2840,
+        "clay": 1625,
+        "iron": 2435,
+        "crop": 810,
         "pop": 29,
         "cp": 37,
         "effects": {
@@ -3003,11 +3135,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 17,
-        "time": 39774,
-        "wood": 6710,
-        "clay": 3835,
-        "iron": 5750,
-        "crop": 1915,
+        "time": 22950,
+        "wood": 3635,
+        "clay": 2075,
+        "iron": 3115,
+        "crop": 1040,
         "pop": 32,
         "cp": 44,
         "effects": {
@@ -3016,11 +3148,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 18,
-        "time": 46437,
-        "wood": 8925,
-        "clay": 5100,
-        "iron": 7650,
-        "crop": 2550,
+        "time": 25830,
+        "wood": 4650,
+        "clay": 2660,
+        "iron": 3990,
+        "crop": 1330,
         "pop": 35,
         "cp": 53,
         "effects": {
@@ -3029,11 +3161,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 19,
-        "time": 54167,
-        "wood": 11870,
-        "clay": 6780,
-        "iron": 10175,
-        "crop": 3390,
+        "time": 29040,
+        "wood": 5955,
+        "clay": 3405,
+        "iron": 5105,
+        "crop": 1700,
         "pop": 38,
         "cp": 64,
         "effects": {
@@ -3042,11 +3174,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 20,
-        "time": 63134,
-        "wood": 15785,
-        "clay": 9020,
-        "iron": 13530,
-        "crop": 4510,
+        "time": 32630,
+        "wood": 7620,
+        "clay": 4355,
+        "iron": 6535,
+        "crop": 2180,
         "pop": 41,
         "cp": 77,
         "effects": {
@@ -3055,26 +3187,26 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 21,
-        "time": 73535,
-        "wood": 97000,
-        "clay": 86130,
-        "iron": 97775,
-        "crop": 46560,
-        "pop": 43,
-        "cp": 102,
+        "time": 36640,
+        "wood": 9755,
+        "clay": 5575,
+        "iron": 8365,
+        "crop": 2790,
+        "pop": 44,
+        "cp": 92,
         "effects": {
           "buildingTime": 0.480331
         }
       },
       {
         "level": 22,
-        "time": 85601,
-        "wood": 124160,
-        "clay": 110250,
-        "iron": 125150,
-        "crop": 59600,
-        "pop": 46,
-        "cp": 138,
+        "time": 41120,
+        "wood": 12490,
+        "clay": 7135,
+        "iron": 10705,
+        "crop": 3570,
+        "pop": 47,
+        "cp": 110,
         "effects": {
           "buildingTime": 0.463039
         }
@@ -3109,10 +3241,10 @@ export const BUILDINGS: CatalogBuilding[] = [
       {
         "level": 2,
         "time": 2620,
-        "wood": 145,
-        "clay": 215,
-        "iron": 120,
-        "crop": 95,
+        "wood": 140,
+        "clay": 205,
+        "iron": 115,
+        "crop": 90,
         "pop": 2,
         "cp": 1,
         "effects": {
@@ -3121,11 +3253,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 3,
-        "time": 3339,
-        "wood": 195,
-        "clay": 285,
-        "iron": 160,
-        "crop": 125,
+        "time": 3340,
+        "wood": 180,
+        "clay": 260,
+        "iron": 145,
+        "crop": 115,
         "pop": 3,
         "cp": 2,
         "effects": {
@@ -3134,11 +3266,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 4,
-        "time": 4173,
-        "wood": 260,
-        "clay": 375,
-        "iron": 210,
-        "crop": 165,
+        "time": 4170,
+        "wood": 230,
+        "clay": 335,
+        "iron": 190,
+        "crop": 145,
         "pop": 4,
         "cp": 2,
         "effects": {
@@ -3147,11 +3279,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 5,
-        "time": 5141,
-        "wood": 345,
-        "clay": 500,
-        "iron": 280,
-        "crop": 220,
+        "time": 5140,
+        "wood": 295,
+        "clay": 430,
+        "iron": 240,
+        "crop": 190,
         "pop": 5,
         "cp": 2,
         "effects": {
@@ -3160,11 +3292,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 6,
-        "time": 6264,
-        "wood": 460,
-        "clay": 665,
-        "iron": 375,
-        "crop": 290,
+        "time": 6260,
+        "wood": 380,
+        "clay": 550,
+        "iron": 310,
+        "crop": 240,
         "pop": 6,
         "cp": 3,
         "effects": {
@@ -3173,11 +3305,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 7,
-        "time": 7566,
-        "wood": 610,
-        "clay": 885,
-        "iron": 500,
-        "crop": 385,
+        "time": 7570,
+        "wood": 485,
+        "clay": 705,
+        "iron": 395,
+        "crop": 310,
         "pop": 7,
         "cp": 4,
         "effects": {
@@ -3186,11 +3318,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 8,
-        "time": 9077,
-        "wood": 810,
-        "clay": 1180,
-        "iron": 665,
-        "crop": 515,
+        "time": 9080,
+        "wood": 620,
+        "clay": 900,
+        "iron": 505,
+        "crop": 395,
         "pop": 8,
         "cp": 4,
         "effects": {
@@ -3199,11 +3331,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 9,
-        "time": 10829,
-        "wood": 1075,
-        "clay": 1565,
-        "iron": 880,
-        "crop": 685,
+        "time": 10830,
+        "wood": 795,
+        "clay": 1155,
+        "iron": 650,
+        "crop": 505,
         "pop": 9,
         "cp": 5,
         "effects": {
@@ -3212,11 +3344,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 10,
-        "time": 12861,
-        "wood": 1430,
-        "clay": 2085,
-        "iron": 1170,
-        "crop": 910,
+        "time": 12860,
+        "wood": 1015,
+        "clay": 1475,
+        "iron": 830,
+        "crop": 645,
         "pop": 10,
         "cp": 6,
         "effects": {
@@ -3225,11 +3357,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 11,
-        "time": 15219,
-        "wood": 1905,
-        "clay": 2770,
-        "iron": 1560,
-        "crop": 1210,
+        "time": 15220,
+        "wood": 1300,
+        "clay": 1890,
+        "iron": 1065,
+        "crop": 825,
         "pop": 12,
         "cp": 7,
         "effects": {
@@ -3238,11 +3370,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 12,
-        "time": 17954,
-        "wood": 2535,
-        "clay": 3685,
-        "iron": 2075,
-        "crop": 1610,
+        "time": 17950,
+        "wood": 1660,
+        "clay": 2420,
+        "iron": 1360,
+        "crop": 1060,
         "pop": 14,
         "cp": 9,
         "effects": {
@@ -3251,11 +3383,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 13,
-        "time": 21127,
-        "wood": 3370,
-        "clay": 4900,
-        "iron": 2755,
-        "crop": 2145,
+        "time": 21130,
+        "wood": 2130,
+        "clay": 3095,
+        "iron": 1740,
+        "crop": 1355,
         "pop": 16,
         "cp": 11,
         "effects": {
@@ -3264,11 +3396,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 14,
-        "time": 24807,
-        "wood": 4480,
-        "clay": 6520,
-        "iron": 3665,
-        "crop": 2850,
+        "time": 24810,
+        "wood": 2725,
+        "clay": 3960,
+        "iron": 2230,
+        "crop": 1735,
         "pop": 18,
         "cp": 13,
         "effects": {
@@ -3277,11 +3409,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 15,
-        "time": 29077,
-        "wood": 5960,
-        "clay": 8670,
-        "iron": 4875,
-        "crop": 3795,
+        "time": 29080,
+        "wood": 3485,
+        "clay": 5070,
+        "iron": 2850,
+        "crop": 2220,
         "pop": 20,
         "cp": 15,
         "effects": {
@@ -3290,11 +3422,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 16,
-        "time": 34029,
-        "wood": 7930,
-        "clay": 11530,
-        "iron": 6485,
-        "crop": 5045,
+        "time": 34030,
+        "wood": 4460,
+        "clay": 6490,
+        "iron": 3650,
+        "crop": 2840,
         "pop": 22,
         "cp": 18,
         "effects": {
@@ -3303,11 +3435,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 17,
-        "time": 39774,
-        "wood": 10545,
-        "clay": 15335,
-        "iron": 8625,
-        "crop": 6710,
+        "time": 39770,
+        "wood": 5710,
+        "clay": 8310,
+        "iron": 4675,
+        "crop": 3635,
         "pop": 24,
         "cp": 22,
         "effects": {
@@ -3316,11 +3448,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 18,
-        "time": 46437,
-        "wood": 14025,
-        "clay": 20400,
-        "iron": 11475,
-        "crop": 8925,
+        "time": 46440,
+        "wood": 7310,
+        "clay": 10635,
+        "iron": 5980,
+        "crop": 4650,
         "pop": 26,
         "cp": 27,
         "effects": {
@@ -3329,11 +3461,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 19,
-        "time": 54167,
-        "wood": 18650,
-        "clay": 27130,
-        "iron": 15260,
-        "crop": 11870,
+        "time": 54170,
+        "wood": 9360,
+        "clay": 13610,
+        "iron": 7655,
+        "crop": 5955,
         "pop": 28,
         "cp": 32,
         "effects": {
@@ -3342,11 +3474,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 20,
-        "time": 63134,
-        "wood": 24805,
-        "clay": 36085,
-        "iron": 20295,
-        "crop": 15785,
+        "time": 63130,
+        "wood": 11980,
+        "clay": 17420,
+        "iron": 9800,
+        "crop": 7620,
         "pop": 30,
         "cp": 38,
         "effects": {
@@ -3398,7 +3530,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 2,
-        "time": 2388,
+        "time": 2390,
         "wood": 100,
         "clay": 90,
         "iron": 155,
@@ -3424,7 +3556,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 4,
-        "time": 3861,
+        "time": 3860,
         "wood": 170,
         "clay": 145,
         "iron": 250,
@@ -3437,7 +3569,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 5,
-        "time": 4779,
+        "time": 4780,
         "wood": 215,
         "clay": 190,
         "iron": 320,
@@ -3450,7 +3582,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 6,
-        "time": 5844,
+        "time": 5840,
         "wood": 275,
         "clay": 240,
         "iron": 410,
@@ -3463,7 +3595,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 7,
-        "time": 7079,
+        "time": 7080,
         "wood": 350,
         "clay": 310,
         "iron": 530,
@@ -3476,7 +3608,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 8,
-        "time": 8511,
+        "time": 8510,
         "wood": 450,
         "clay": 395,
         "iron": 675,
@@ -3489,7 +3621,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 9,
-        "time": 10173,
+        "time": 10170,
         "wood": 575,
         "clay": 505,
         "iron": 865,
@@ -3502,7 +3634,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 10,
-        "time": 12101,
+        "time": 12100,
         "wood": 740,
         "clay": 645,
         "iron": 1105,
@@ -3515,7 +3647,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 11,
-        "time": 14337,
+        "time": 14340,
         "wood": 945,
         "clay": 825,
         "iron": 1415,
@@ -3528,7 +3660,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 12,
-        "time": 16931,
+        "time": 16930,
         "wood": 1210,
         "clay": 1060,
         "iron": 1815,
@@ -3567,7 +3699,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 15,
-        "time": 27479,
+        "time": 27480,
         "wood": 2535,
         "clay": 2220,
         "iron": 3805,
@@ -3580,7 +3712,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 16,
-        "time": 32176,
+        "time": 32180,
         "wood": 3245,
         "clay": 2840,
         "iron": 4870,
@@ -3593,7 +3725,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 17,
-        "time": 37624,
+        "time": 37620,
         "wood": 4155,
         "clay": 3635,
         "iron": 6230,
@@ -3606,7 +3738,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 18,
-        "time": 43944,
+        "time": 43940,
         "wood": 5315,
         "clay": 4650,
         "iron": 7975,
@@ -3619,7 +3751,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 19,
-        "time": 51275,
+        "time": 51270,
         "wood": 6805,
         "clay": 5955,
         "iron": 10210,
@@ -3632,7 +3764,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 20,
-        "time": 59779,
+        "time": 59780,
         "wood": 8710,
         "clay": 7620,
         "iron": 13065,
@@ -3667,222 +3799,222 @@ export const BUILDINGS: CatalogBuilding[] = [
     "levels": [
       {
         "level": 1,
+        "time": 2000,
         "wood": 180,
         "clay": 130,
         "iron": 150,
         "crop": 80,
         "pop": 3,
         "cp": 5,
-        "time": 2000,
         "effects": {}
       },
       {
         "level": 2,
+        "time": 2620,
         "wood": 230,
         "clay": 165,
         "iron": 190,
         "crop": 100,
         "pop": 5,
         "cp": 6,
-        "time": 2620,
         "effects": {}
       },
       {
         "level": 3,
+        "time": 3340,
         "wood": 295,
         "clay": 215,
         "iron": 245,
         "crop": 130,
         "pop": 7,
         "cp": 7,
-        "time": 3339,
         "effects": {}
       },
       {
         "level": 4,
+        "time": 4170,
         "wood": 375,
         "clay": 275,
         "iron": 315,
         "crop": 170,
         "pop": 9,
         "cp": 8,
-        "time": 4173,
         "effects": {}
       },
       {
         "level": 5,
+        "time": 5140,
         "wood": 485,
         "clay": 350,
         "iron": 405,
         "crop": 215,
         "pop": 11,
         "cp": 10,
-        "time": 5141,
         "effects": {}
       },
       {
         "level": 6,
+        "time": 6260,
         "wood": 620,
         "clay": 445,
         "iron": 515,
         "crop": 275,
         "pop": 13,
         "cp": 12,
-        "time": 6264,
         "effects": {}
       },
       {
         "level": 7,
+        "time": 7570,
         "wood": 790,
         "clay": 570,
         "iron": 660,
         "crop": 350,
         "pop": 15,
         "cp": 14,
-        "time": 7566,
         "effects": {}
       },
       {
         "level": 8,
+        "time": 9080,
         "wood": 1015,
         "clay": 730,
         "iron": 845,
         "crop": 450,
         "pop": 17,
         "cp": 17,
-        "time": 9077,
         "effects": {}
       },
       {
         "level": 9,
+        "time": 10830,
         "wood": 1295,
         "clay": 935,
         "iron": 1080,
         "crop": 575,
         "pop": 19,
         "cp": 21,
-        "time": 10829,
         "effects": {}
       },
       {
         "level": 10,
+        "time": 12860,
         "wood": 1660,
         "clay": 1200,
         "iron": 1385,
         "crop": 740,
         "pop": 21,
         "cp": 25,
-        "time": 12861,
         "effects": {}
       },
       {
         "level": 11,
+        "time": 15220,
         "wood": 2125,
         "clay": 1535,
         "iron": 1770,
         "crop": 945,
         "pop": 24,
         "cp": 30,
-        "time": 15219,
         "effects": {}
       },
       {
         "level": 12,
+        "time": 17950,
         "wood": 2720,
         "clay": 1965,
         "iron": 2265,
         "crop": 1210,
         "pop": 27,
         "cp": 36,
-        "time": 17954,
         "effects": {}
       },
       {
         "level": 13,
+        "time": 21130,
         "wood": 3480,
         "clay": 2515,
         "iron": 2900,
         "crop": 1545,
         "pop": 30,
         "cp": 43,
-        "time": 21127,
         "effects": {}
       },
       {
         "level": 14,
+        "time": 24810,
         "wood": 4455,
         "clay": 3220,
         "iron": 3715,
         "crop": 1980,
         "pop": 33,
         "cp": 51,
-        "time": 24807,
         "effects": {}
       },
       {
         "level": 15,
+        "time": 29080,
         "wood": 5705,
         "clay": 4120,
         "iron": 4755,
         "crop": 2535,
         "pop": 36,
         "cp": 62,
-        "time": 29077,
         "effects": {}
       },
       {
         "level": 16,
+        "time": 34030,
         "wood": 7300,
         "clay": 5275,
         "iron": 6085,
         "crop": 3245,
         "pop": 39,
         "cp": 74,
-        "time": 34029,
         "effects": {}
       },
       {
         "level": 17,
+        "time": 39770,
         "wood": 9345,
         "clay": 6750,
         "iron": 7790,
         "crop": 4155,
         "pop": 42,
         "cp": 89,
-        "time": 39774,
         "effects": {}
       },
       {
         "level": 18,
+        "time": 46440,
         "wood": 11965,
         "clay": 8640,
         "iron": 9970,
         "crop": 5315,
         "pop": 45,
         "cp": 106,
-        "time": 46437,
         "effects": {}
       },
       {
         "level": 19,
+        "time": 54170,
         "wood": 15315,
         "clay": 11060,
         "iron": 12760,
         "crop": 6805,
         "pop": 48,
         "cp": 128,
-        "time": 54167,
         "effects": {}
       },
       {
         "level": 20,
+        "time": 63130,
         "wood": 19600,
         "clay": 14155,
         "iron": 16335,
         "crop": 8710,
         "pop": 51,
         "cp": 153,
-        "time": 63134,
         "effects": {}
       }
     ]
@@ -3930,10 +4062,10 @@ export const BUILDINGS: CatalogBuilding[] = [
       {
         "level": 2,
         "time": 2620,
-        "wood": 280,
-        "clay": 185,
-        "iron": 345,
-        "crop": 160,
+        "wood": 270,
+        "clay": 180,
+        "iron": 335,
+        "crop": 155,
         "pop": 6,
         "cp": 1,
         "effects": {
@@ -3942,11 +4074,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 3,
-        "time": 3339,
-        "wood": 370,
-        "clay": 250,
-        "iron": 460,
-        "crop": 210,
+        "time": 3340,
+        "wood": 345,
+        "clay": 230,
+        "iron": 425,
+        "crop": 195,
         "pop": 8,
         "cp": 2,
         "effects": {
@@ -3955,11 +4087,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 4,
-        "time": 4173,
-        "wood": 495,
-        "clay": 330,
-        "iron": 610,
-        "crop": 280,
+        "time": 4170,
+        "wood": 440,
+        "clay": 295,
+        "iron": 545,
+        "crop": 250,
         "pop": 10,
         "cp": 2,
         "effects": {
@@ -3968,11 +4100,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 5,
-        "time": 5141,
-        "wood": 655,
-        "clay": 440,
-        "iron": 815,
-        "crop": 375,
+        "time": 5140,
+        "wood": 565,
+        "clay": 375,
+        "iron": 700,
+        "crop": 320,
         "pop": 12,
         "cp": 2,
         "effects": {
@@ -3981,11 +4113,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 6,
-        "time": 6264,
-        "wood": 875,
-        "clay": 585,
-        "iron": 1080,
-        "crop": 500,
+        "time": 6260,
+        "wood": 720,
+        "clay": 480,
+        "iron": 895,
+        "crop": 410,
         "pop": 15,
         "cp": 3,
         "effects": {
@@ -3994,11 +4126,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 7,
-        "time": 7566,
-        "wood": 1160,
-        "clay": 775,
-        "iron": 1440,
-        "crop": 665,
+        "time": 7570,
+        "wood": 925,
+        "clay": 615,
+        "iron": 1145,
+        "crop": 530,
         "pop": 18,
         "cp": 4,
         "effects": {
@@ -4007,11 +4139,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 8,
-        "time": 9077,
-        "wood": 1545,
-        "clay": 1030,
-        "iron": 1915,
-        "crop": 885,
+        "time": 9080,
+        "wood": 1180,
+        "clay": 790,
+        "iron": 1465,
+        "crop": 675,
         "pop": 21,
         "cp": 4,
         "effects": {
@@ -4020,11 +4152,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 9,
-        "time": 10829,
-        "wood": 2055,
-        "clay": 1370,
-        "iron": 2545,
-        "crop": 1175,
+        "time": 10830,
+        "wood": 1515,
+        "clay": 1010,
+        "iron": 1875,
+        "crop": 865,
         "pop": 24,
         "cp": 5,
         "effects": {
@@ -4033,11 +4165,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 10,
-        "time": 12861,
-        "wood": 2735,
-        "clay": 1825,
-        "iron": 3385,
-        "crop": 1565,
+        "time": 12860,
+        "wood": 1935,
+        "clay": 1290,
+        "iron": 2400,
+        "crop": 1105,
         "pop": 27,
         "cp": 6,
         "effects": {
@@ -4046,11 +4178,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 11,
-        "time": 15219,
-        "wood": 3635,
-        "clay": 2425,
-        "iron": 4505,
-        "crop": 2080,
+        "time": 15220,
+        "wood": 2480,
+        "clay": 1655,
+        "iron": 3070,
+        "crop": 1415,
         "pop": 30,
         "cp": 7,
         "effects": {
@@ -4059,11 +4191,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 12,
-        "time": 17954,
-        "wood": 4835,
-        "clay": 3225,
-        "iron": 5990,
-        "crop": 2765,
+        "time": 17950,
+        "wood": 3175,
+        "clay": 2115,
+        "iron": 3930,
+        "crop": 1815,
         "pop": 33,
         "cp": 9,
         "effects": {
@@ -4072,11 +4204,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 13,
-        "time": 21127,
-        "wood": 6435,
-        "clay": 4290,
-        "iron": 7965,
-        "crop": 3675,
+        "time": 21130,
+        "wood": 4060,
+        "clay": 2710,
+        "iron": 5030,
+        "crop": 2320,
         "pop": 36,
         "cp": 11,
         "effects": {
@@ -4085,11 +4217,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 14,
-        "time": 24807,
-        "wood": 8555,
-        "clay": 5705,
-        "iron": 10595,
-        "crop": 4890,
+        "time": 24810,
+        "wood": 5200,
+        "clay": 3465,
+        "iron": 6435,
+        "crop": 2970,
         "pop": 39,
         "cp": 13,
         "effects": {
@@ -4098,11 +4230,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 15,
-        "time": 29077,
-        "wood": 11380,
-        "clay": 7585,
-        "iron": 14090,
-        "crop": 6505,
+        "time": 29080,
+        "wood": 6655,
+        "clay": 4435,
+        "iron": 8240,
+        "crop": 3805,
         "pop": 42,
         "cp": 15,
         "effects": {
@@ -4111,11 +4243,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 16,
-        "time": 34029,
-        "wood": 15135,
-        "clay": 10090,
-        "iron": 18740,
-        "crop": 8650,
+        "time": 34030,
+        "wood": 8520,
+        "clay": 5680,
+        "iron": 10545,
+        "crop": 4870,
         "pop": 46,
         "cp": 18,
         "effects": {
@@ -4124,11 +4256,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 17,
-        "time": 39774,
-        "wood": 20130,
-        "clay": 13420,
-        "iron": 24925,
-        "crop": 11505,
+        "time": 39770,
+        "wood": 10905,
+        "clay": 7270,
+        "iron": 13500,
+        "crop": 6230,
         "pop": 50,
         "cp": 22,
         "effects": {
@@ -4137,11 +4269,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 18,
-        "time": 46437,
-        "wood": 26775,
-        "clay": 17850,
-        "iron": 33150,
-        "crop": 15300,
+        "time": 46440,
+        "wood": 13955,
+        "clay": 9305,
+        "iron": 17280,
+        "crop": 7975,
         "pop": 54,
         "cp": 27,
         "effects": {
@@ -4150,11 +4282,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 19,
-        "time": 54167,
-        "wood": 35610,
-        "clay": 23740,
-        "iron": 44085,
-        "crop": 20345,
+        "time": 54170,
+        "wood": 17865,
+        "clay": 11910,
+        "iron": 22120,
+        "crop": 10210,
         "pop": 58,
         "cp": 32,
         "effects": {
@@ -4163,11 +4295,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 20,
-        "time": 63134,
-        "wood": 47360,
-        "clay": 31575,
-        "iron": 58635,
-        "crop": 27060,
+        "time": 63130,
+        "wood": 22865,
+        "clay": 15245,
+        "iron": 28310,
+        "crop": 13065,
         "pop": 62,
         "cp": 38,
         "effects": {
@@ -4176,26 +4308,26 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 21,
-        "time": 73535,
-        "wood": 62990,
-        "clay": 41995,
-        "iron": 77985,
-        "crop": 35990,
+        "time": 73540,
+        "wood": 29270,
+        "clay": 19515,
+        "iron": 36240,
+        "crop": 16725,
         "pop": 66,
-        "cp": 51,
+        "cp": 46,
         "effects": {
           "trainingTimeBarracks": 0.121577
         }
       },
       {
         "level": 22,
-        "time": 85601,
-        "wood": 83775,
-        "clay": 55855,
-        "iron": 103720,
-        "crop": 47865,
+        "time": 85600,
+        "wood": 37465,
+        "clay": 24975,
+        "iron": 46385,
+        "crop": 21410,
         "pop": 70,
-        "cp": 69,
+        "cp": 55,
         "effects": {
           "trainingTimeBarracks": 0.109419
         }
@@ -4244,11 +4376,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 2,
-        "time": 2852,
-        "wood": 345,
-        "clay": 185,
-        "iron": 295,
-        "crop": 135,
+        "time": 2850,
+        "wood": 335,
+        "clay": 180,
+        "iron": 280,
+        "crop": 130,
         "pop": 8,
         "cp": 3,
         "effects": {
@@ -4257,11 +4389,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 3,
-        "time": 3608,
-        "wood": 460,
-        "clay": 250,
-        "iron": 390,
-        "crop": 175,
+        "time": 3610,
+        "wood": 425,
+        "clay": 230,
+        "iron": 360,
+        "crop": 165,
         "pop": 11,
         "cp": 3,
         "effects": {
@@ -4270,11 +4402,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 4,
-        "time": 4486,
-        "wood": 610,
-        "clay": 330,
-        "iron": 520,
-        "crop": 235,
+        "time": 4490,
+        "wood": 545,
+        "clay": 295,
+        "iron": 460,
+        "crop": 210,
         "pop": 14,
         "cp": 4,
         "effects": {
@@ -4283,11 +4415,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 5,
-        "time": 5503,
-        "wood": 815,
-        "clay": 440,
-        "iron": 690,
-        "crop": 315,
+        "time": 5500,
+        "wood": 700,
+        "clay": 375,
+        "iron": 590,
+        "crop": 270,
         "pop": 17,
         "cp": 5,
         "effects": {
@@ -4296,11 +4428,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 6,
-        "time": 6684,
-        "wood": 1080,
-        "clay": 585,
-        "iron": 915,
-        "crop": 415,
+        "time": 6680,
+        "wood": 895,
+        "clay": 480,
+        "iron": 755,
+        "crop": 345,
         "pop": 20,
         "cp": 6,
         "effects": {
@@ -4309,11 +4441,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 7,
-        "time": 8053,
-        "wood": 1440,
-        "clay": 775,
-        "iron": 1220,
-        "crop": 555,
+        "time": 8050,
+        "wood": 1145,
+        "clay": 615,
+        "iron": 970,
+        "crop": 440,
         "pop": 23,
         "cp": 7,
         "effects": {
@@ -4322,11 +4454,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 8,
-        "time": 9642,
-        "wood": 1915,
-        "clay": 1030,
-        "iron": 1620,
-        "crop": 735,
+        "time": 9640,
+        "wood": 1465,
+        "clay": 790,
+        "iron": 1240,
+        "crop": 565,
         "pop": 26,
         "cp": 9,
         "effects": {
@@ -4335,11 +4467,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 9,
-        "time": 11485,
-        "wood": 2545,
-        "clay": 1370,
-        "iron": 2155,
-        "crop": 980,
+        "time": 11480,
+        "wood": 1875,
+        "clay": 1010,
+        "iron": 1585,
+        "crop": 720,
         "pop": 29,
         "cp": 10,
         "effects": {
@@ -4348,11 +4480,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 10,
-        "time": 13622,
-        "wood": 3385,
-        "clay": 1825,
-        "iron": 2865,
-        "crop": 1300,
+        "time": 13620,
+        "wood": 2400,
+        "clay": 1290,
+        "iron": 2030,
+        "crop": 920,
         "pop": 32,
         "cp": 12,
         "effects": {
@@ -4361,11 +4493,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 11,
-        "time": 16102,
-        "wood": 4505,
-        "clay": 2425,
-        "iron": 3810,
-        "crop": 1730,
+        "time": 16100,
+        "wood": 3070,
+        "clay": 1655,
+        "iron": 2595,
+        "crop": 1180,
         "pop": 36,
         "cp": 15,
         "effects": {
@@ -4374,11 +4506,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 12,
-        "time": 18978,
-        "wood": 5990,
-        "clay": 3225,
-        "iron": 5065,
-        "crop": 2305,
+        "time": 18980,
+        "wood": 3930,
+        "clay": 2115,
+        "iron": 3325,
+        "crop": 1510,
         "pop": 40,
         "cp": 18,
         "effects": {
@@ -4387,11 +4519,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 13,
-        "time": 22314,
-        "wood": 7965,
-        "clay": 4290,
-        "iron": 6740,
-        "crop": 3065,
+        "time": 22310,
+        "wood": 5030,
+        "clay": 2710,
+        "iron": 4255,
+        "crop": 1935,
         "pop": 44,
         "cp": 21,
         "effects": {
@@ -4400,11 +4532,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 14,
-        "time": 26185,
-        "wood": 10595,
-        "clay": 5705,
-        "iron": 8965,
-        "crop": 4075,
+        "time": 26180,
+        "wood": 6435,
+        "clay": 3465,
+        "iron": 5445,
+        "crop": 2475,
         "pop": 48,
         "cp": 26,
         "effects": {
@@ -4413,11 +4545,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 15,
-        "time": 30674,
-        "wood": 14090,
-        "clay": 7585,
-        "iron": 11920,
-        "crop": 5420,
+        "time": 30670,
+        "wood": 8240,
+        "clay": 4435,
+        "iron": 6970,
+        "crop": 3170,
         "pop": 52,
         "cp": 31,
         "effects": {
@@ -4426,11 +4558,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 16,
-        "time": 35882,
-        "wood": 18740,
-        "clay": 10090,
-        "iron": 15855,
-        "crop": 7205,
+        "time": 35880,
+        "wood": 10545,
+        "clay": 5680,
+        "iron": 8925,
+        "crop": 4055,
         "pop": 56,
         "cp": 37,
         "effects": {
@@ -4439,11 +4571,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 17,
-        "time": 41923,
-        "wood": 24925,
-        "clay": 13420,
-        "iron": 21090,
-        "crop": 9585,
+        "time": 41920,
+        "wood": 13500,
+        "clay": 7270,
+        "iron": 11425,
+        "crop": 5190,
         "pop": 60,
         "cp": 44,
         "effects": {
@@ -4452,11 +4584,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 18,
-        "time": 48931,
-        "wood": 33150,
-        "clay": 17850,
-        "iron": 28050,
-        "crop": 12750,
+        "time": 48930,
+        "wood": 17280,
+        "clay": 9305,
+        "iron": 14620,
+        "crop": 6645,
         "pop": 64,
         "cp": 53,
         "effects": {
@@ -4466,10 +4598,10 @@ export const BUILDINGS: CatalogBuilding[] = [
       {
         "level": 19,
         "time": 57060,
-        "wood": 44085,
-        "clay": 23740,
-        "iron": 37305,
-        "crop": 16955,
+        "wood": 22120,
+        "clay": 11910,
+        "iron": 18715,
+        "crop": 8505,
         "pop": 68,
         "cp": 64,
         "effects": {
@@ -4478,11 +4610,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 20,
-        "time": 66489,
-        "wood": 58635,
-        "clay": 31575,
-        "iron": 49615,
-        "crop": 22550,
+        "time": 66490,
+        "wood": 28310,
+        "clay": 15245,
+        "iron": 23955,
+        "crop": 10890,
         "pop": 72,
         "cp": 77,
         "effects": {
@@ -4491,26 +4623,26 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 21,
-        "time": 77428,
-        "wood": 77985,
-        "clay": 41995,
-        "iron": 65990,
-        "crop": 29990,
-        "pop": 76,
-        "cp": 102,
+        "time": 77430,
+        "wood": 36240,
+        "clay": 19515,
+        "iron": 30665,
+        "crop": 13940,
+        "pop": 77,
+        "cp": 92,
         "effects": {
           "trainingTimeStable": 0.121577
         }
       },
       {
         "level": 22,
-        "time": 90116,
-        "wood": 103720,
-        "clay": 55855,
-        "iron": 87765,
-        "crop": 39885,
-        "pop": 80,
-        "cp": 138,
+        "time": 90120,
+        "wood": 46385,
+        "clay": 24975,
+        "iron": 39250,
+        "crop": 17840,
+        "pop": 82,
+        "cp": 110,
         "effects": {
           "trainingTimeStable": 0.109419
         }
@@ -4572,7 +4704,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 3,
-        "time": 4685,
+        "time": 4680,
         "wood": 755,
         "clay": 835,
         "iron": 985,
@@ -4585,7 +4717,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 4,
-        "time": 5734,
+        "time": 5730,
         "wood": 965,
         "clay": 1070,
         "iron": 1260,
@@ -4598,7 +4730,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 5,
-        "time": 6952,
+        "time": 6950,
         "wood": 1235,
         "clay": 1370,
         "iron": 1610,
@@ -4611,7 +4743,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 6,
-        "time": 8364,
+        "time": 8360,
         "wood": 1580,
         "clay": 1750,
         "iron": 2060,
@@ -4624,7 +4756,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 7,
-        "time": 10002,
+        "time": 10000,
         "wood": 2025,
         "clay": 2245,
         "iron": 2640,
@@ -4637,7 +4769,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 8,
-        "time": 11903,
+        "time": 11900,
         "wood": 2590,
         "clay": 2870,
         "iron": 3380,
@@ -4650,7 +4782,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 9,
-        "time": 14107,
+        "time": 14110,
         "wood": 3315,
         "clay": 3675,
         "iron": 4325,
@@ -4663,7 +4795,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 10,
-        "time": 16664,
+        "time": 16660,
         "wood": 4245,
         "clay": 4705,
         "iron": 5535,
@@ -4676,7 +4808,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 11,
-        "time": 19631,
+        "time": 19630,
         "wood": 5430,
         "clay": 6020,
         "iron": 7085,
@@ -4689,7 +4821,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 12,
-        "time": 23072,
+        "time": 23070,
         "wood": 6950,
         "clay": 7705,
         "iron": 9065,
@@ -4702,7 +4834,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 13,
-        "time": 27063,
+        "time": 27060,
         "wood": 8900,
         "clay": 9865,
         "iron": 11605,
@@ -4715,7 +4847,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 14,
-        "time": 31693,
+        "time": 31690,
         "wood": 11390,
         "clay": 12625,
         "iron": 14855,
@@ -4728,7 +4860,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 15,
-        "time": 37064,
+        "time": 37060,
         "wood": 14580,
         "clay": 16165,
         "iron": 19015,
@@ -4741,7 +4873,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 16,
-        "time": 43294,
+        "time": 43290,
         "wood": 18660,
         "clay": 20690,
         "iron": 24340,
@@ -4754,7 +4886,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 17,
-        "time": 50522,
+        "time": 50520,
         "wood": 23885,
         "clay": 26480,
         "iron": 31155,
@@ -4767,7 +4899,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 18,
-        "time": 58905,
+        "time": 58900,
         "wood": 30570,
         "clay": 33895,
         "iron": 39875,
@@ -4793,7 +4925,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 20,
-        "time": 79911,
+        "time": 79910,
         "wood": 50090,
         "clay": 55535,
         "iron": 65335,
@@ -4806,26 +4938,26 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 21,
-        "time": 92996,
+        "time": 93000,
         "wood": 64115,
         "clay": 71085,
         "iron": 83630,
         "crop": 44600,
-        "pop": 54,
-        "cp": 154,
+        "pop": 55,
+        "cp": 138,
         "effects": {
           "trainingTimeWorkshop": 0.121577
         }
       },
       {
         "level": 22,
-        "time": 108176,
+        "time": 108180,
         "wood": 82065,
-        "clay": 90990,
+        "clay": 90985,
         "iron": 107045,
         "crop": 57090,
-        "pop": 57,
-        "cp": 207,
+        "pop": 59,
+        "cp": 166,
         "effects": {
           "trainingTimeWorkshop": 0.109419
         }
@@ -4871,208 +5003,208 @@ export const BUILDINGS: CatalogBuilding[] = [
       {
         "level": 2,
         "time": 2620,
-        "wood": 295,
-        "clay": 215,
-        "iron": 120,
-        "crop": 55,
+        "wood": 280,
+        "clay": 205,
+        "iron": 115,
+        "crop": 50,
         "pop": 6,
         "cp": 6,
         "effects": {}
       },
       {
         "level": 3,
-        "time": 3339,
-        "wood": 390,
-        "clay": 285,
-        "iron": 160,
-        "crop": 70,
+        "time": 3340,
+        "wood": 360,
+        "clay": 260,
+        "iron": 145,
+        "crop": 65,
         "pop": 8,
         "cp": 7,
         "effects": {}
       },
       {
         "level": 4,
-        "time": 4173,
-        "wood": 520,
-        "clay": 375,
-        "iron": 210,
-        "crop": 95,
+        "time": 4170,
+        "wood": 460,
+        "clay": 335,
+        "iron": 190,
+        "crop": 85,
         "pop": 10,
         "cp": 8,
         "effects": {}
       },
       {
         "level": 5,
-        "time": 5141,
-        "wood": 690,
-        "clay": 500,
-        "iron": 280,
-        "crop": 125,
+        "time": 5140,
+        "wood": 590,
+        "clay": 430,
+        "iron": 240,
+        "crop": 105,
         "pop": 12,
         "cp": 10,
         "effects": {}
       },
       {
         "level": 6,
-        "time": 6264,
-        "wood": 915,
-        "clay": 665,
-        "iron": 375,
-        "crop": 165,
+        "time": 6260,
+        "wood": 755,
+        "clay": 550,
+        "iron": 310,
+        "crop": 135,
         "pop": 15,
         "cp": 12,
         "effects": {}
       },
       {
         "level": 7,
-        "time": 7566,
-        "wood": 1220,
-        "clay": 885,
-        "iron": 500,
-        "crop": 220,
+        "time": 7570,
+        "wood": 970,
+        "clay": 705,
+        "iron": 395,
+        "crop": 175,
         "pop": 18,
         "cp": 14,
         "effects": {}
       },
       {
         "level": 8,
-        "time": 9077,
-        "wood": 1620,
-        "clay": 1180,
-        "iron": 665,
-        "crop": 295,
+        "time": 9080,
+        "wood": 1240,
+        "clay": 900,
+        "iron": 505,
+        "crop": 225,
         "pop": 21,
         "cp": 17,
         "effects": {}
       },
       {
         "level": 9,
-        "time": 10829,
-        "wood": 2155,
-        "clay": 1565,
-        "iron": 880,
-        "crop": 390,
+        "time": 10830,
+        "wood": 1585,
+        "clay": 1155,
+        "iron": 650,
+        "crop": 290,
         "pop": 24,
         "cp": 21,
         "effects": {}
       },
       {
         "level": 10,
-        "time": 12861,
-        "wood": 2865,
-        "clay": 2085,
-        "iron": 1170,
-        "crop": 520,
+        "time": 12860,
+        "wood": 2030,
+        "clay": 1475,
+        "iron": 830,
+        "crop": 370,
         "pop": 27,
         "cp": 25,
         "effects": {}
       },
       {
         "level": 11,
-        "time": 15219,
-        "wood": 3810,
-        "clay": 2770,
-        "iron": 1560,
-        "crop": 695,
+        "time": 15220,
+        "wood": 2595,
+        "clay": 1890,
+        "iron": 1065,
+        "crop": 470,
         "pop": 30,
         "cp": 30,
         "effects": {}
       },
       {
         "level": 12,
-        "time": 17954,
-        "wood": 5065,
-        "clay": 3685,
-        "iron": 2075,
-        "crop": 920,
+        "time": 17950,
+        "wood": 3325,
+        "clay": 2420,
+        "iron": 1360,
+        "crop": 605,
         "pop": 33,
         "cp": 36,
         "effects": {}
       },
       {
         "level": 13,
-        "time": 21127,
-        "wood": 6740,
-        "clay": 4900,
-        "iron": 2755,
-        "crop": 1225,
+        "time": 21130,
+        "wood": 4255,
+        "clay": 3095,
+        "iron": 1740,
+        "crop": 775,
         "pop": 36,
         "cp": 43,
         "effects": {}
       },
       {
         "level": 14,
-        "time": 24807,
-        "wood": 8965,
-        "clay": 6520,
-        "iron": 3665,
-        "crop": 1630,
+        "time": 24810,
+        "wood": 5445,
+        "clay": 3960,
+        "iron": 2230,
+        "crop": 990,
         "pop": 39,
         "cp": 51,
         "effects": {}
       },
       {
         "level": 15,
-        "time": 29077,
-        "wood": 11920,
-        "clay": 8670,
-        "iron": 4875,
-        "crop": 2170,
+        "time": 29080,
+        "wood": 6970,
+        "clay": 5070,
+        "iron": 2850,
+        "crop": 1270,
         "pop": 42,
         "cp": 62,
         "effects": {}
       },
       {
         "level": 16,
-        "time": 34029,
-        "wood": 15855,
-        "clay": 11530,
-        "iron": 6485,
-        "crop": 2885,
+        "time": 34030,
+        "wood": 8925,
+        "clay": 6490,
+        "iron": 3650,
+        "crop": 1625,
         "pop": 46,
         "cp": 74,
         "effects": {}
       },
       {
         "level": 17,
-        "time": 39774,
-        "wood": 21090,
-        "clay": 15335,
-        "iron": 8625,
-        "crop": 3835,
+        "time": 39770,
+        "wood": 11425,
+        "clay": 8310,
+        "iron": 4675,
+        "crop": 2075,
         "pop": 50,
         "cp": 89,
         "effects": {}
       },
       {
         "level": 18,
-        "time": 46437,
-        "wood": 28050,
-        "clay": 20400,
-        "iron": 11475,
-        "crop": 5100,
+        "time": 46440,
+        "wood": 14620,
+        "clay": 10635,
+        "iron": 5980,
+        "crop": 2660,
         "pop": 54,
         "cp": 106,
         "effects": {}
       },
       {
         "level": 19,
-        "time": 54167,
-        "wood": 37305,
-        "clay": 27130,
-        "iron": 15260,
-        "crop": 6780,
+        "time": 54170,
+        "wood": 18715,
+        "clay": 13610,
+        "iron": 7655,
+        "crop": 3405,
         "pop": 58,
         "cp": 128,
         "effects": {}
       },
       {
         "level": 20,
-        "time": 63134,
-        "wood": 49615,
-        "clay": 36085,
-        "iron": 20295,
-        "crop": 9020,
+        "time": 63130,
+        "wood": 23955,
+        "clay": 17420,
+        "iron": 9800,
+        "crop": 4355,
         "pop": 62,
         "cp": 153,
         "effects": {}
@@ -5094,7 +5226,7 @@ export const BUILDINGS: CatalogBuilding[] = [
     "levels": [
       {
         "level": 1,
-        "time": 750,
+        "time": 300,
         "wood": 40,
         "clay": 50,
         "iron": 30,
@@ -5108,7 +5240,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 2,
-        "time": 1170,
+        "time": 650,
         "wood": 50,
         "clay": 65,
         "iron": 40,
@@ -5122,7 +5254,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 3,
-        "time": 1657,
+        "time": 1050,
         "wood": 65,
         "clay": 80,
         "iron": 50,
@@ -5136,7 +5268,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 4,
-        "time": 2222,
+        "time": 1520,
         "wood": 85,
         "clay": 105,
         "iron": 65,
@@ -5150,7 +5282,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 5,
-        "time": 2878,
+        "time": 2060,
         "wood": 105,
         "clay": 135,
         "iron": 80,
@@ -5164,7 +5296,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 6,
-        "time": 3638,
+        "time": 2690,
         "wood": 135,
         "clay": 170,
         "iron": 105,
@@ -5178,7 +5310,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 7,
-        "time": 4521,
+        "time": 3420,
         "wood": 175,
         "clay": 220,
         "iron": 130,
@@ -5192,7 +5324,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 8,
-        "time": 5544,
+        "time": 4270,
         "wood": 225,
         "clay": 280,
         "iron": 170,
@@ -5206,7 +5338,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 9,
-        "time": 6731,
+        "time": 5260,
         "wood": 290,
         "clay": 360,
         "iron": 215,
@@ -5220,7 +5352,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 10,
-        "time": 8108,
+        "time": 6400,
         "wood": 370,
         "clay": 460,
         "iron": 275,
@@ -5292,7 +5424,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 3,
-        "time": 17468,
+        "time": 17470,
         "wood": 2050,
         "clay": 1820,
         "iron": 2065,
@@ -5306,7 +5438,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 4,
-        "time": 20563,
+        "time": 20560,
         "wood": 2620,
         "clay": 2330,
         "iron": 2640,
@@ -5320,7 +5452,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 5,
-        "time": 24153,
+        "time": 24150,
         "wood": 3355,
         "clay": 2980,
         "iron": 3380,
@@ -5334,7 +5466,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 6,
-        "time": 28317,
+        "time": 28320,
         "wood": 4295,
         "clay": 3815,
         "iron": 4330,
@@ -5348,7 +5480,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 7,
-        "time": 33148,
+        "time": 33150,
         "wood": 5500,
         "clay": 4880,
         "iron": 5540,
@@ -5362,7 +5494,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 8,
-        "time": 38752,
+        "time": 38750,
         "wood": 7035,
         "clay": 6250,
         "iron": 7095,
@@ -5376,7 +5508,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 9,
-        "time": 45252,
+        "time": 45250,
         "wood": 9005,
         "clay": 8000,
         "iron": 9080,
@@ -5390,7 +5522,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 10,
-        "time": 52793,
+        "time": 52790,
         "wood": 11530,
         "clay": 10240,
         "iron": 11620,
@@ -5404,7 +5536,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 11,
-        "time": 61539,
+        "time": 61540,
         "wood": 14755,
         "clay": 13105,
         "iron": 14875,
@@ -5418,7 +5550,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 12,
-        "time": 71686,
+        "time": 71690,
         "wood": 18890,
         "clay": 16775,
         "iron": 19040,
@@ -5432,7 +5564,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 13,
-        "time": 83455,
+        "time": 83460,
         "wood": 24180,
         "clay": 21470,
         "iron": 24370,
@@ -5446,7 +5578,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 14,
-        "time": 97108,
+        "time": 97110,
         "wood": 30950,
         "clay": 27480,
         "iron": 31195,
@@ -5460,7 +5592,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 15,
-        "time": 112946,
+        "time": 112950,
         "wood": 39615,
         "clay": 35175,
         "iron": 39930,
@@ -5474,7 +5606,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 16,
-        "time": 131317,
+        "time": 131320,
         "wood": 50705,
         "clay": 45025,
         "iron": 51110,
@@ -5488,7 +5620,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 17,
-        "time": 152628,
+        "time": 152630,
         "wood": 64905,
         "clay": 57635,
         "iron": 65425,
@@ -5502,7 +5634,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 18,
-        "time": 177348,
+        "time": 177350,
         "wood": 83075,
         "clay": 73770,
         "iron": 83740,
@@ -5516,7 +5648,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 19,
-        "time": 206024,
+        "time": 206020,
         "wood": 106340,
         "clay": 94430,
         "iron": 107190,
@@ -5530,7 +5662,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 20,
-        "time": 239287,
+        "time": 239290,
         "wood": 136115,
         "clay": 120870,
         "iron": 137200,
@@ -5599,7 +5731,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 3,
-        "time": 3339,
+        "time": 3340,
         "wood": 950,
         "clay": 755,
         "iron": 575,
@@ -5613,7 +5745,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 4,
-        "time": 4173,
+        "time": 4170,
         "wood": 1215,
         "clay": 965,
         "iron": 735,
@@ -5627,7 +5759,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 5,
-        "time": 5141,
+        "time": 5140,
         "wood": 1555,
         "clay": 1235,
         "iron": 940,
@@ -5641,7 +5773,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 6,
-        "time": 6264,
+        "time": 6260,
         "wood": 1995,
         "clay": 1580,
         "iron": 1205,
@@ -5655,7 +5787,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 7,
-        "time": 7566,
+        "time": 7570,
         "wood": 2550,
         "clay": 2025,
         "iron": 1540,
@@ -5669,7 +5801,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 8,
-        "time": 9077,
+        "time": 9080,
         "wood": 3265,
         "clay": 2590,
         "iron": 1970,
@@ -5683,7 +5815,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 9,
-        "time": 10829,
+        "time": 10830,
         "wood": 4180,
         "clay": 3315,
         "iron": 2520,
@@ -5697,7 +5829,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 10,
-        "time": 12861,
+        "time": 12860,
         "wood": 5350,
         "clay": 4245,
         "iron": 3230,
@@ -5711,7 +5843,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 11,
-        "time": 15219,
+        "time": 15220,
         "wood": 6845,
         "clay": 5430,
         "iron": 4130,
@@ -5725,7 +5857,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 12,
-        "time": 17954,
+        "time": 17950,
         "wood": 8765,
         "clay": 6950,
         "iron": 5290,
@@ -5739,7 +5871,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 13,
-        "time": 21127,
+        "time": 21130,
         "wood": 11220,
         "clay": 8900,
         "iron": 6770,
@@ -5753,7 +5885,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 14,
-        "time": 24807,
+        "time": 24810,
         "wood": 14360,
         "clay": 11390,
         "iron": 8665,
@@ -5767,7 +5899,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 15,
-        "time": 29077,
+        "time": 29080,
         "wood": 18380,
         "clay": 14580,
         "iron": 11090,
@@ -5781,7 +5913,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 16,
-        "time": 34029,
+        "time": 34030,
         "wood": 23530,
         "clay": 18660,
         "iron": 14200,
@@ -5795,7 +5927,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 17,
-        "time": 39774,
+        "time": 39770,
         "wood": 30115,
         "clay": 23885,
         "iron": 18175,
@@ -5809,7 +5941,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 18,
-        "time": 46437,
+        "time": 46440,
         "wood": 38550,
         "clay": 30570,
         "iron": 23260,
@@ -5823,7 +5955,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 19,
-        "time": 54167,
+        "time": 54170,
         "wood": 49340,
         "clay": 39130,
         "iron": 29775,
@@ -5837,7 +5969,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 20,
-        "time": 63134,
+        "time": 63130,
         "wood": 63155,
         "clay": 50090,
         "iron": 38110,
@@ -5920,7 +6052,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 3,
-        "time": 7376,
+        "time": 7380,
         "wood": 900,
         "clay": 1310,
         "iron": 1230,
@@ -5934,7 +6066,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 4,
-        "time": 8856,
+        "time": 8860,
         "wood": 1155,
         "clay": 1680,
         "iron": 1575,
@@ -5948,7 +6080,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 5,
-        "time": 10573,
+        "time": 10570,
         "wood": 1475,
         "clay": 2145,
         "iron": 2015,
@@ -5962,7 +6094,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 6,
-        "time": 12565,
+        "time": 12560,
         "wood": 1890,
         "clay": 2750,
         "iron": 2575,
@@ -5976,7 +6108,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 7,
-        "time": 14875,
+        "time": 14880,
         "wood": 2420,
         "clay": 3520,
         "iron": 3300,
@@ -5990,7 +6122,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 8,
-        "time": 17555,
+        "time": 17560,
         "wood": 3095,
         "clay": 4505,
         "iron": 4220,
@@ -6004,7 +6136,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 9,
-        "time": 20664,
+        "time": 20660,
         "wood": 3965,
         "clay": 5765,
         "iron": 5405,
@@ -6032,7 +6164,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 11,
-        "time": 28454,
+        "time": 28450,
         "wood": 6495,
         "clay": 9445,
         "iron": 8855,
@@ -6046,7 +6178,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 12,
-        "time": 33306,
+        "time": 33310,
         "wood": 8310,
         "clay": 12090,
         "iron": 11335,
@@ -6060,7 +6192,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 13,
-        "time": 38935,
+        "time": 38940,
         "wood": 10640,
         "clay": 15475,
         "iron": 14505,
@@ -6074,7 +6206,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 14,
-        "time": 45465,
+        "time": 45460,
         "wood": 13615,
         "clay": 19805,
         "iron": 18570,
@@ -6088,7 +6220,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 15,
-        "time": 53039,
+        "time": 53040,
         "wood": 17430,
         "clay": 25355,
         "iron": 23770,
@@ -6102,7 +6234,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 16,
-        "time": 61825,
+        "time": 61830,
         "wood": 22310,
         "clay": 32450,
         "iron": 30425,
@@ -6116,7 +6248,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 17,
-        "time": 72018,
+        "time": 72020,
         "wood": 28560,
         "clay": 41540,
         "iron": 38940,
@@ -6144,7 +6276,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 19,
-        "time": 97555,
+        "time": 97550,
         "wood": 46790,
         "clay": 68055,
         "iron": 63805,
@@ -6158,7 +6290,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 20,
-        "time": 113464,
+        "time": 113460,
         "wood": 59890,
         "clay": 87110,
         "iron": 81670,
@@ -6185,10 +6317,10 @@ export const BUILDINGS: CatalogBuilding[] = [
       {
         "level": 1,
         "time": 8000,
-        "wood": 720,
-        "clay": 685,
-        "iron": 645,
-        "crop": 250,
+        "wood": 2880,
+        "clay": 2740,
+        "iron": 2580,
+        "crop": 990,
         "pop": 4,
         "cp": 7,
         "effects": {}
@@ -6196,208 +6328,208 @@ export const BUILDINGS: CatalogBuilding[] = [
       {
         "level": 2,
         "time": 9580,
-        "wood": 1815,
-        "clay": 1725,
-        "iron": 1625,
-        "crop": 625,
+        "wood": 3630,
+        "clay": 3450,
+        "iron": 3250,
+        "crop": 1245,
         "pop": 6,
         "cp": 9,
         "effects": {}
       },
       {
         "level": 3,
-        "time": 11413,
-        "wood": 2285,
-        "clay": 2175,
-        "iron": 2050,
-        "crop": 785,
+        "time": 11410,
+        "wood": 4570,
+        "clay": 4350,
+        "iron": 4095,
+        "crop": 1570,
         "pop": 8,
         "cp": 10,
         "effects": {}
       },
       {
         "level": 4,
-        "time": 13539,
-        "wood": 2880,
-        "clay": 2740,
-        "iron": 2580,
-        "crop": 990,
+        "time": 13540,
+        "wood": 5760,
+        "clay": 5480,
+        "iron": 5160,
+        "crop": 1980,
         "pop": 10,
         "cp": 12,
         "effects": {}
       },
       {
         "level": 5,
-        "time": 16005,
-        "wood": 3630,
-        "clay": 3455,
-        "iron": 3250,
-        "crop": 1250,
+        "time": 16010,
+        "wood": 7260,
+        "clay": 6905,
+        "iron": 6505,
+        "crop": 2495,
         "pop": 12,
         "cp": 15,
         "effects": {}
       },
       {
         "level": 6,
-        "time": 18866,
-        "wood": 4575,
-        "clay": 4350,
-        "iron": 4095,
-        "crop": 1570,
+        "time": 18870,
+        "wood": 9145,
+        "clay": 8700,
+        "iron": 8195,
+        "crop": 3145,
         "pop": 15,
         "cp": 18,
         "effects": {}
       },
       {
         "level": 7,
-        "time": 22184,
-        "wood": 5760,
-        "clay": 5480,
-        "iron": 5160,
-        "crop": 1980,
+        "time": 22180,
+        "wood": 11525,
+        "clay": 10965,
+        "iron": 10325,
+        "crop": 3960,
         "pop": 18,
         "cp": 21,
         "effects": {}
       },
       {
         "level": 8,
-        "time": 26034,
-        "wood": 7260,
-        "clay": 6905,
-        "iron": 6505,
-        "crop": 2495,
+        "time": 26030,
+        "wood": 14520,
+        "clay": 13815,
+        "iron": 13010,
+        "crop": 4990,
         "pop": 21,
         "cp": 26,
         "effects": {}
       },
       {
         "level": 9,
-        "time": 30499,
-        "wood": 9150,
-        "clay": 8705,
-        "iron": 8195,
-        "crop": 3145,
+        "time": 30500,
+        "wood": 18295,
+        "clay": 17405,
+        "iron": 16390,
+        "crop": 6290,
         "pop": 24,
         "cp": 31,
         "effects": {}
       },
       {
         "level": 10,
-        "time": 35679,
-        "wood": 11525,
-        "clay": 10965,
-        "iron": 10325,
-        "crop": 3960,
+        "time": 35680,
+        "wood": 23055,
+        "clay": 21930,
+        "iron": 20650,
+        "crop": 7925,
         "pop": 27,
         "cp": 37,
         "effects": {}
       },
       {
         "level": 11,
-        "time": 41688,
-        "wood": 14525,
-        "clay": 13815,
-        "iron": 13010,
-        "crop": 4990,
+        "time": 41690,
+        "wood": 29045,
+        "clay": 27635,
+        "iron": 26020,
+        "crop": 9985,
         "pop": 30,
         "cp": 45,
         "effects": {}
       },
       {
         "level": 12,
-        "time": 48658,
-        "wood": 18300,
-        "clay": 17410,
-        "iron": 16395,
-        "crop": 6290,
+        "time": 48660,
+        "wood": 36600,
+        "clay": 34820,
+        "iron": 32785,
+        "crop": 12580,
         "pop": 33,
         "cp": 53,
         "effects": {}
       },
       {
         "level": 13,
-        "time": 56743,
-        "wood": 23055,
-        "clay": 21935,
-        "iron": 20655,
-        "crop": 7925,
+        "time": 56740,
+        "wood": 46115,
+        "clay": 43875,
+        "iron": 41310,
+        "crop": 15850,
         "pop": 36,
         "cp": 64,
         "effects": {}
       },
       {
         "level": 14,
-        "time": 66122,
-        "wood": 29050,
-        "clay": 27640,
-        "iron": 26025,
-        "crop": 9985,
+        "time": 66120,
+        "wood": 58105,
+        "clay": 55280,
+        "iron": 52050,
+        "crop": 19975,
         "pop": 39,
         "cp": 77,
         "effects": {}
       },
       {
         "level": 15,
-        "time": 77002,
-        "wood": 36605,
-        "clay": 34825,
-        "iron": 32795,
-        "crop": 12585,
+        "time": 77000,
+        "wood": 73210,
+        "clay": 69655,
+        "iron": 65585,
+        "crop": 25165,
         "pop": 42,
         "cp": 92,
         "effects": {}
       },
       {
         "level": 16,
-        "time": 89622,
-        "wood": 46125,
-        "clay": 43880,
-        "iron": 41320,
-        "crop": 15855,
+        "time": 89620,
+        "wood": 92245,
+        "clay": 87760,
+        "iron": 82640,
+        "crop": 31710,
         "pop": 46,
         "cp": 111,
         "effects": {}
       },
       {
         "level": 17,
-        "time": 104262,
-        "wood": 58115,
-        "clay": 55290,
-        "iron": 52060,
-        "crop": 19975,
+        "time": 104260,
+        "wood": 116230,
+        "clay": 110580,
+        "iron": 104125,
+        "crop": 39955,
         "pop": 50,
         "cp": 133,
         "effects": {}
       },
       {
         "level": 18,
-        "time": 121243,
-        "wood": 73225,
-        "clay": 69665,
-        "iron": 65600,
-        "crop": 25170,
+        "time": 121240,
+        "wood": 146450,
+        "clay": 139330,
+        "iron": 131195,
+        "crop": 50340,
         "pop": 54,
         "cp": 160,
         "effects": {}
       },
       {
         "level": 19,
-        "time": 140942,
-        "wood": 92265,
-        "clay": 87780,
-        "iron": 82655,
-        "crop": 31715,
+        "time": 140940,
+        "wood": 184530,
+        "clay": 175560,
+        "iron": 165305,
+        "crop": 63430,
         "pop": 58,
         "cp": 192,
         "effects": {}
       },
       {
         "level": 20,
-        "time": 163793,
-        "wood": 116255,
-        "clay": 110600,
-        "iron": 104145,
-        "crop": 39960,
+        "time": 163790,
+        "wood": 232505,
+        "clay": 221205,
+        "iron": 208285,
+        "crop": 79925,
         "pop": 62,
         "cp": 230,
         "effects": {}
@@ -6462,7 +6594,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 3,
-        "time": 4685,
+        "time": 4680,
         "wood": 2295,
         "clay": 2180,
         "iron": 1965,
@@ -6476,7 +6608,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 4,
-        "time": 5734,
+        "time": 5730,
         "wood": 2935,
         "clay": 2790,
         "iron": 2515,
@@ -6490,7 +6622,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 5,
-        "time": 6952,
+        "time": 6950,
         "wood": 3760,
         "clay": 3570,
         "iron": 3220,
@@ -6504,7 +6636,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 6,
-        "time": 8364,
+        "time": 8360,
         "wood": 4810,
         "clay": 4570,
         "iron": 4125,
@@ -6518,7 +6650,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 7,
-        "time": 10002,
+        "time": 10000,
         "wood": 6155,
         "clay": 5850,
         "iron": 5280,
@@ -6532,7 +6664,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 8,
-        "time": 11903,
+        "time": 11900,
         "wood": 7880,
         "clay": 7485,
         "iron": 6755,
@@ -6546,7 +6678,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 9,
-        "time": 14107,
+        "time": 14110,
         "wood": 10090,
         "clay": 9585,
         "iron": 8645,
@@ -6560,7 +6692,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 10,
-        "time": 16664,
+        "time": 16660,
         "wood": 12915,
         "clay": 12265,
         "iron": 11070,
@@ -6574,7 +6706,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 11,
-        "time": 19631,
+        "time": 19630,
         "wood": 16530,
         "clay": 15700,
         "iron": 14165,
@@ -6588,7 +6720,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 12,
-        "time": 23072,
+        "time": 23070,
         "wood": 21155,
         "clay": 20100,
         "iron": 18135,
@@ -6602,7 +6734,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 13,
-        "time": 27063,
+        "time": 27060,
         "wood": 27080,
         "clay": 25725,
         "iron": 23210,
@@ -6616,7 +6748,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 14,
-        "time": 31693,
+        "time": 31690,
         "wood": 34660,
         "clay": 32930,
         "iron": 29710,
@@ -6630,7 +6762,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 15,
-        "time": 37064,
+        "time": 37060,
         "wood": 44370,
         "clay": 42150,
         "iron": 38030,
@@ -6644,7 +6776,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 16,
-        "time": 43294,
+        "time": 43290,
         "wood": 56790,
         "clay": 53950,
         "iron": 48680,
@@ -6658,7 +6790,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 17,
-        "time": 50522,
+        "time": 50520,
         "wood": 72690,
         "clay": 69060,
         "iron": 62310,
@@ -6672,7 +6804,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 18,
-        "time": 58905,
+        "time": 58900,
         "wood": 93045,
         "clay": 88395,
         "iron": 79755,
@@ -6700,7 +6832,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 20,
-        "time": 79911,
+        "time": 79910,
         "wood": 152445,
         "clay": 144825,
         "iron": 130670,
@@ -6765,7 +6897,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 3,
-        "time": 3339,
+        "time": 3340,
         "wood": 1030,
         "clay": 690,
         "iron": 1280,
@@ -6778,7 +6910,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 4,
-        "time": 4173,
+        "time": 4170,
         "wood": 1320,
         "clay": 880,
         "iron": 1635,
@@ -6791,7 +6923,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 5,
-        "time": 5141,
+        "time": 5140,
         "wood": 1690,
         "clay": 1125,
         "iron": 2095,
@@ -6804,7 +6936,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 6,
-        "time": 6264,
+        "time": 6260,
         "wood": 2165,
         "clay": 1445,
         "iron": 2680,
@@ -6817,7 +6949,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 7,
-        "time": 7566,
+        "time": 7570,
         "wood": 2770,
         "clay": 1845,
         "iron": 3430,
@@ -6830,7 +6962,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 8,
-        "time": 9077,
+        "time": 9080,
         "wood": 3545,
         "clay": 2365,
         "iron": 4390,
@@ -6843,7 +6975,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 9,
-        "time": 10829,
+        "time": 10830,
         "wood": 4540,
         "clay": 3025,
         "iron": 5620,
@@ -6856,7 +6988,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 10,
-        "time": 12861,
+        "time": 12860,
         "wood": 5810,
         "clay": 3875,
         "iron": 7195,
@@ -6869,7 +7001,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 11,
-        "time": 15219,
+        "time": 15220,
         "wood": 7440,
         "clay": 4960,
         "iron": 9210,
@@ -6882,7 +7014,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 12,
-        "time": 17954,
+        "time": 17950,
         "wood": 9520,
         "clay": 6345,
         "iron": 11785,
@@ -6895,7 +7027,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 13,
-        "time": 21127,
+        "time": 21130,
         "wood": 12185,
         "clay": 8125,
         "iron": 15085,
@@ -6908,7 +7040,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 14,
-        "time": 24807,
+        "time": 24810,
         "wood": 15600,
         "clay": 10400,
         "iron": 19310,
@@ -6921,7 +7053,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 15,
-        "time": 29077,
+        "time": 29080,
         "wood": 19965,
         "clay": 13310,
         "iron": 24720,
@@ -6934,7 +7066,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 16,
-        "time": 34029,
+        "time": 34030,
         "wood": 25555,
         "clay": 17035,
         "iron": 31640,
@@ -6947,7 +7079,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 17,
-        "time": 39774,
+        "time": 39770,
         "wood": 32710,
         "clay": 21810,
         "iron": 40500,
@@ -6960,7 +7092,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 18,
-        "time": 46437,
+        "time": 46440,
         "wood": 41870,
         "clay": 27915,
         "iron": 51840,
@@ -6973,7 +7105,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 19,
-        "time": 54167,
+        "time": 54170,
         "wood": 53595,
         "clay": 35730,
         "iron": 66355,
@@ -6986,7 +7118,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 20,
-        "time": 63134,
+        "time": 63130,
         "wood": 68600,
         "clay": 45735,
         "iron": 84935,
@@ -7037,7 +7169,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 2,
-        "time": 2852,
+        "time": 2850,
         "wood": 1000,
         "clay": 540,
         "iron": 845,
@@ -7050,7 +7182,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 3,
-        "time": 3608,
+        "time": 3610,
         "wood": 1280,
         "clay": 690,
         "iron": 1080,
@@ -7063,7 +7195,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 4,
-        "time": 4486,
+        "time": 4490,
         "wood": 1635,
         "clay": 880,
         "iron": 1385,
@@ -7076,7 +7208,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 5,
-        "time": 5503,
+        "time": 5500,
         "wood": 2095,
         "clay": 1125,
         "iron": 1770,
@@ -7089,7 +7221,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 6,
-        "time": 6684,
+        "time": 6680,
         "wood": 2680,
         "clay": 1445,
         "iron": 2270,
@@ -7102,7 +7234,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 7,
-        "time": 8053,
+        "time": 8050,
         "wood": 3430,
         "clay": 1845,
         "iron": 2905,
@@ -7115,7 +7247,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 8,
-        "time": 9642,
+        "time": 9640,
         "wood": 4390,
         "clay": 2365,
         "iron": 3715,
@@ -7128,7 +7260,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 9,
-        "time": 11485,
+        "time": 11480,
         "wood": 5620,
         "clay": 3025,
         "iron": 4755,
@@ -7141,7 +7273,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 10,
-        "time": 13622,
+        "time": 13620,
         "wood": 7195,
         "clay": 3875,
         "iron": 6085,
@@ -7154,7 +7286,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 11,
-        "time": 16102,
+        "time": 16100,
         "wood": 9210,
         "clay": 4960,
         "iron": 7790,
@@ -7167,7 +7299,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 12,
-        "time": 18978,
+        "time": 18980,
         "wood": 11785,
         "clay": 6345,
         "iron": 9975,
@@ -7180,7 +7312,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 13,
-        "time": 22314,
+        "time": 22310,
         "wood": 15085,
         "clay": 8125,
         "iron": 12765,
@@ -7193,7 +7325,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 14,
-        "time": 26185,
+        "time": 26180,
         "wood": 19310,
         "clay": 10400,
         "iron": 16340,
@@ -7206,7 +7338,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 15,
-        "time": 30674,
+        "time": 30670,
         "wood": 24720,
         "clay": 13310,
         "iron": 20915,
@@ -7219,7 +7351,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 16,
-        "time": 35882,
+        "time": 35880,
         "wood": 31640,
         "clay": 17035,
         "iron": 26775,
@@ -7232,7 +7364,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 17,
-        "time": 41923,
+        "time": 41920,
         "wood": 40500,
         "clay": 21810,
         "iron": 34270,
@@ -7245,7 +7377,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 18,
-        "time": 48931,
+        "time": 48930,
         "wood": 51840,
         "clay": 27915,
         "iron": 43865,
@@ -7271,7 +7403,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 20,
-        "time": 66489,
+        "time": 66490,
         "wood": 84935,
         "clay": 45735,
         "iron": 71870,
@@ -7299,222 +7431,222 @@ export const BUILDINGS: CatalogBuilding[] = [
     "levels": [
       {
         "level": 1,
+        "time": 2000,
         "wood": 160,
         "clay": 100,
         "iron": 80,
         "crop": 60,
         "pop": 0,
         "cp": 1,
-        "time": 2000,
         "effects": {}
       },
       {
         "level": 2,
+        "time": 2620,
         "wood": 205,
         "clay": 130,
         "iron": 100,
         "crop": 75,
         "pop": 0,
         "cp": 1,
-        "time": 2620,
         "effects": {}
       },
       {
         "level": 3,
+        "time": 3340,
         "wood": 260,
         "clay": 165,
         "iron": 130,
         "crop": 100,
         "pop": 0,
         "cp": 2,
-        "time": 3339,
         "effects": {}
       },
       {
         "level": 4,
+        "time": 4170,
         "wood": 335,
         "clay": 210,
         "iron": 170,
         "crop": 125,
         "pop": 0,
         "cp": 2,
-        "time": 4173,
         "effects": {}
       },
       {
         "level": 5,
+        "time": 5140,
         "wood": 430,
         "clay": 270,
         "iron": 215,
         "crop": 160,
         "pop": 0,
         "cp": 2,
-        "time": 5141,
         "effects": {}
       },
       {
         "level": 6,
+        "time": 6260,
         "wood": 550,
         "clay": 345,
         "iron": 275,
         "crop": 205,
         "pop": 1,
         "cp": 3,
-        "time": 6264,
         "effects": {}
       },
       {
         "level": 7,
+        "time": 7570,
         "wood": 705,
         "clay": 440,
         "iron": 350,
         "crop": 265,
-        "pop": 1,
+        "pop": 2,
         "cp": 4,
-        "time": 7566,
         "effects": {}
       },
       {
         "level": 8,
+        "time": 9080,
         "wood": 900,
         "clay": 565,
         "iron": 450,
         "crop": 340,
-        "pop": 1,
+        "pop": 3,
         "cp": 4,
-        "time": 9077,
         "effects": {}
       },
       {
         "level": 9,
+        "time": 10830,
         "wood": 1155,
         "clay": 720,
         "iron": 575,
         "crop": 430,
-        "pop": 1,
+        "pop": 4,
         "cp": 5,
-        "time": 10829,
         "effects": {}
       },
       {
         "level": 10,
+        "time": 12860,
         "wood": 1475,
         "clay": 920,
         "iron": 740,
         "crop": 555,
-        "pop": 1,
+        "pop": 5,
         "cp": 6,
-        "time": 12861,
         "effects": {}
       },
       {
         "level": 11,
+        "time": 15220,
         "wood": 1890,
         "clay": 1180,
         "iron": 945,
         "crop": 710,
-        "pop": 1,
+        "pop": 6,
         "cp": 7,
-        "time": 15219,
         "effects": {}
       },
       {
         "level": 12,
+        "time": 17950,
         "wood": 2420,
         "clay": 1510,
         "iron": 1210,
         "crop": 905,
-        "pop": 1,
+        "pop": 7,
         "cp": 9,
-        "time": 17954,
         "effects": {}
       },
       {
         "level": 13,
+        "time": 21130,
         "wood": 3095,
         "clay": 1935,
         "iron": 1545,
         "crop": 1160,
-        "pop": 1,
+        "pop": 8,
         "cp": 11,
-        "time": 21127,
         "effects": {}
       },
       {
         "level": 14,
+        "time": 24810,
         "wood": 3960,
         "clay": 2475,
         "iron": 1980,
         "crop": 1485,
-        "pop": 1,
+        "pop": 9,
         "cp": 13,
-        "time": 24807,
         "effects": {}
       },
       {
         "level": 15,
+        "time": 29080,
         "wood": 5070,
         "clay": 3170,
         "iron": 2535,
         "crop": 1900,
-        "pop": 1,
+        "pop": 10,
         "cp": 15,
-        "time": 29077,
         "effects": {}
       },
       {
         "level": 16,
+        "time": 34030,
         "wood": 6490,
         "clay": 4055,
         "iron": 3245,
         "crop": 2435,
-        "pop": 2,
+        "pop": 12,
         "cp": 18,
-        "time": 34029,
         "effects": {}
       },
       {
         "level": 17,
+        "time": 39770,
         "wood": 8310,
         "clay": 5190,
         "iron": 4155,
         "crop": 3115,
-        "pop": 2,
+        "pop": 14,
         "cp": 22,
-        "time": 39774,
         "effects": {}
       },
       {
         "level": 18,
+        "time": 46440,
         "wood": 10635,
         "clay": 6645,
         "iron": 5315,
         "crop": 3990,
-        "pop": 2,
+        "pop": 16,
         "cp": 27,
-        "time": 46437,
         "effects": {}
       },
       {
         "level": 19,
+        "time": 54170,
         "wood": 13610,
         "clay": 8505,
         "iron": 6805,
         "crop": 5105,
-        "pop": 2,
+        "pop": 18,
         "cp": 32,
-        "time": 54167,
         "effects": {}
       },
       {
         "level": 20,
+        "time": 63130,
         "wood": 17420,
         "clay": 10890,
         "iron": 8710,
         "crop": 6535,
-        "pop": 2,
+        "pop": 20,
         "cp": 38,
-        "time": 63134,
         "effects": {}
       }
     ]
@@ -7557,7 +7689,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 2,
-        "time": 3152,
+        "time": 3150,
         "wood": 200,
         "clay": 165,
         "iron": 160,
@@ -7570,7 +7702,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 3,
-        "time": 4256,
+        "time": 4260,
         "wood": 255,
         "clay": 215,
         "iron": 205,
@@ -7583,7 +7715,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 4,
-        "time": 5537,
+        "time": 5540,
         "wood": 325,
         "clay": 275,
         "iron": 260,
@@ -7596,7 +7728,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 5,
-        "time": 7023,
+        "time": 7020,
         "wood": 415,
         "clay": 350,
         "iron": 335,
@@ -7609,7 +7741,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 6,
-        "time": 8747,
+        "time": 8750,
         "wood": 535,
         "clay": 445,
         "iron": 430,
@@ -7622,7 +7754,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 7,
-        "time": 10747,
+        "time": 10750,
         "wood": 680,
         "clay": 570,
         "iron": 550,
@@ -7635,7 +7767,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 8,
-        "time": 13066,
+        "time": 13070,
         "wood": 875,
         "clay": 730,
         "iron": 705,
@@ -7648,7 +7780,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 9,
-        "time": 15757,
+        "time": 15760,
         "wood": 1115,
         "clay": 935,
         "iron": 900,
@@ -7661,7 +7793,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 10,
-        "time": 18878,
+        "time": 18880,
         "wood": 1430,
         "clay": 1200,
         "iron": 1155,
@@ -7674,7 +7806,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 11,
-        "time": 22498,
+        "time": 22500,
         "wood": 1830,
         "clay": 1535,
         "iron": 1475,
@@ -7687,7 +7819,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 12,
-        "time": 26698,
+        "time": 26700,
         "wood": 2340,
         "clay": 1965,
         "iron": 1890,
@@ -7700,7 +7832,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 13,
-        "time": 31569,
+        "time": 31570,
         "wood": 3000,
         "clay": 2515,
         "iron": 2420,
@@ -7726,7 +7858,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 15,
-        "time": 43776,
+        "time": 43780,
         "wood": 4910,
         "clay": 4120,
         "iron": 3960,
@@ -7752,7 +7884,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 17,
-        "time": 60201,
+        "time": 60200,
         "wood": 8050,
         "clay": 6750,
         "iron": 6490,
@@ -7765,7 +7897,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 18,
-        "time": 70433,
+        "time": 70430,
         "wood": 10300,
         "clay": 8640,
         "iron": 8310,
@@ -7778,7 +7910,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 19,
-        "time": 82302,
+        "time": 82300,
         "wood": 13185,
         "clay": 11060,
         "iron": 10635,
@@ -7844,10 +7976,10 @@ export const BUILDINGS: CatalogBuilding[] = [
       {
         "level": 1,
         "time": 8000,
-        "wood": 1460,
-        "clay": 930,
-        "iron": 1250,
-        "crop": 1740,
+        "wood": 3210,
+        "clay": 2050,
+        "iron": 2750,
+        "crop": 3830,
         "pop": 6,
         "cp": 5,
         "effects": {
@@ -7858,10 +7990,10 @@ export const BUILDINGS: CatalogBuilding[] = [
       {
         "level": 2,
         "time": 9880,
-        "wood": 1870,
-        "clay": 1190,
-        "iron": 1600,
-        "crop": 2225,
+        "wood": 3980,
+        "clay": 2540,
+        "iron": 3410,
+        "crop": 4750,
         "pop": 9,
         "cp": 6,
         "effects": {
@@ -7871,11 +8003,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 3,
-        "time": 12061,
-        "wood": 2390,
-        "clay": 1525,
-        "iron": 2050,
-        "crop": 2850,
+        "time": 12060,
+        "wood": 4935,
+        "clay": 3150,
+        "iron": 4230,
+        "crop": 5890,
         "pop": 12,
         "cp": 7,
         "effects": {
@@ -7885,11 +8017,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 4,
-        "time": 14591,
-        "wood": 3060,
-        "clay": 1950,
-        "iron": 2620,
-        "crop": 3650,
+        "time": 14590,
+        "wood": 6120,
+        "clay": 3910,
+        "iron": 5245,
+        "crop": 7300,
         "pop": 15,
         "cp": 8,
         "effects": {
@@ -7899,11 +8031,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 5,
-        "time": 17525,
-        "wood": 3920,
-        "clay": 2495,
-        "iron": 3355,
-        "crop": 4670,
+        "time": 17530,
+        "wood": 7590,
+        "clay": 4845,
+        "iron": 6500,
+        "crop": 9055,
         "pop": 18,
         "cp": 10,
         "effects": {
@@ -7913,11 +8045,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 6,
-        "time": 20929,
-        "wood": 5015,
-        "clay": 3195,
-        "iron": 4295,
-        "crop": 5980,
+        "time": 20930,
+        "wood": 9410,
+        "clay": 6010,
+        "iron": 8060,
+        "crop": 11230,
         "pop": 22,
         "cp": 12,
         "effects": {
@@ -7927,11 +8059,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 7,
-        "time": 24878,
-        "wood": 6420,
-        "clay": 4090,
-        "iron": 5500,
-        "crop": 7655,
+        "time": 24880,
+        "wood": 11670,
+        "clay": 7450,
+        "iron": 9995,
+        "crop": 13925,
         "pop": 26,
         "cp": 14,
         "effects": {
@@ -7941,11 +8073,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 8,
-        "time": 29458,
-        "wood": 8220,
-        "clay": 5235,
-        "iron": 7035,
-        "crop": 9795,
+        "time": 29460,
+        "wood": 14470,
+        "clay": 9240,
+        "iron": 12395,
+        "crop": 17265,
         "pop": 30,
         "cp": 17,
         "effects": {
@@ -7955,11 +8087,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 9,
-        "time": 34771,
-        "wood": 10520,
-        "clay": 6700,
-        "iron": 9005,
-        "crop": 12540,
+        "time": 34770,
+        "wood": 17940,
+        "clay": 11460,
+        "iron": 15370,
+        "crop": 21410,
         "pop": 34,
         "cp": 21,
         "effects": {
@@ -7969,11 +8101,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 10,
-        "time": 40935,
-        "wood": 13465,
-        "clay": 8580,
-        "iron": 11530,
-        "crop": 16050,
+        "time": 40930,
+        "wood": 22250,
+        "clay": 14210,
+        "iron": 19060,
+        "crop": 26545,
         "pop": 38,
         "cp": 25,
         "effects": {
@@ -7983,11 +8115,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 11,
-        "time": 48084,
-        "wood": 17235,
-        "clay": 10980,
-        "iron": 14755,
-        "crop": 20540,
+        "time": 48080,
+        "wood": 27590,
+        "clay": 17620,
+        "iron": 23635,
+        "crop": 32915,
         "pop": 42,
         "cp": 30,
         "effects": {
@@ -7997,11 +8129,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 12,
-        "time": 56378,
-        "wood": 22065,
-        "clay": 14055,
-        "iron": 18890,
-        "crop": 26295,
+        "time": 56380,
+        "wood": 34210,
+        "clay": 21845,
+        "iron": 29305,
+        "crop": 40815,
         "pop": 46,
         "cp": 36,
         "effects": {
@@ -8011,11 +8143,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 13,
-        "time": 65998,
-        "wood": 28240,
-        "clay": 17990,
-        "iron": 24180,
-        "crop": 33655,
+        "time": 66000,
+        "wood": 42420,
+        "clay": 27090,
+        "iron": 36340,
+        "crop": 50615,
         "pop": 50,
         "cp": 43,
         "effects": {
@@ -8025,11 +8157,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 14,
-        "time": 77158,
-        "wood": 36150,
-        "clay": 23025,
-        "iron": 30950,
-        "crop": 43080,
+        "time": 77160,
+        "wood": 52600,
+        "clay": 33590,
+        "iron": 45060,
+        "crop": 62760,
         "pop": 54,
         "cp": 51,
         "effects": {
@@ -8039,11 +8171,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 15,
-        "time": 90103,
-        "wood": 46270,
-        "clay": 29475,
-        "iron": 39615,
-        "crop": 55145,
+        "time": 90100,
+        "wood": 65225,
+        "clay": 41655,
+        "iron": 55875,
+        "crop": 77820,
         "pop": 58,
         "cp": 62,
         "effects": {
@@ -8054,10 +8186,10 @@ export const BUILDINGS: CatalogBuilding[] = [
       {
         "level": 16,
         "time": 105120,
-        "wood": 59225,
-        "clay": 37725,
-        "iron": 50705,
-        "crop": 70585,
+        "wood": 80880,
+        "clay": 51650,
+        "iron": 69290,
+        "crop": 96500,
         "pop": 63,
         "cp": 74,
         "effects": {
@@ -8067,11 +8199,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 17,
-        "time": 122539,
-        "wood": 75810,
-        "clay": 48290,
-        "iron": 64905,
-        "crop": 90345,
+        "time": 122540,
+        "wood": 100290,
+        "clay": 64045,
+        "iron": 85915,
+        "crop": 119660,
         "pop": 68,
         "cp": 89,
         "effects": {
@@ -8081,11 +8213,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 18,
-        "time": 142745,
-        "wood": 97035,
-        "clay": 61810,
-        "iron": 83075,
-        "crop": 115645,
+        "time": 142750,
+        "wood": 124360,
+        "clay": 79420,
+        "iron": 106535,
+        "crop": 148375,
         "pop": 73,
         "cp": 106,
         "effects": {
@@ -8095,11 +8227,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 19,
-        "time": 166185,
-        "wood": 124205,
-        "clay": 79115,
-        "iron": 106340,
-        "crop": 148025,
+        "time": 166180,
+        "wood": 154205,
+        "clay": 98480,
+        "iron": 132105,
+        "crop": 183990,
         "pop": 78,
         "cp": 128,
         "effects": {
@@ -8109,11 +8241,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 20,
-        "time": 193374,
-        "wood": 158980,
-        "clay": 101270,
-        "iron": 136115,
-        "crop": 189470,
+        "time": 193370,
+        "wood": 191215,
+        "clay": 122115,
+        "iron": 163810,
+        "crop": 228145,
         "pop": 83,
         "cp": 153,
         "effects": {
@@ -8165,10 +8297,10 @@ export const BUILDINGS: CatalogBuilding[] = [
       {
         "level": 2,
         "time": 2320,
-        "wood": 105,
-        "clay": 160,
-        "iron": 95,
-        "crop": 120,
+        "wood": 100,
+        "clay": 155,
+        "iron": 90,
+        "crop": 115,
         "pop": 6,
         "cp": 1,
         "effects": {
@@ -8177,11 +8309,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 3,
-        "time": 2691,
-        "wood": 140,
-        "clay": 210,
-        "iron": 125,
-        "crop": 160,
+        "time": 2690,
+        "wood": 130,
+        "clay": 195,
+        "iron": 115,
+        "crop": 145,
         "pop": 8,
         "cp": 2,
         "effects": {
@@ -8190,11 +8322,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 4,
-        "time": 3122,
-        "wood": 190,
-        "clay": 280,
-        "iron": 165,
-        "crop": 210,
+        "time": 3120,
+        "wood": 170,
+        "clay": 250,
+        "iron": 145,
+        "crop": 190,
         "pop": 10,
         "cp": 2,
         "effects": {
@@ -8203,11 +8335,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 5,
-        "time": 3621,
-        "wood": 250,
-        "clay": 375,
-        "iron": 220,
-        "crop": 280,
+        "time": 3620,
+        "wood": 215,
+        "clay": 320,
+        "iron": 190,
+        "crop": 240,
         "pop": 12,
         "cp": 2,
         "effects": {
@@ -8216,11 +8348,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 6,
-        "time": 4201,
-        "wood": 335,
-        "clay": 500,
-        "iron": 290,
-        "crop": 375,
+        "time": 4200,
+        "wood": 275,
+        "clay": 410,
+        "iron": 240,
+        "crop": 310,
         "pop": 15,
         "cp": 3,
         "effects": {
@@ -8229,11 +8361,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 7,
-        "time": 4873,
-        "wood": 445,
-        "clay": 665,
-        "iron": 385,
-        "crop": 500,
+        "time": 4870,
+        "wood": 350,
+        "clay": 530,
+        "iron": 310,
+        "crop": 395,
         "pop": 18,
         "cp": 4,
         "effects": {
@@ -8242,11 +8374,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 8,
-        "time": 5652,
-        "wood": 590,
-        "clay": 885,
-        "iron": 515,
-        "crop": 665,
+        "time": 5650,
+        "wood": 450,
+        "clay": 675,
+        "iron": 395,
+        "crop": 505,
         "pop": 21,
         "cp": 4,
         "effects": {
@@ -8255,11 +8387,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 9,
-        "time": 6557,
-        "wood": 785,
-        "clay": 1175,
-        "iron": 685,
-        "crop": 880,
+        "time": 6560,
+        "wood": 575,
+        "clay": 865,
+        "iron": 505,
+        "crop": 650,
         "pop": 24,
         "cp": 5,
         "effects": {
@@ -8268,11 +8400,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 10,
-        "time": 7606,
-        "wood": 1040,
-        "clay": 1565,
-        "iron": 910,
-        "crop": 1170,
+        "time": 7610,
+        "wood": 740,
+        "clay": 1105,
+        "iron": 645,
+        "crop": 830,
         "pop": 27,
         "cp": 6,
         "effects": {
@@ -8281,11 +8413,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 11,
-        "time": 8823,
-        "wood": 1385,
-        "clay": 2080,
-        "iron": 1210,
-        "crop": 1560,
+        "time": 8820,
+        "wood": 945,
+        "clay": 1415,
+        "iron": 825,
+        "crop": 1065,
         "pop": 30,
         "cp": 7,
         "effects": {
@@ -8294,11 +8426,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 12,
-        "time": 10235,
-        "wood": 1845,
-        "clay": 2765,
-        "iron": 1610,
-        "crop": 2075,
+        "time": 10230,
+        "wood": 1210,
+        "clay": 1815,
+        "iron": 1060,
+        "crop": 1360,
         "pop": 33,
         "cp": 9,
         "effects": {
@@ -8307,11 +8439,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 13,
-        "time": 11872,
-        "wood": 2450,
-        "clay": 3675,
-        "iron": 2145,
-        "crop": 2755,
+        "time": 11870,
+        "wood": 1545,
+        "clay": 2320,
+        "iron": 1355,
+        "crop": 1740,
         "pop": 36,
         "cp": 11,
         "effects": {
@@ -8320,11 +8452,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 14,
-        "time": 13772,
-        "wood": 3260,
-        "clay": 4890,
-        "iron": 2850,
-        "crop": 3665,
+        "time": 13770,
+        "wood": 1980,
+        "clay": 2970,
+        "iron": 1735,
+        "crop": 2230,
         "pop": 39,
         "cp": 13,
         "effects": {
@@ -8333,11 +8465,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 15,
-        "time": 15975,
-        "wood": 4335,
-        "clay": 6505,
-        "iron": 3795,
-        "crop": 4875,
+        "time": 15980,
+        "wood": 2535,
+        "clay": 3805,
+        "iron": 2220,
+        "crop": 2850,
         "pop": 42,
         "cp": 15,
         "effects": {
@@ -8346,11 +8478,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 16,
-        "time": 18531,
-        "wood": 5765,
-        "clay": 8650,
-        "iron": 5045,
-        "crop": 6485,
+        "time": 18530,
+        "wood": 3245,
+        "clay": 4870,
+        "iron": 2840,
+        "crop": 3650,
         "pop": 46,
         "cp": 18,
         "effects": {
@@ -8359,11 +8491,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 17,
-        "time": 21496,
-        "wood": 7670,
-        "clay": 11505,
-        "iron": 6710,
-        "crop": 8625,
+        "time": 21500,
+        "wood": 4155,
+        "clay": 6230,
+        "iron": 3635,
+        "crop": 4675,
         "pop": 50,
         "cp": 22,
         "effects": {
@@ -8372,11 +8504,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 18,
-        "time": 24935,
-        "wood": 10200,
-        "clay": 15300,
-        "iron": 8925,
-        "crop": 11475,
+        "time": 24940,
+        "wood": 5315,
+        "clay": 7975,
+        "iron": 4650,
+        "crop": 5980,
         "pop": 54,
         "cp": 27,
         "effects": {
@@ -8385,11 +8517,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 19,
-        "time": 28925,
-        "wood": 13565,
-        "clay": 20345,
-        "iron": 11870,
-        "crop": 15260,
+        "time": 28930,
+        "wood": 6805,
+        "clay": 10210,
+        "iron": 5955,
+        "crop": 7655,
         "pop": 58,
         "cp": 32,
         "effects": {
@@ -8398,11 +8530,11 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 20,
-        "time": 33553,
-        "wood": 18040,
-        "clay": 27060,
-        "iron": 15785,
-        "crop": 20295,
+        "time": 33550,
+        "wood": 8710,
+        "clay": 13065,
+        "iron": 7620,
+        "crop": 9800,
         "pop": 62,
         "cp": 38,
         "effects": {
@@ -8705,7 +8837,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 3,
-        "time": 12758,
+        "time": 12760,
         "wood": 1065,
         "clay": 1310,
         "iron": 735,
@@ -8731,7 +8863,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 5,
-        "time": 17816,
+        "time": 17820,
         "wood": 1745,
         "clay": 2145,
         "iron": 1210,
@@ -8744,7 +8876,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 6,
-        "time": 20966,
+        "time": 20970,
         "wood": 2235,
         "clay": 2750,
         "iron": 1545,
@@ -8757,7 +8889,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 7,
-        "time": 24621,
+        "time": 24620,
         "wood": 2860,
         "clay": 3520,
         "iron": 1980,
@@ -8783,7 +8915,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 9,
-        "time": 33778,
+        "time": 33780,
         "wood": 4685,
         "clay": 5765,
         "iron": 3245,
@@ -8796,7 +8928,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 10,
-        "time": 39482,
+        "time": 39480,
         "wood": 5995,
         "clay": 7380,
         "iron": 4150,
@@ -8809,7 +8941,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 11,
-        "time": 46099,
+        "time": 46100,
         "wood": 7675,
         "clay": 9445,
         "iron": 5315,
@@ -8822,7 +8954,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 12,
-        "time": 53775,
+        "time": 53780,
         "wood": 9825,
         "clay": 12090,
         "iron": 6800,
@@ -8835,7 +8967,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 13,
-        "time": 62679,
+        "time": 62680,
         "wood": 12575,
         "clay": 15475,
         "iron": 8705,
@@ -8848,7 +8980,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 14,
-        "time": 73008,
+        "time": 73010,
         "wood": 16095,
         "clay": 19805,
         "iron": 11140,
@@ -8861,7 +8993,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 15,
-        "time": 84989,
+        "time": 84990,
         "wood": 20600,
         "clay": 25355,
         "iron": 14260,
@@ -8874,7 +9006,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 16,
-        "time": 98888,
+        "time": 98890,
         "wood": 26365,
         "clay": 32450,
         "iron": 18255,
@@ -8900,7 +9032,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 18,
-        "time": 133711,
+        "time": 133710,
         "wood": 43200,
         "clay": 53170,
         "iron": 29910,
@@ -8913,7 +9045,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 19,
-        "time": 155405,
+        "time": 155400,
         "wood": 55295,
         "clay": 68055,
         "iron": 38280,
@@ -8990,7 +9122,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 3,
-        "time": 10067,
+        "time": 10070,
         "wood": 655,
         "clay": 820,
         "iron": 575,
@@ -9003,7 +9135,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 4,
-        "time": 11978,
+        "time": 11980,
         "wood": 840,
         "clay": 1050,
         "iron": 735,
@@ -9016,7 +9148,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 5,
-        "time": 14194,
+        "time": 14190,
         "wood": 1075,
         "clay": 1340,
         "iron": 940,
@@ -9029,7 +9161,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 6,
-        "time": 16766,
+        "time": 16770,
         "wood": 1375,
         "clay": 1720,
         "iron": 1205,
@@ -9042,7 +9174,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 7,
-        "time": 19748,
+        "time": 19750,
         "wood": 1760,
         "clay": 2200,
         "iron": 1540,
@@ -9055,7 +9187,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 8,
-        "time": 23208,
+        "time": 23210,
         "wood": 2250,
         "clay": 2815,
         "iron": 1970,
@@ -9068,7 +9200,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 9,
-        "time": 27221,
+        "time": 27220,
         "wood": 2880,
         "clay": 3605,
         "iron": 2520,
@@ -9081,7 +9213,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 10,
-        "time": 31876,
+        "time": 31880,
         "wood": 3690,
         "clay": 4610,
         "iron": 3230,
@@ -9094,7 +9226,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 11,
-        "time": 37276,
+        "time": 37280,
         "wood": 4720,
         "clay": 5905,
         "iron": 4130,
@@ -9107,7 +9239,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 12,
-        "time": 43541,
+        "time": 43540,
         "wood": 6045,
         "clay": 7555,
         "iron": 5290,
@@ -9120,7 +9252,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 13,
-        "time": 50807,
+        "time": 50810,
         "wood": 7735,
         "clay": 9670,
         "iron": 6770,
@@ -9133,7 +9265,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 14,
-        "time": 59236,
+        "time": 59240,
         "wood": 9905,
         "clay": 12380,
         "iron": 8665,
@@ -9146,7 +9278,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 15,
-        "time": 69014,
+        "time": 69010,
         "wood": 12675,
         "clay": 15845,
         "iron": 11090,
@@ -9159,7 +9291,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 16,
-        "time": 80356,
+        "time": 80360,
         "wood": 16225,
         "clay": 20280,
         "iron": 14200,
@@ -9172,7 +9304,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 17,
-        "time": 93514,
+        "time": 93510,
         "wood": 20770,
         "clay": 25960,
         "iron": 18175,
@@ -9185,7 +9317,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 18,
-        "time": 108776,
+        "time": 108780,
         "wood": 26585,
         "clay": 33230,
         "iron": 23260,
@@ -9211,7 +9343,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 20,
-        "time": 147017,
+        "time": 147020,
         "wood": 43555,
         "clay": 54445,
         "iron": 38110,
@@ -10390,7 +10522,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 2,
-        "time": 3152,
+        "time": 3150,
         "wood": 1000,
         "clay": 540,
         "iron": 845,
@@ -10404,7 +10536,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 3,
-        "time": 4256,
+        "time": 4260,
         "wood": 1280,
         "clay": 690,
         "iron": 1080,
@@ -10418,7 +10550,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 4,
-        "time": 5537,
+        "time": 5540,
         "wood": 1635,
         "clay": 880,
         "iron": 1385,
@@ -10432,7 +10564,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 5,
-        "time": 7023,
+        "time": 7020,
         "wood": 2095,
         "clay": 1125,
         "iron": 1770,
@@ -10446,7 +10578,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 6,
-        "time": 8747,
+        "time": 8750,
         "wood": 2680,
         "clay": 1445,
         "iron": 2270,
@@ -10460,7 +10592,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 7,
-        "time": 10747,
+        "time": 10750,
         "wood": 3430,
         "clay": 1845,
         "iron": 2905,
@@ -10474,7 +10606,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 8,
-        "time": 13066,
+        "time": 13070,
         "wood": 4390,
         "clay": 2365,
         "iron": 3715,
@@ -10488,7 +10620,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 9,
-        "time": 15757,
+        "time": 15760,
         "wood": 5620,
         "clay": 3025,
         "iron": 4755,
@@ -10502,7 +10634,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 10,
-        "time": 18878,
+        "time": 18880,
         "wood": 7195,
         "clay": 3875,
         "iron": 6085,
@@ -10516,7 +10648,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 11,
-        "time": 22498,
+        "time": 22500,
         "wood": 9210,
         "clay": 4960,
         "iron": 7790,
@@ -10530,7 +10662,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 12,
-        "time": 26698,
+        "time": 26700,
         "wood": 11785,
         "clay": 6345,
         "iron": 9975,
@@ -10544,7 +10676,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 13,
-        "time": 31569,
+        "time": 31570,
         "wood": 15085,
         "clay": 8125,
         "iron": 12765,
@@ -10572,7 +10704,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 15,
-        "time": 43776,
+        "time": 43780,
         "wood": 24720,
         "clay": 13310,
         "iron": 20915,
@@ -10600,7 +10732,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 17,
-        "time": 60201,
+        "time": 60200,
         "wood": 40500,
         "clay": 21810,
         "iron": 34270,
@@ -10614,7 +10746,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 18,
-        "time": 70433,
+        "time": 70430,
         "wood": 51840,
         "clay": 27915,
         "iron": 43865,
@@ -10628,7 +10760,7 @@ export const BUILDINGS: CatalogBuilding[] = [
       },
       {
         "level": 19,
-        "time": 82302,
+        "time": 82300,
         "wood": 66355,
         "clay": 35730,
         "iron": 56145,
@@ -10692,11 +10824,11 @@ export const BUILDINGS: CatalogBuilding[] = [
         "clay": 280,
         "iron": 420,
         "crop": 360,
-        "pop": 4,
+        "pop": 3,
         "cp": 5,
         "effects": {
           "healTime": 0.5,
-          "woundedCapacity": 188
+          "woundedCapacity": 125
         }
       },
       {
@@ -10706,235 +10838,235 @@ export const BUILDINGS: CatalogBuilding[] = [
         "clay": 360,
         "iron": 540,
         "crop": 460,
-        "pop": 6,
+        "pop": 5,
         "cp": 6,
         "effects": {
           "healTime": 0.45,
-          "woundedCapacity": 234
+          "woundedCapacity": 156
         }
       },
       {
         "level": 3,
-        "time": 4685,
+        "time": 4680,
         "wood": 525,
         "clay": 460,
         "iron": 690,
         "crop": 590,
-        "pop": 8,
+        "pop": 7,
         "cp": 7,
         "effects": {
           "healTime": 0.405,
-          "woundedCapacity": 281
+          "woundedCapacity": 188
         }
       },
       {
         "level": 4,
-        "time": 5734,
+        "time": 5730,
         "wood": 670,
         "clay": 585,
         "iron": 880,
         "crop": 755,
-        "pop": 10,
+        "pop": 9,
         "cp": 8,
         "effects": {
           "healTime": 0.3645,
-          "woundedCapacity": 356
+          "woundedCapacity": 238
         }
       },
       {
         "level": 5,
-        "time": 6952,
+        "time": 6950,
         "wood": 860,
         "clay": 750,
         "iron": 1125,
         "crop": 965,
-        "pop": 12,
+        "pop": 11,
         "cp": 10,
         "effects": {
-          "healTime": 0.3281,
-          "woundedCapacity": 431
+          "healTime": 0.32805,
+          "woundedCapacity": 288
         }
       },
       {
         "level": 6,
-        "time": 8364,
+        "time": 8360,
         "wood": 1100,
         "clay": 960,
         "iron": 1445,
         "crop": 1235,
-        "pop": 15,
+        "pop": 13,
         "cp": 12,
         "effects": {
-          "healTime": 0.2953,
-          "woundedCapacity": 525
+          "healTime": 0.29525,
+          "woundedCapacity": 350
         }
       },
       {
         "level": 7,
-        "time": 10002,
+        "time": 10000,
         "wood": 1405,
         "clay": 1230,
         "iron": 1845,
         "crop": 1585,
-        "pop": 18,
+        "pop": 15,
         "cp": 14,
         "effects": {
           "healTime": 0.2657,
-          "woundedCapacity": 656
+          "woundedCapacity": 438
         }
       },
       {
         "level": 8,
-        "time": 11903,
+        "time": 11900,
         "wood": 1800,
         "clay": 1575,
         "iron": 2365,
         "crop": 2025,
-        "pop": 21,
+        "pop": 17,
         "cp": 17,
         "effects": {
-          "healTime": 0.2392,
-          "woundedCapacity": 806
+          "healTime": 0.23915,
+          "woundedCapacity": 538
         }
       },
       {
         "level": 9,
-        "time": 14107,
+        "time": 14110,
         "wood": 2305,
         "clay": 2020,
         "iron": 3025,
         "crop": 2595,
-        "pop": 24,
+        "pop": 19,
         "cp": 21,
         "effects": {
-          "healTime": 0.2152,
-          "woundedCapacity": 975
+          "healTime": 0.21525,
+          "woundedCapacity": 650
         }
       },
       {
         "level": 10,
-        "time": 16664,
+        "time": 16660,
         "wood": 2950,
         "clay": 2585,
         "iron": 3875,
         "crop": 3320,
-        "pop": 27,
+        "pop": 21,
         "cp": 25,
         "effects": {
           "healTime": 0.1937,
-          "woundedCapacity": 1200
+          "woundedCapacity": 800
         }
       },
       {
         "level": 11,
-        "time": 19631,
+        "time": 19630,
         "wood": 3780,
         "clay": 3305,
         "iron": 4960,
         "crop": 4250,
-        "pop": 30,
+        "pop": 24,
         "cp": 30,
         "effects": {
-          "healTime": 0.1744,
-          "woundedCapacity": 1481
+          "healTime": 0.17435,
+          "woundedCapacity": 988
         }
       },
       {
         "level": 12,
-        "time": 23072,
+        "time": 23070,
         "wood": 4835,
         "clay": 4230,
         "iron": 6345,
         "crop": 5440,
-        "pop": 33,
+        "pop": 27,
         "cp": 36,
         "effects": {
           "healTime": 0.1569,
-          "woundedCapacity": 1875
+          "woundedCapacity": 1250
         }
       },
       {
         "level": 13,
-        "time": 27063,
+        "time": 27060,
         "wood": 6190,
         "clay": 5415,
         "iron": 8125,
         "crop": 6965,
-        "pop": 36,
+        "pop": 30,
         "cp": 43,
         "effects": {
           "healTime": 0.1412,
-          "woundedCapacity": 2250
+          "woundedCapacity": 1500
         }
       },
       {
         "level": 14,
-        "time": 31693,
+        "time": 31690,
         "wood": 7925,
         "clay": 6930,
         "iron": 10400,
         "crop": 8915,
-        "pop": 39,
+        "pop": 33,
         "cp": 51,
         "effects": {
           "healTime": 0.1271,
-          "woundedCapacity": 2813
+          "woundedCapacity": 1875
         }
       },
       {
         "level": 15,
-        "time": 37064,
+        "time": 37060,
         "wood": 10140,
         "clay": 8875,
         "iron": 13310,
         "crop": 11410,
-        "pop": 42,
+        "pop": 36,
         "cp": 62,
         "effects": {
           "healTime": 0.1144,
-          "woundedCapacity": 3375
+          "woundedCapacity": 2250
         }
       },
       {
         "level": 16,
-        "time": 43294,
+        "time": 43290,
         "wood": 12980,
         "clay": 11360,
         "iron": 17035,
         "crop": 14605,
-        "pop": 46,
+        "pop": 39,
         "cp": 74,
         "effects": {
-          "healTime": 0.1029,
-          "woundedCapacity": 4125
+          "healTime": 0.10295,
+          "woundedCapacity": 2750
         }
       },
       {
         "level": 17,
-        "time": 50522,
+        "time": 50520,
         "wood": 16615,
         "clay": 14540,
         "iron": 21810,
         "crop": 18690,
-        "pop": 50,
+        "pop": 42,
         "cp": 89,
         "effects": {
-          "healTime": 0.0926,
-          "woundedCapacity": 5063
+          "healTime": 0.09265,
+          "woundedCapacity": 3375
         }
       },
       {
         "level": 18,
-        "time": 58905,
+        "time": 58900,
         "wood": 21270,
         "clay": 18610,
         "iron": 27915,
         "crop": 23925,
-        "pop": 54,
+        "pop": 45,
         "cp": 106,
         "effects": {
           "healTime": 0.0834,
-          "woundedCapacity": 6375
+          "woundedCapacity": 4250
         }
       },
       {
@@ -10944,25 +11076,25 @@ export const BUILDINGS: CatalogBuilding[] = [
         "clay": 23820,
         "iron": 35730,
         "crop": 30625,
-        "pop": 58,
+        "pop": 48,
         "cp": 128,
         "effects": {
-          "healTime": 0.0751,
-          "woundedCapacity": 7875
+          "healTime": 0.07505,
+          "woundedCapacity": 5250
         }
       },
       {
         "level": 20,
-        "time": 79911,
+        "time": 79910,
         "wood": 34845,
         "clay": 30490,
         "iron": 45735,
         "crop": 39200,
-        "pop": 62,
+        "pop": 51,
         "cp": 153,
         "effects": {
-          "healTime": 0.0675,
-          "woundedCapacity": 9563
+          "healTime": 0.06755,
+          "woundedCapacity": 6375
         }
       }
     ]
