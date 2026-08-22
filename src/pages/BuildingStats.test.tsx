@@ -92,25 +92,26 @@ describe('BuildingStats Component & Effect Helpers', () => {
     expect(cardNames).not.toContain('Barracks');
   });
 
-  it('supports selecting level ranges and dynamically recalculates total resource costs and build times', () => {
-    // Preset: Level 0 -> 10
-    const p10Btn = [...container.querySelectorAll('.bs-range-presets .pill')].find(
-      (b) => b.textContent?.includes('Lvl 0 → 10')
-    ) as HTMLElement;
-    expect(p10Btn).toBeTruthy();
-    click(p10Btn);
+  it('supports selecting level ranges via 3-click table row cycle and dynamically recalculates total costs', () => {
+    // Initial state: Level 0 -> 22 (full)
+    expect(container.textContent).toContain('Total Cost (Lvl 0 → 22)');
 
-    expect(container.textContent).toContain('Total Cost (Lvl 0 → 10)');
+    const rows = container.querySelectorAll('.bs-table tbody tr');
 
-    // In-range table rows are highlighted
-    const highlightedRows = container.querySelectorAll('.bs-tr.is-in-range');
-    expect(highlightedRows.length).toBe(10);
+    // 1st click: Click Level 5 (Row index 4) -> selects Level 4 -> 5 (just Level 5)
+    click(rows[4]);
+    expect(container.textContent).toContain('Total Cost (Lvl 4 → 5)');
+    expect(container.querySelectorAll('.bs-tr.is-in-range').length).toBe(1);
 
-    // Clicking a row in the table sets the range
-    const row5 = container.querySelectorAll('.bs-tr')[4] as HTMLElement; // Lvl 5
-    click(row5);
+    // 2nd click: Click Level 10 (Row index 9) -> selects range Level 4 -> 10 (Levels 5 through 10)
+    click(rows[9]);
+    expect(container.textContent).toContain('Total Cost (Lvl 4 → 10)');
+    expect(container.querySelectorAll('.bs-tr.is-in-range').length).toBe(6);
 
-    expect(container.textContent).toContain('Total Cost (Lvl 0 → 5)');
+    // 3rd click: Click any row -> resets back to full (Level 0 -> 22)
+    click(rows[0]);
+    expect(container.textContent).toContain('Total Cost (Lvl 0 → 22)');
+    expect(container.querySelectorAll('.bs-tr.is-in-range').length).toBe(0);
   });
 
   it('dynamically scales construction time when adjusting Town Hall slider and Server Speed', () => {

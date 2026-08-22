@@ -3327,10 +3327,14 @@ select:focus, .select:focus, .text-input:focus {
    Building Stats / Encyclopedia Tool Styles
    ========================================================================== */
 
+/* ==========================================================================
+   Building Stats / Encyclopedia Tool Styles
+   ========================================================================== */
+
 .bs-container {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
   max-width: 1440px;
   margin: 0 auto;
 }
@@ -3339,14 +3343,14 @@ select:focus, .select:focus, .text-input:focus {
   background: hsl(220, 18%, 10%);
   border: 1px solid hsl(220, 15%, 22%);
   border-radius: var(--radius);
-  padding: 14px 16px;
+  padding: 10px 14px;
 }
 
 .bs-search-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 14px;
   flex-wrap: wrap;
 }
 
@@ -3354,8 +3358,8 @@ select:focus, .select:focus, .text-input:focus {
   position: relative;
   display: flex;
   align-items: center;
-  min-width: 280px;
-  flex: 0 1 360px;
+  min-width: 260px;
+  flex: 0 1 320px;
 }
 
 .bs-search-icon {
@@ -3370,8 +3374,8 @@ select:focus, .select:focus, .text-input:focus {
   width: 100%;
   padding-left: 32px;
   padding-right: 28px;
-  font-size: 13px;
-  height: 34px;
+  font-size: 12.5px;
+  height: 32px;
 }
 
 .bs-search-clear {
@@ -3394,49 +3398,49 @@ select:focus, .select:focus, .text-input:focus {
   color: var(--text-dim);
 }
 
-/* 3-Category Layout (All 37 Buildings Visible Without Scroll) */
+/* 3-Category Layout (Compact, No Squishing, All Visible) */
 .bs-catalog-sections {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
 .bs-catalog-section {
   background: hsl(220, 18%, 10%);
   border: 1px solid hsl(220, 15%, 22%);
   border-radius: var(--radius);
-  padding: 16px;
+  padding: 12px 14px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .bs-catalog-section__title {
   margin: 0;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   color: var(--accent-light, #72c2dd);
   border-bottom: 1px solid hsl(220, 15%, 18%);
-  padding-bottom: 8px;
+  padding-bottom: 6px;
 }
 
 .bs-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
 }
 
 .bs-card {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   background: hsl(220, 18%, 13%);
   border: 1px solid hsl(220, 15%, 20%);
-  border-radius: var(--radius);
-  padding: 8px 10px;
+  border-radius: 6px;
+  padding: 6px 8px;
   cursor: pointer;
   text-align: left;
   transition: all 0.15s ease;
@@ -3449,28 +3453,30 @@ select:focus, .select:focus, .text-input:focus {
 .bs-card.is-selected {
   background: hsl(220, 22%, 18%);
   border-color: hsl(42, 85%, 52%);
-  box-shadow: 0 0 10px rgba(230, 175, 46, 0.25);
+  box-shadow: 0 0 8px rgba(230, 175, 46, 0.25);
 }
 
 .bs-card__icon {
-  width: 58px;
-  height: 58px;
-  border-radius: 8px;
+  width: 40px;
+  height: 40px;
+  aspect-ratio: 1 / 1;
+  border-radius: 6px;
   background: hsl(220, 20%, 8%);
   border: 1px solid hsl(220, 15%, 25%);
-  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.4);
+  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.4);
+  object-fit: contain;
   flex-shrink: 0;
 }
 
 .bs-card__info {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
   min-width: 0;
 }
 
 .bs-card__name {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
@@ -3478,7 +3484,7 @@ select:focus, .select:focus, .text-input:focus {
 }
 
 .bs-card__meta {
-  font-size: 11px;
+  font-size: 10.5px;
   color: var(--text-dim);
   white-space: nowrap;
   overflow: hidden;
@@ -3490,75 +3496,77 @@ select:focus, .select:focus, .text-input:focus {
   background: hsl(220, 18%, 10%);
   border: 1px solid hsl(220, 15%, 22%);
   border-radius: var(--radius);
-  padding: 20px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
 }
 
 .bs-hero {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
+  gap: 16px;
   flex-wrap: wrap;
   border-bottom: 1px solid hsl(220, 15%, 18%);
-  padding-bottom: 18px;
+  padding-bottom: 14px;
 }
 
 .bs-hero__main {
   display: flex;
   align-items: center;
-  gap: 16px;
-  flex: 1 1 450px;
+  gap: 14px;
+  flex: 1 1 420px;
 }
 
 .bs-hero__icon {
-  width: 58px;
-  height: 58px;
+  width: 50px;
+  height: 50px;
+  aspect-ratio: 1 / 1;
   border-radius: 8px;
   background: hsl(220, 20%, 8%);
   border: 1.5px solid hsl(42, 70%, 45%);
-  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.4), 0 0 12px rgba(230, 175, 46, 0.2);
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.4), 0 0 10px rgba(230, 175, 46, 0.2);
+  object-fit: contain;
   flex-shrink: 0;
 }
 
 .bs-hero__info {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
 .bs-hero__title-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
 .bs-hero__title {
   margin: 0;
-  font-size: 20px;
+  font-size: 19px;
   font-weight: 700;
   color: #fff;
 }
 
 .bs-hero__description {
   margin: 0;
-  font-size: 13px;
+  font-size: 12.5px;
   color: var(--text-dim);
 }
 
 .bs-hero__prereqs {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 4px;
+  gap: 6px;
+  margin-top: 2px;
   flex-wrap: wrap;
 }
 
 .bs-hero__prereqs-label {
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--text-dim);
 }
@@ -3574,40 +3582,40 @@ select:focus, .select:focus, .text-input:focus {
   background: hsl(220, 18%, 15%);
   border: 1px solid hsl(220, 15%, 26%);
   border-radius: 4px;
-  padding: 2px 6px;
+  padding: 1px 6px;
   color: #a5c2e8;
 }
 
 .bs-hero__controls {
-  flex: 0 1 380px;
+  flex: 0 1 360px;
   width: 100%;
 }
 
 .bs-modifiers-box {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   background: hsl(220, 18%, 13%);
   border: 1px solid hsl(220, 15%, 22%);
   border-radius: var(--radius);
-  padding: 12px 14px;
+  padding: 10px 12px;
 }
 
 .bs-th-control {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
 }
 
 .bs-th-control__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 12.5px;
+  font-size: 12px;
 }
 
 .bs-th-control__factor {
-  font-size: 11.5px;
+  font-size: 11px;
   color: var(--accent-light, #72c2dd);
 }
 
@@ -3620,7 +3628,7 @@ select:focus, .select:focus, .text-input:focus {
 .bs-mb-ticks {
   display: flex;
   justify-content: space-between;
-  font-size: 10px;
+  font-size: 9.5px;
   color: var(--text-dim);
 }
 
@@ -3628,87 +3636,62 @@ select:focus, .select:focus, .text-input:focus {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
   border-top: 1px solid hsl(220, 15%, 20%);
-  padding-top: 8px;
+  padding-top: 6px;
 }
 
 .bs-speed-control__label {
-  font-size: 12px;
+  font-size: 11.5px;
   color: var(--text-dim);
 }
 
 .bs-speed-buttons {
   display: flex;
-  gap: 6px;
+  gap: 5px;
 }
 
-/* Range Toolbar */
-.bs-range-toolbar {
+/* Range Selection Instructions Bar */
+.bs-selection-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
   flex-wrap: wrap;
   background: hsl(220, 18%, 13%);
   border: 1px solid hsl(220, 15%, 22%);
   border-radius: var(--radius);
-  padding: 10px 14px;
+  padding: 8px 12px;
 }
 
-.bs-range-inputs {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.bs-range-label {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: #fff;
-}
-
-.bs-range-field {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+.bs-selection-tip {
   font-size: 12px;
   color: var(--text-dim);
 }
 
-.bs-range-select {
-  height: 28px;
-  padding: 2px 8px;
-  font-size: 12px;
-}
-
-.bs-range-presets {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
+.bs-selection-tip strong {
+  color: #fff;
 }
 
 /* Summary Grid */
 .bs-summary-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
 }
 
 .bs-summary-card {
   background: hsl(220, 18%, 12%);
   border: 1px solid hsl(220, 15%, 20%);
   border-radius: var(--radius);
-  padding: 12px 14px;
+  padding: 10px 12px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
 .bs-summary-card__label {
-  font-size: 11.5px;
+  font-size: 11px;
   color: var(--text-dim);
   font-weight: 500;
   text-transform: uppercase;
@@ -3716,21 +3699,21 @@ select:focus, .select:focus, .text-input:focus {
 }
 
 .bs-summary-card__value {
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 700;
   color: #fff;
 }
 
 .bs-summary-card__value small {
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: normal;
   color: var(--text-dim);
 }
 
 .bs-summary-card__res-row {
   display: flex;
-  gap: 10px;
-  font-size: 11.5px;
+  gap: 8px;
+  font-size: 11px;
   color: var(--text-dim);
   flex-wrap: wrap;
   margin-top: 2px;
@@ -3739,18 +3722,18 @@ select:focus, .select:focus, .text-input:focus {
 .bs-res-item {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
 }
 
 .bs-res-icon {
-  width: 16px;
-  height: 16px;
+  width: 15px;
+  height: 15px;
   vertical-align: middle;
   flex-shrink: 0;
 }
 
 .bs-summary-card__sub {
-  font-size: 11px;
+  font-size: 10.5px;
   color: var(--text-dim);
 }
 
@@ -3765,14 +3748,14 @@ select:focus, .select:focus, .text-input:focus {
 .bs-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12.5px;
+  font-size: 12px;
   text-align: left;
   white-space: nowrap;
 }
 
 .bs-th {
   background: hsl(220, 20%, 14%);
-  padding: 10px 12px;
+  padding: 8px 10px;
   font-weight: 600;
   color: #d1d5db;
   border-bottom: 2px solid hsl(220, 15%, 25%);
@@ -3781,7 +3764,7 @@ select:focus, .select:focus, .text-input:focus {
 .bs-th-content {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
 }
 
 .bs-th--sticky {
@@ -3825,14 +3808,14 @@ select:focus, .select:focus, .text-input:focus {
 }
 
 .bs-td {
-  padding: 8px 12px;
+  padding: 7px 10px;
   color: var(--text);
 }
 
 .bs-cell-res {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
 }
 
 .bs-td--sticky {
@@ -3845,16 +3828,16 @@ select:focus, .select:focus, .text-input:focus {
 .bs-td--lvl {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   font-weight: 600;
 }
 
 .bs-badge-city {
-  font-size: 9.5px;
+  font-size: 9px;
   background: hsl(42, 85%, 45%);
   color: #000;
   font-weight: 700;
-  padding: 1px 5px;
+  padding: 1px 4px;
   border-radius: 3px;
   text-transform: uppercase;
 }
@@ -3864,14 +3847,14 @@ select:focus, .select:focus, .text-input:focus {
 }
 
 .bs-delta-badge {
-  font-size: 11px;
+  font-size: 10.5px;
   color: #68d391;
   opacity: 0.9;
 }
 
 .bs-td--eff {
   font-family: var(--font-mono, monospace);
-  font-size: 12px;
+  font-size: 11.5px;
   color: #72c2dd;
 }
 
@@ -3880,18 +3863,15 @@ select:focus, .select:focus, .text-input:focus {
   color: #cbd5e0;
 }
 
-.bs-effects-list {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
+.bs-td--effects {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 380px;
 }
 
-.bs-effect-pill {
-  font-size: 11px;
-  background: hsl(220, 18%, 16%);
-  border: 1px solid hsl(220, 15%, 26%);
-  border-radius: 4px;
-  padding: 2px 6px;
+.bs-effect-text {
+  font-size: 11.5px;
   color: #e2e8f0;
 }
 
@@ -3909,14 +3889,10 @@ select:focus, .select:focus, .text-input:focus {
     flex: 1 1 auto;
   }
   .bs-grid {
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  }
-  .bs-range-toolbar {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
   }
 }
+
 
 
 

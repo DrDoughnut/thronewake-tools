@@ -57,14 +57,24 @@ export function BuildingStats() {
   const isCityBuilding = CITY_UPGRADEABLE_GIDS.has(selectedBuilding.gid);
   const maxLvl = selectedBuilding.levels.length;
 
-  // Range selection for multi-level cost / time / stat summation
-  const [fromLevel, setFromLevel] = useState<number>(0);
-  const [toLevel, setToLevel] = useState<number>(maxLvl);
+  // Table Row Selection State:
+  // step: 0 = unselected (0 -> max), 1 = first click on A (A-1 -> A), 2 = second click on B (min -> max)
+  // 3rd click resets back to step 0
+  const [selection, setSelection] = useState<{ step: number; firstLevel: number | null; startLevel: number; endLevel: number }>({
+    step: 0,
+    firstLevel: null,
+    startLevel: 0,
+    endLevel: maxLvl,
+  });
 
-  // When building changes, reset range to 0 -> maxLvl
+  // When building changes, reset selection
   useEffect(() => {
-    setFromLevel(0);
-    setToLevel(selectedBuilding.levels.length);
+    setSelection({
+      step: 0,
+      firstLevel: null,
+      startLevel: 0,
+      endLevel: selectedBuilding.levels.length,
+    });
   }, [selectedGid, selectedBuilding.levels.length]);
 
   // Sync state to URL hash
@@ -103,10 +113,10 @@ export function BuildingStats() {
     };
   }, [searchQuery]);
 
-  // Range summary calculations (fromLevel -> toLevel)
+  // Range summary calculations
   const rangeSummary = useMemo(() => {
-    const startIdx = Math.max(0, Math.min(fromLevel, maxLvl));
-    const endIdx = Math.max(startIdx, Math.min(toLevel, maxLvl));
+    const startIdx = Math.max(0, Math.min(selection.startLevel, maxLvl));
+    const endIdx = Math.max(startIdx, Math.min(selection.endLevel, maxLvl));
 
     let wood = 0;
     let clay = 0;
@@ -146,35 +156,43 @@ export function BuildingStats() {
       popGain,
       cpGain,
       levelsCount: endIdx - startIdx,
+      isCustomRange: selection.step > 0,
     };
-  }, [selectedBuilding, fromLevel, toLevel, maxLvl, thFactor, serverSpeed]);
+  }, [selectedBuilding, selection, maxLvl, thFactor, serverSpeed]);
 
   const prereqDescriptions = useMemo(
     () => describePrerequisites(selectedBuilding),
     [selectedBuilding]
   );
 
-  // Quick Range Presets
-  const setRangePreset = (start: number, end: number) => {
-    setFromLevel(Math.max(0, Math.min(start, maxLvl)));
-    setToLevel(Math.max(start, Math.min(end, maxLvl)));
-  };
-
-  // Row click range selection handler
+  // Row click: 1st click = row A, 2nd click = row B (range), 3rd click = reset to full
   const handleRowClick = (lvlNum: number) => {
-    if (fromLevel === 0 && toLevel === maxLvl) {
-      // First click: select 0 -> this level
-      setFromLevel(0);
-      setToLevel(lvlNum);
-    } else if (fromLevel === 0 && toLevel === lvlNum) {
-      // Toggle back to full
-      setFromLevel(0);
-      setToLevel(maxLvl);
-    } else if (lvlNum > fromLevel) {
-      setToLevel(lvlNum);
+    if (selection.step === 0) {
+      // Step 1: select level lvlNum (cost from lvlNum - 1 to lvlNum)
+      setSelection({
+        step: 1,
+        firstLevel: lvlNum,
+        startLevel: lvlNum - 1,
+        endLevel: lvlNum,
+      });
+    } else if (selection.step === 1 && selection.firstLevel !== null) {
+      // Step 2: select range from min(A, B) - 1 to max(A, B)
+      const minL = Math.min(selection.firstLevel, lvlNum);
+      const maxL = Math.max(selection.firstLevel, lvlNum);
+      setSelection({
+        step: 2,
+        firstLevel: selection.firstLevel,
+        startLevel: minL - 1,
+        endLevel: maxL,
+      });
     } else {
-      setFromLevel(Math.max(0, lvlNum - 1));
-      setToLevel(maxLvl);
+      // Step 3: 3rd click resets back to default (0 -> maxLvl)
+      setSelection({
+        step: 0,
+        firstLevel: null,
+        startLevel: 0,
+        endLevel: maxLvl,
+      });
     }
   };
 
@@ -211,12 +229,12 @@ export function BuildingStats() {
             )}
           </div>
           <span className="bs-search-hint">
-            Click any building below to inspect complete stats, upgrade costs, and building effects.
+            Select a building to view complete stats, upgrade costs, and effects.
           </span>
         </div>
       </div>
 
-      {/* 3 Categories Section (All 37 Buildings Visible Without Internal Scroll) */}
+      {/* 3 Categories Section (Compact, No Squishing, No Scroll) */}
       <div className="bs-catalog-sections">
         {CATEGORIES.map((cat) => {
           const list = categorizedBuildings[cat];
@@ -367,81 +385,30 @@ export function BuildingStats() {
           </div>
         </div>
 
-        {/* Range Level Selector & Presets */}
-        <div className="bs-range-toolbar">
-          <div className="bs-range-inputs">
-            <span className="bs-range-label">Summary Range:</span>
-            <label className="bs-range-field">
-              <span>From:</span>
-              <select
-                className="select bs-range-select"
-                value={fromLevel}
-                onChange={(e) => setFromLevel(Number(e.target.value))}
-                aria-label="From level"
-              >
-                {Array.from({ length: maxLvl }, (_, i) => (
-                  <option key={i} value={i}>
-                    Lvl {i}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="bs-range-field">
-              <span>To:</span>
-              <select
-                className="select bs-range-select"
-                value={toLevel}
-                onChange={(e) => setToLevel(Number(e.target.value))}
-                aria-label="To level"
-              >
-                {Array.from({ length: maxLvl }, (_, i) => i + 1)
-                  .filter((l) => l > fromLevel)
-                  .map((l) => (
-                    <option key={l} value={l}>
-                      Lvl {l}
-                    </option>
-                  ))}
-              </select>
-            </label>
-          </div>
-
-          {/* Quick Range Presets */}
-          <div className="bs-range-presets">
+        {/* Range Selection Instructions / Status */}
+        <div className="bs-selection-bar">
+          <span className="bs-selection-tip">
+            💡 <strong>Interactive Range:</strong> Click row <strong>A</strong> then row <strong>B</strong> in the table below to sum a level range (3rd click resets to full).
+          </span>
+          {rangeSummary.isCustomRange && (
             <button
               type="button"
-              className={`pill pill--tiny ${fromLevel === 0 && toLevel === maxLvl ? 'pill--primary' : ''}`}
-              onClick={() => setRangePreset(0, maxLvl)}
+              className="pill pill--tiny pill--secondary"
+              onClick={() =>
+                setSelection({
+                  step: 0,
+                  firstLevel: null,
+                  startLevel: 0,
+                  endLevel: maxLvl,
+                })
+              }
             >
-              Lvl 0 → {maxLvl} (Max)
+              Reset to Full (Lvl 0 → {maxLvl})
             </button>
-            <button
-              type="button"
-              className={`pill pill--tiny ${fromLevel === 0 && toLevel === 10 ? 'pill--primary' : ''}`}
-              onClick={() => setRangePreset(0, 10)}
-            >
-              Lvl 0 → 10
-            </button>
-            <button
-              type="button"
-              className={`pill pill--tiny ${fromLevel === 10 && toLevel === 20 ? 'pill--primary' : ''}`}
-              onClick={() => setRangePreset(10, 20)}
-            >
-              Lvl 10 → 20
-            </button>
-            {isCityBuilding && (
-              <button
-                type="button"
-                className={`pill pill--tiny ${fromLevel === 20 && toLevel === 22 ? 'pill--primary' : ''}`}
-                onClick={() => setRangePreset(20, 22)}
-              >
-                Lvl 20 → 22 (City)
-              </button>
-            )}
-          </div>
+          )}
         </div>
 
-        {/* Dynamic Range Summary Cards */}
+        {/* Dynamic Summary Cards */}
         <div className="bs-summary-grid">
           <div className="bs-summary-card">
             <span className="bs-summary-card__label">
@@ -553,18 +520,19 @@ export function BuildingStats() {
                 const baseTime = lvl.time ?? 0;
                 const scaledTime = lvl.time !== null ? (baseTime * thFactor) / serverSpeed : null;
                 const isCityLevel = lvl.level > 20;
-                const isInRange = lvl.level > fromLevel && lvl.level <= toLevel;
+                const isInRange = selection.step > 0 && lvl.level > selection.startLevel && lvl.level <= selection.endLevel;
 
                 const effectsList = Object.entries(lvl.effects || {})
                   .map(([k, v]) => formatEffectLabel(k, v))
                   .filter(Boolean);
+                const effectsText = effectsList.join(' · ');
 
                 return (
                   <tr
                     key={lvl.level}
                     className={`bs-tr ${isCityLevel ? 'bs-tr--city' : ''} ${isInRange ? 'is-in-range' : ''}`}
                     onClick={() => handleRowClick(lvl.level)}
-                    title={`Click to set summary range to Level ${lvl.level}`}
+                    title={`Click to set range at Level ${lvl.level}`}
                   >
                     <td className="bs-td bs-td--sticky bs-td--lvl">
                       <strong>Lvl {lvl.level}</strong>
@@ -622,15 +590,9 @@ export function BuildingStats() {
                     <td className="bs-td bs-td--time">
                       {formatTimeSeconds(scaledTime)}
                     </td>
-                    <td className="bs-td bs-td--effects">
-                      {effectsList.length > 0 ? (
-                        <div className="bs-effects-list">
-                          {effectsList.map((eff, i) => (
-                            <span key={i} className="bs-effect-pill">
-                              {eff}
-                            </span>
-                          ))}
-                        </div>
+                    <td className="bs-td bs-td--effects" title={effectsText || undefined}>
+                      {effectsText ? (
+                        <span className="bs-effect-text">{effectsText}</span>
                       ) : (
                         <span className="bs-no-effect">—</span>
                       )}
