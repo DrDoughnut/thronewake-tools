@@ -46,10 +46,10 @@ describe('BuildingStats Component & Effect Helpers', () => {
     window.location.hash = '';
   });
 
-  it('renders default building modal (Town Hall / GID 15) with hero details, aggregate stats, and level 22 progression', () => {
+  it('renders building modal when requested by URL hash (Town Hall / GID 15)', () => {
     expect(container.textContent).toContain('Town Hall');
     expect(container.textContent).toContain('Infrastructure');
-    expect(container.textContent).toContain('City Upgradeable (Lvl 22)');
+    expect(container.textContent).toContain('City (Lvl 22)');
 
     // Check table headers
     expect(container.textContent).toContain('Wood');
@@ -65,6 +65,27 @@ describe('BuildingStats Component & Effect Helpers', () => {
 
     // Level 22 CP for Town Hall is 110 (from Thronewake game bundle)
     expect(container.textContent).toContain('+110');
+  });
+
+  it('starts with no modal open when no hash parameter is present and opens modal on card click', () => {
+    act(() => root.unmount());
+    window.location.hash = '#tool=buildings';
+    root = createRoot(container);
+    act(() => root.render(<BuildingStats />));
+
+    // No modal should be open initially
+    expect(container.querySelector('.bs-modal-content')).toBeNull();
+
+    // Click Warehouse card
+    const whCard = [...container.querySelectorAll('.bs-card')].find(
+      (c) => c.textContent?.includes('Warehouse')
+    ) as HTMLElement;
+    expect(whCard).toBeTruthy();
+    click(whCard);
+
+    // Modal is now open
+    expect(container.querySelector('.bs-modal-content')).toBeTruthy();
+    expect(container.querySelector('.bs-hero__title')?.textContent).toBe('Warehouse');
   });
 
   it('displays all 3 categories (Resources, Infrastructure, Military) horizontally with all buildings visible', () => {

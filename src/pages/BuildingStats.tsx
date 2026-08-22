@@ -7,7 +7,7 @@ import {
   formatEffectLabel,
   describePrerequisites,
 } from '../data/buildingEffects';
-import { CITY_UPGRADEABLE_GIDS, TOWN_HALL_GID } from '../engine/cpOptimizer';
+import { CITY_UPGRADEABLE_GIDS } from '../engine/cpOptimizer';
 
 const SPEED_OPTIONS = [1, 2, 3, 5] as const;
 type ServerSpeed = (typeof SPEED_OPTIONS)[number];
@@ -29,7 +29,7 @@ export function BuildingStats() {
       const found = BUILDINGS.find((b) => b.slug === bSlug);
       if (found) return found.gid;
     }
-    return TOWN_HALL_GID; // Default Town Hall
+    return null; // Default: closed (no modal open)
   }, [hashParams]);
 
   const initialTh = useMemo(() => {
@@ -92,6 +92,17 @@ export function BuildingStats() {
       window.history.replaceState(null, '', newHash);
     }
   }, [selectedBuilding, thLevel, serverSpeed]);
+
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (selectedBuilding) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [selectedBuilding]);
 
   // Reset range selection when switching buildings
   useEffect(() => {
@@ -376,18 +387,12 @@ export function BuildingStats() {
             aria-modal="true"
             aria-label={`${selectedBuilding.name} Stats & Details`}
           >
-            {/* Top-Right Absolute Close Button */}
-            <button
-              type="button"
-              className="bs-modal-close"
-              onClick={closeModal}
-              title="Close (Esc)"
-              aria-label="Close modal"
-            >
-              ✕
-            </button>
+            {/* Mobile Sheet Drag / Dismiss Handle */}
+            <div className="bs-modal-handle-bar" onClick={closeModal} title="Tap to close" aria-label="Close modal">
+              <div className="bs-modal-handle" />
+            </div>
 
-            {/* Modal Header: Hero Info */}
+            {/* Sticky Modal Header Bar: Hero Info + Permanent Close Button */}
             <div className="bs-modal-header">
               <div className="bs-hero__main">
                 {buildingIcon(selectedBuilding.gid) && (
@@ -406,28 +411,40 @@ export function BuildingStats() {
                     </span>
                     {isCityBuilding && (
                       <span className="pill pill--tiny pill--accent">
-                        🏙️ City Upgradeable (Lvl 22)
+                        🏙️ City (Lvl 22)
                       </span>
                     )}
                   </div>
                   <p className="bs-hero__description">
-                    Base Culture Points: <strong>+{selectedBuilding.cultureBase} CP/day</strong> · Max Level: <strong>{selectedBuilding.maxLevel}</strong>
+                    Base CP: <strong>+{selectedBuilding.cultureBase} CP/day</strong> · Max Level: <strong>{selectedBuilding.maxLevel}</strong>
                   </p>
-                  {prereqDescriptions.length > 0 && (
-                    <div className="bs-hero__prereqs">
-                      <span className="bs-hero__prereqs-label">Prerequisites:</span>
-                      <div className="bs-hero__prereqs-list">
-                        {prereqDescriptions.map((req, idx) => (
-                          <span key={idx} className="bs-prereq-badge">
-                            {req}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
+
+              <button
+                type="button"
+                className="bs-modal-close"
+                onClick={closeModal}
+                title="Close (Esc)"
+                aria-label="Close modal"
+              >
+                ✕
+              </button>
             </div>
+
+            {/* Prerequisites */}
+            {prereqDescriptions.length > 0 && (
+              <div className="bs-hero__prereqs">
+                <span className="bs-hero__prereqs-label">Prerequisites:</span>
+                <div className="bs-hero__prereqs-list">
+                  {prereqDescriptions.map((req, idx) => (
+                    <span key={idx} className="bs-prereq-badge">
+                      {req}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Compact Modifiers Strip: Town Hall Dropdown & Server Speed */}
             <div className="bs-modal-modifiers">

@@ -3724,17 +3724,42 @@ select:focus, .select:focus, .text-input:focus {
   max-width: 1160px;
   max-height: 92vh;
   overflow-y: auto;
-  padding: 16px 18px;
+  padding: 14px 18px 18px 18px;
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
+.bs-modal-handle-bar {
+  display: none;
+  width: 100%;
+  padding: 2px 0 6px 0;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+}
+
+.bs-modal-handle {
+  width: 40px;
+  height: 4px;
+  background: hsl(220, 15%, 35%);
+  border-radius: 2px;
+}
+
+.bs-modal-header {
+  position: sticky;
+  top: -14px;
+  z-index: 20;
+  background: hsl(220, 18%, 10%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0 8px 0;
+  border-bottom: 1px solid hsl(220, 15%, 18%);
+}
+
 .bs-modal-close {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-  z-index: 10;
   background: hsl(220, 18%, 16%);
   border: 1px solid hsl(220, 15%, 25%);
   color: var(--text-dim);
@@ -3746,6 +3771,7 @@ select:focus, .select:focus, .text-input:focus {
   justify-content: center;
   cursor: pointer;
   font-size: 15px;
+  flex-shrink: 0;
   transition: all 0.15s ease;
 }
 .bs-modal-close:hover {
@@ -3754,18 +3780,12 @@ select:focus, .select:focus, .text-input:focus {
   color: #fff;
 }
 
-.bs-modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-right: 42px;
-}
-
 .bs-hero__main {
   display: flex;
   align-items: center;
   gap: 12px;
-  width: 100%;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .bs-hero__icon {
@@ -4171,28 +4191,30 @@ select:focus, .select:focus, .text-input:focus {
   .bs-modal-content {
     width: 100%;
     max-width: 100vw;
-    max-height: 92vh;
-    border-radius: 14px 14px 0 0;
-    padding: 12px 10px;
+    max-height: 85vh;
+    border-radius: 16px 16px 0 0;
+    padding: 8px 12px 16px 12px;
     gap: 8px;
     border-bottom: none;
   }
-  .bs-modal-close {
-    top: 10px;
-    right: 10px;
-    width: 28px;
-    height: 28px;
-    font-size: 13px;
+  .bs-modal-handle-bar {
+    display: flex;
   }
   .bs-modal-header {
-    padding-right: 36px;
+    top: -8px;
+    padding: 2px 0 6px 0;
+  }
+  .bs-modal-close {
+    width: 30px;
+    height: 30px;
+    font-size: 14px;
   }
   .bs-hero__icon {
-    width: 36px;
-    height: 36px;
+    width: 34px;
+    height: 34px;
   }
   .bs-hero__title {
-    font-size: 16px;
+    font-size: 15px;
   }
   .bs-hero__description {
     font-size: 11px;
