@@ -106,5 +106,11 @@ export const buildingIcon = (gidOrSlug: number | string): string | undefined => 
     if (key && buildingIcons.has(key)) return buildingIcons.get(key);
   }
   const cleanSlug = String(gidOrSlug).replace(/-/g, '_').toLowerCase();
+  if (cleanSlug === 'town_hall') {
+    return buildingIcons.get('main_building') || buildingIcons.get('town_hall');
+  }
+  if (cleanSlug === 'festival_grounds') {
+    return buildingIcons.get('town_hall');
+  }
   return buildingIcons.get(cleanSlug);
 };

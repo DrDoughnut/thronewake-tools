@@ -21,7 +21,9 @@ export const NO_CP_SENTINEL = 9999999999999;
 
 export const WAREHOUSE_GID = 10;
 export const GRANARY_GID = 11;
-export const MAIN_BUILDING_GID = 15;
+export const TOWN_HALL_GID = 15;
+export const MAIN_BUILDING_GID = 15; // alias for backwards compatibility
+export const FESTIVAL_GROUNDS_GID = 24;
 export const RESIDENCE_GID = 25;
 export const PALACE_GID = 26;
 export const HERBALIST_GID = 46;
@@ -34,14 +36,14 @@ export const BASE_BUILDING_SLOTS = 20;
 export const CITY_EXTRA_SLOTS = 3;
 
 // Buildings that can reach level 22 in a City:
-// Warehouse (10), Granary (11), Barracks (19), Stable (20), Workshop (21), Town Hall (24)
+// Warehouse (10), Granary (11), Town Hall (15), Barracks (19), Stable (20), Workshop (21)
 export const CITY_UPGRADEABLE_GIDS = new Set([
   WAREHOUSE_GID, // 10
   GRANARY_GID,   // 11
+  TOWN_HALL_GID, // 15
   19,            // Barracks
   20,            // Stable
   21,            // Workshop
-  24,            // Town Hall
 ]);
 
 // Herbalist (46), Warehouse (10), Granary (11), Cranny (23), Trapper (36)

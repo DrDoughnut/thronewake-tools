@@ -640,9 +640,9 @@ describe('the CP optimizer tool', () => {
     expect(container.textContent).toContain('Shared Building Slots');
     expect(container.textContent).toContain('Recommended Build Order');
 
-    // Initial building: Main Building Lvl 1
+    // Initial building: Town Hall Lvl 1
     expect(container.querySelectorAll('.cp-building-row')).toHaveLength(1);
-    expect(container.textContent).toContain('Main Building');
+    expect(container.textContent).toContain('Town Hall');
 
     // Recommendations list
     const recCards = container.querySelectorAll('.cp-rec-card');
@@ -833,9 +833,9 @@ describe('the Building Stats tool', () => {
     expect(window.location.hash).toContain('tool=buildings');
     expect(container.textContent).toContain('Building Stats');
     expect(container.textContent).toContain('Town Hall');
-    expect(container.textContent).toContain('Main Building Level:');
-    expect(container.textContent).toContain('🪵 Wood');
-    expect(container.textContent).toContain('Total Cost to Lvl');
+    expect(container.textContent).toContain('Town Hall Level:');
+    expect(container.textContent).toContain('Wood');
+    expect(container.textContent).toContain('Total Cost');
 
     // Table rows exist
     const rows = container.querySelectorAll('.bs-table tbody tr');

@@ -1,26 +1,20 @@
 import { useState, useMemo, useEffect } from 'react';
 import { BUILDINGS, BUILDINGS_BY_GID, type CatalogBuilding } from '../data/buildingCatalog';
-import { buildingIcon } from '../icons';
+import { buildingIcon, statIcon } from '../icons';
 import {
-  getMainBuildingFactor,
+  getTownHallFactor,
   formatTimeSeconds,
   formatEffectLabel,
   describePrerequisites,
 } from '../data/buildingEffects';
-import { CITY_UPGRADEABLE_GIDS } from '../engine/cpOptimizer';
+import { CITY_UPGRADEABLE_GIDS, TOWN_HALL_GID } from '../engine/cpOptimizer';
 
-const CATEGORIES = ['All', 'Resources', 'Infrastructure', 'Military'] as const;
-type Category = (typeof CATEGORIES)[number];
+const SPEED_OPTIONS = [1, 2, 3, 5] as const;
+type ServerSpeed = (typeof SPEED_OPTIONS)[number];
 
-const TRIBES = [
-  { id: 'all', name: 'All Tribes' },
-  { id: 'embermark', name: 'Embermark Dominion', vid: 1 },
-  { id: 'stormfang', name: 'Stormfang Clans', vid: 2 },
-  { id: 'vaeloria', name: 'Vaeloria', vid: 3 },
-] as const;
+const CATEGORIES = ['Resources', 'Infrastructure', 'Military'] as const;
 
 export function BuildingStats() {
-  // Read initial building and MB level from URL hash
   const hashParams = useMemo(() => {
     return new URLSearchParams(window.location.hash.replace(/^#/, ''));
   }, []);
@@ -32,221 +26,249 @@ export function BuildingStats() {
     }
     const slugParam = hashParams.get('b');
     if (slugParam) {
-      const found = BUILDINGS.find((b) => b.slug === slugParam);
+      const found = BUILDINGS.find(
+        (b) => b.slug === slugParam || (slugParam === 'main-building' && b.gid === TOWN_HALL_GID)
+      );
       if (found) return found.gid;
     }
-    return 24; // Default to Town Hall (GID 24)
+    return TOWN_HALL_GID; // Default to Town Hall (GID 15)
   }, [hashParams]);
 
-  const initialMb = useMemo(() => {
-    const mbParam = Number(hashParams.get('mb'));
-    return mbParam >= 1 && mbParam <= 20 ? mbParam : 20;
+  const initialTh = useMemo(() => {
+    const thParam = Number(hashParams.get('th') || hashParams.get('mb'));
+    return thParam >= 1 && thParam <= 22 ? thParam : 20;
+  }, [hashParams]);
+
+  const initialSpeed = useMemo(() => {
+    const speedParam = Number(hashParams.get('speed'));
+    return (SPEED_OPTIONS as readonly number[]).includes(speedParam)
+      ? (speedParam as ServerSpeed)
+      : 1;
   }, [hashParams]);
 
   const [selectedGid, setSelectedGid] = useState<number>(initialGid);
-  const [selectedCategory, setSelectedCategory] = useState<Category>('All');
-  const [selectedTribe, setSelectedTribe] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [mbLevel, setMbLevel] = useState<number>(initialMb);
+  const [thLevel, setThLevel] = useState<number>(initialTh);
+  const [serverSpeed, setServerSpeed] = useState<ServerSpeed>(initialSpeed);
+
+  const selectedBuilding: CatalogBuilding =
+    BUILDINGS_BY_GID.get(selectedGid) || BUILDINGS_BY_GID.get(TOWN_HALL_GID) || BUILDINGS[0];
+
+  const isCityBuilding = CITY_UPGRADEABLE_GIDS.has(selectedBuilding.gid);
+  const maxLvl = selectedBuilding.levels.length;
+
+  // Range selection for multi-level cost / time / stat summation
+  const [fromLevel, setFromLevel] = useState<number>(0);
+  const [toLevel, setToLevel] = useState<number>(maxLvl);
+
+  // When building changes, reset range to 0 -> maxLvl
+  useEffect(() => {
+    setFromLevel(0);
+    setToLevel(selectedBuilding.levels.length);
+  }, [selectedGid, selectedBuilding.levels.length]);
 
   // Sync state to URL hash
   useEffect(() => {
     const currentParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-    const building = BUILDINGS_BY_GID.get(selectedGid);
-    if (!building) return;
-
     currentParams.set('tool', 'buildings');
-    currentParams.set('b', building.slug);
-    currentParams.set('mb', String(mbLevel));
+    currentParams.set('b', selectedBuilding.slug);
+    currentParams.set('th', String(thLevel));
+    if (serverSpeed > 1) {
+      currentParams.set('speed', String(serverSpeed));
+    } else {
+      currentParams.delete('speed');
+    }
 
     window.history.replaceState(null, '', `${window.location.pathname}#${currentParams.toString()}`);
-  }, [selectedGid, mbLevel]);
+  }, [selectedBuilding.slug, thLevel, serverSpeed]);
 
-  const selectedBuilding: CatalogBuilding =
-    BUILDINGS_BY_GID.get(selectedGid) || BUILDINGS[0];
+  const thFactor = useMemo(() => getTownHallFactor(thLevel), [thLevel]);
 
-  const mbFactor = useMemo(() => getMainBuildingFactor(mbLevel), [mbLevel]);
+  // Buildings partitioned by category
+  const categorizedBuildings = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    const filterFn = (b: CatalogBuilding) => {
+      if (!q) return true;
+      return (
+        b.name.toLowerCase().includes(q) ||
+        b.category.toLowerCase().includes(q) ||
+        b.slug.toLowerCase().includes(q)
+      );
+    };
 
-  // Filtered buildings list
-  const filteredBuildings = useMemo(() => {
-    return BUILDINGS.filter((b) => {
-      // Category filter
-      if (selectedCategory !== 'All' && b.category !== selectedCategory) {
-        return false;
-      }
+    return {
+      Resources: BUILDINGS.filter((b) => b.category === 'Resources' && filterFn(b)),
+      Infrastructure: BUILDINGS.filter((b) => b.category === 'Infrastructure' && filterFn(b)),
+      Military: BUILDINGS.filter((b) => b.category === 'Military' && filterFn(b)),
+    };
+  }, [searchQuery]);
 
-      // Tribe filter
-      if (selectedTribe !== 'all') {
-        const tribeObj = TRIBES.find((t) => t.id === selectedTribe);
-        if (tribeObj && 'vid' in tribeObj) {
-          const tribePrereq = b.prerequisites.find((p) => p.type === 'Tribe');
-          if (tribePrereq && tribePrereq.vid && !tribePrereq.vid.includes(tribeObj.vid)) {
-            return false;
-          }
-        }
-      }
+  // Range summary calculations (fromLevel -> toLevel)
+  const rangeSummary = useMemo(() => {
+    const startIdx = Math.max(0, Math.min(fromLevel, maxLvl));
+    const endIdx = Math.max(startIdx, Math.min(toLevel, maxLvl));
 
-      // Search query filter
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim();
-        const matchName = b.name.toLowerCase().includes(q);
-        const matchCategory = b.category.toLowerCase().includes(q);
-        const matchSlug = b.slug.toLowerCase().includes(q);
-        return matchName || matchCategory || matchSlug;
-      }
-
-      return true;
-    });
-  }, [selectedCategory, selectedTribe, searchQuery]);
-
-  // Aggregate stats across all levels
-  const totals = useMemo(() => {
     let wood = 0;
     let clay = 0;
     let iron = 0;
     let crop = 0;
     let time = 0;
 
-    for (const lvl of selectedBuilding.levels) {
+    for (let i = startIdx; i < endIdx; i++) {
+      const lvl = selectedBuilding.levels[i];
+      if (!lvl) continue;
       wood += lvl.wood;
       clay += lvl.clay;
       iron += lvl.iron;
       crop += lvl.crop;
-      time += (lvl.time ?? 0) * mbFactor;
+      const baseTime = lvl.time ?? 0;
+      time += (baseTime * thFactor) / serverSpeed;
     }
 
     const totalCost = wood + clay + iron + crop;
-    const maxLevelDetail = selectedBuilding.levels[selectedBuilding.levels.length - 1];
-    const maxPop = maxLevelDetail ? maxLevelDetail.pop : 0;
-    const maxCp = maxLevelDetail ? maxLevelDetail.cp : 0;
+    const startPop = startIdx > 0 ? selectedBuilding.levels[startIdx - 1]?.pop || 0 : 0;
+    const endPop = endIdx > 0 ? selectedBuilding.levels[endIdx - 1]?.pop || 0 : 0;
+    const popGain = endPop - startPop;
+
+    const startCp = startIdx > 0 ? selectedBuilding.levels[startIdx - 1]?.cp || 0 : 0;
+    const endCp = endIdx > 0 ? selectedBuilding.levels[endIdx - 1]?.cp || 0 : 0;
+    const cpGain = endCp - startCp;
 
     return {
+      startLevel: startIdx,
+      endLevel: endIdx,
       wood,
       clay,
       iron,
       crop,
       totalCost,
       totalTime: time,
-      maxPop,
-      maxCp,
-      levelCount: selectedBuilding.levels.length,
+      popGain,
+      cpGain,
+      levelsCount: endIdx - startIdx,
     };
-  }, [selectedBuilding, mbFactor]);
+  }, [selectedBuilding, fromLevel, toLevel, maxLvl, thFactor, serverSpeed]);
 
   const prereqDescriptions = useMemo(
     () => describePrerequisites(selectedBuilding),
     [selectedBuilding]
   );
 
-  const isCityBuilding = CITY_UPGRADEABLE_GIDS.has(selectedBuilding.gid);
+  // Quick Range Presets
+  const setRangePreset = (start: number, end: number) => {
+    setFromLevel(Math.max(0, Math.min(start, maxLvl)));
+    setToLevel(Math.max(start, Math.min(end, maxLvl)));
+  };
+
+  // Row click range selection handler
+  const handleRowClick = (lvlNum: number) => {
+    if (fromLevel === 0 && toLevel === maxLvl) {
+      // First click: select 0 -> this level
+      setFromLevel(0);
+      setToLevel(lvlNum);
+    } else if (fromLevel === 0 && toLevel === lvlNum) {
+      // Toggle back to full
+      setFromLevel(0);
+      setToLevel(maxLvl);
+    } else if (lvlNum > fromLevel) {
+      setToLevel(lvlNum);
+    } else {
+      setFromLevel(Math.max(0, lvlNum - 1));
+      setToLevel(maxLvl);
+    }
+  };
+
+  const woodIcon = statIcon('res_wood');
+  const clayIcon = statIcon('res_clay');
+  const ironIcon = statIcon('res_iron');
+  const cropIcon = statIcon('res_crop');
 
   return (
     <div className="bs-container">
-      {/* Top Filter & Search Bar */}
-      <div className="bs-filter-card">
-        <div className="bs-filter-header">
-          <div className="bs-filter-tabs" role="tablist" aria-label="Building Categories">
-            {CATEGORIES.map((cat) => {
-              const count =
-                cat === 'All'
-                  ? BUILDINGS.length
-                  : BUILDINGS.filter((b) => b.category === cat).length;
-              return (
-                <button
-                  key={cat}
-                  type="button"
-                  role="tab"
-                  aria-selected={selectedCategory === cat}
-                  className={`pill ${selectedCategory === cat ? 'pill--primary' : ''}`}
-                  onClick={() => setSelectedCategory(cat)}
-                >
-                  {cat} <span className="bs-badge-count">({count})</span>
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="bs-search-row">
-            <div className="bs-search-box">
-              <span className="bs-search-icon" aria-hidden="true">🔍</span>
-              <input
-                type="text"
-                className="input-text bs-search-input"
-                placeholder="Search buildings..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                aria-label="Search buildings"
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  className="bs-search-clear"
-                  onClick={() => setSearchQuery('')}
-                  title="Clear search"
-                  aria-label="Clear search"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-
-            <select
-              className="select bs-tribe-select"
-              value={selectedTribe}
-              onChange={(e) => setSelectedTribe(e.target.value)}
-              aria-label="Filter by tribe"
-            >
-              {TRIBES.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Building Cards Grid */}
-        <div className="bs-grid" role="listbox" aria-label="Select building">
-          {filteredBuildings.map((b) => {
-            const isSelected = b.gid === selectedBuilding.gid;
-            const iconUrl = buildingIcon(b.gid);
-            const isCity = CITY_UPGRADEABLE_GIDS.has(b.gid);
-
-            return (
+      {/* Search Bar */}
+      <div className="bs-search-card">
+        <div className="bs-search-row">
+          <div className="bs-search-box">
+            <span className="bs-search-icon" aria-hidden="true">🔍</span>
+            <input
+              type="text"
+              className="input-text bs-search-input"
+              placeholder="Search all 37 buildings..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              aria-label="Search buildings"
+            />
+            {searchQuery && (
               <button
-                key={b.gid}
                 type="button"
-                role="option"
-                aria-selected={isSelected}
-                className={`bs-card ${isSelected ? 'is-selected' : ''}`}
-                onClick={() => setSelectedGid(b.gid)}
+                className="bs-search-clear"
+                onClick={() => setSearchQuery('')}
+                title="Clear search"
+                aria-label="Clear search"
               >
-                {iconUrl && (
-                  <img
-                    src={iconUrl}
-                    alt=""
-                    className="bs-card__icon"
-                    aria-hidden="true"
-                  />
-                )}
-                <div className="bs-card__info">
-                  <strong className="bs-card__name">{b.name}</strong>
-                  <span className="bs-card__meta">
-                    {b.category} · Max Lvl {isCity ? '20 (22 City)' : b.maxLevel}
-                  </span>
-                </div>
+                ✕
               </button>
-            );
-          })}
-          {filteredBuildings.length === 0 && (
-            <div className="bs-grid-empty">
-              No buildings found matching &quot;{searchQuery}&quot;.
-            </div>
-          )}
+            )}
+          </div>
+          <span className="bs-search-hint">
+            Click any building below to inspect complete stats, upgrade costs, and building effects.
+          </span>
         </div>
       </div>
 
-      {/* Selected Building Detail & Stats */}
+      {/* 3 Categories Section (All 37 Buildings Visible Without Internal Scroll) */}
+      <div className="bs-catalog-sections">
+        {CATEGORIES.map((cat) => {
+          const list = categorizedBuildings[cat];
+          if (list.length === 0) return null;
+
+          const catEmoji = cat === 'Resources' ? '🌾' : cat === 'Infrastructure' ? '🏛️' : '⚔️';
+
+          return (
+            <div key={cat} className="bs-catalog-section">
+              <h3 className="bs-catalog-section__title">
+                <span>{catEmoji} {cat}</span>
+                <span className="bs-badge-count">({list.length})</span>
+              </h3>
+              <div className="bs-grid" role="listbox" aria-label={`${cat} buildings`}>
+                {list.map((b) => {
+                  const isSelected = b.gid === selectedBuilding.gid;
+                  const iconUrl = buildingIcon(b.gid);
+                  const isCity = CITY_UPGRADEABLE_GIDS.has(b.gid);
+
+                  return (
+                    <button
+                      key={b.gid}
+                      type="button"
+                      role="option"
+                      aria-selected={isSelected}
+                      className={`bs-card ${isSelected ? 'is-selected' : ''}`}
+                      onClick={() => setSelectedGid(b.gid)}
+                    >
+                      {iconUrl && (
+                        <img
+                          src={iconUrl}
+                          alt=""
+                          className="bs-card__icon"
+                          aria-hidden="true"
+                        />
+                      )}
+                      <div className="bs-card__info">
+                        <strong className="bs-card__name">{b.name}</strong>
+                        <span className="bs-card__meta">
+                          Max Lvl {isCity ? '20 (22 City)' : b.maxLevel}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Selected Building Detail Panel */}
       <div className="bs-detail-panel">
         {/* Building Hero Header */}
         <div className="bs-hero">
@@ -291,81 +313,196 @@ export function BuildingStats() {
             </div>
           </div>
 
-          {/* Main Building Slider Controller */}
+          {/* Construction Modifiers Controller */}
           <div className="bs-hero__controls">
-            <div className="bs-mb-control">
-              <div className="bs-mb-control__header">
-                <label htmlFor="bs-mb-slider" className="bs-mb-control__label">
-                  Main Building Level: <strong>Lvl {mbLevel}</strong>
-                </label>
-                <span className="bs-mb-control__factor">
-                  Build Speed: <strong>{(100 / mbFactor).toFixed(0)}%</strong> ({(mbFactor * 100).toFixed(1)}% time)
-                </span>
+            <div className="bs-modifiers-box">
+              {/* Town Hall Slider */}
+              <div className="bs-th-control">
+                <div className="bs-th-control__header">
+                  <label htmlFor="bs-th-slider" className="bs-th-control__label">
+                    Town Hall Level: <strong>Lvl {thLevel}</strong>
+                  </label>
+                  <span className="bs-th-control__factor">
+                    {(100 / thFactor).toFixed(0)}% Speed ({(thFactor * 100).toFixed(1)}% time)
+                  </span>
+                </div>
+                <input
+                  id="bs-th-slider"
+                  type="range"
+                  min={1}
+                  max={22}
+                  step={1}
+                  value={thLevel}
+                  onChange={(e) => setThLevel(Number(e.target.value))}
+                  className="bs-mb-slider"
+                  aria-label="Town Hall Level Slider"
+                />
+                <div className="bs-mb-ticks">
+                  <span>L1</span>
+                  <span>L5</span>
+                  <span>L10</span>
+                  <span>L15</span>
+                  <span>L20</span>
+                  <span>L22</span>
+                </div>
               </div>
-              <input
-                id="bs-mb-slider"
-                type="range"
-                min={1}
-                max={20}
-                step={1}
-                value={mbLevel}
-                onChange={(e) => setMbLevel(Number(e.target.value))}
-                className="bs-mb-slider"
-                aria-label="Main Building Level Slider"
-              />
-              <div className="bs-mb-ticks">
-                <span>Lvl 1</span>
-                <span>Lvl 5</span>
-                <span>Lvl 10</span>
-                <span>Lvl 15</span>
-                <span>Lvl 20</span>
+
+              {/* Server Speed Selector */}
+              <div className="bs-speed-control">
+                <span className="bs-speed-control__label">Server Speed:</span>
+                <div className="bs-speed-buttons">
+                  {SPEED_OPTIONS.map((spd) => (
+                    <button
+                      key={spd}
+                      type="button"
+                      className={`pill pill--tiny ${serverSpeed === spd ? 'pill--primary' : ''}`}
+                      onClick={() => setServerSpeed(spd)}
+                    >
+                      {spd}x
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Aggregate Summary Stats */}
+        {/* Range Level Selector & Presets */}
+        <div className="bs-range-toolbar">
+          <div className="bs-range-inputs">
+            <span className="bs-range-label">Summary Range:</span>
+            <label className="bs-range-field">
+              <span>From:</span>
+              <select
+                className="select bs-range-select"
+                value={fromLevel}
+                onChange={(e) => setFromLevel(Number(e.target.value))}
+                aria-label="From level"
+              >
+                {Array.from({ length: maxLvl }, (_, i) => (
+                  <option key={i} value={i}>
+                    Lvl {i}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="bs-range-field">
+              <span>To:</span>
+              <select
+                className="select bs-range-select"
+                value={toLevel}
+                onChange={(e) => setToLevel(Number(e.target.value))}
+                aria-label="To level"
+              >
+                {Array.from({ length: maxLvl }, (_, i) => i + 1)
+                  .filter((l) => l > fromLevel)
+                  .map((l) => (
+                    <option key={l} value={l}>
+                      Lvl {l}
+                    </option>
+                  ))}
+              </select>
+            </label>
+          </div>
+
+          {/* Quick Range Presets */}
+          <div className="bs-range-presets">
+            <button
+              type="button"
+              className={`pill pill--tiny ${fromLevel === 0 && toLevel === maxLvl ? 'pill--primary' : ''}`}
+              onClick={() => setRangePreset(0, maxLvl)}
+            >
+              Lvl 0 → {maxLvl} (Max)
+            </button>
+            <button
+              type="button"
+              className={`pill pill--tiny ${fromLevel === 0 && toLevel === 10 ? 'pill--primary' : ''}`}
+              onClick={() => setRangePreset(0, 10)}
+            >
+              Lvl 0 → 10
+            </button>
+            <button
+              type="button"
+              className={`pill pill--tiny ${fromLevel === 10 && toLevel === 20 ? 'pill--primary' : ''}`}
+              onClick={() => setRangePreset(10, 20)}
+            >
+              Lvl 10 → 20
+            </button>
+            {isCityBuilding && (
+              <button
+                type="button"
+                className={`pill pill--tiny ${fromLevel === 20 && toLevel === 22 ? 'pill--primary' : ''}`}
+                onClick={() => setRangePreset(20, 22)}
+              >
+                Lvl 20 → 22 (City)
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Dynamic Range Summary Cards */}
         <div className="bs-summary-grid">
           <div className="bs-summary-card">
-            <span className="bs-summary-card__label">Total Cost to Lvl {totals.levelCount}</span>
+            <span className="bs-summary-card__label">
+              Total Cost (Lvl {rangeSummary.startLevel} → {rangeSummary.endLevel})
+            </span>
             <strong className="bs-summary-card__value">
-              {totals.totalCost.toLocaleString()} <small>res</small>
+              {rangeSummary.totalCost.toLocaleString()} <small>res</small>
             </strong>
-            <div className="bs-summary-card__sub">
-              <span>🪵 {totals.wood.toLocaleString()}</span>
-              <span>🧱 {totals.clay.toLocaleString()}</span>
-              <span>⛏️ {totals.iron.toLocaleString()}</span>
-              <span>🌾 {totals.crop.toLocaleString()}</span>
+            <div className="bs-summary-card__res-row">
+              <span className="bs-res-item">
+                {woodIcon && <img src={woodIcon} alt="Wood" className="bs-res-icon" />}
+                {rangeSummary.wood.toLocaleString()}
+              </span>
+              <span className="bs-res-item">
+                {clayIcon && <img src={clayIcon} alt="Clay" className="bs-res-icon" />}
+                {rangeSummary.clay.toLocaleString()}
+              </span>
+              <span className="bs-res-item">
+                {ironIcon && <img src={ironIcon} alt="Iron" className="bs-res-icon" />}
+                {rangeSummary.iron.toLocaleString()}
+              </span>
+              <span className="bs-res-item">
+                {cropIcon && <img src={cropIcon} alt="Crop" className="bs-res-icon" />}
+                {rangeSummary.crop.toLocaleString()}
+              </span>
             </div>
           </div>
 
           <div className="bs-summary-card">
-            <span className="bs-summary-card__label">Total Construction Time</span>
+            <span className="bs-summary-card__label">
+              Total Build Time ({rangeSummary.levelsCount} {rangeSummary.levelsCount === 1 ? 'level' : 'levels'})
+            </span>
             <strong className="bs-summary-card__value">
-              {formatTimeSeconds(totals.totalTime)}
+              {formatTimeSeconds(rangeSummary.totalTime)}
             </strong>
             <span className="bs-summary-card__sub">
-              Calculated at Main Building Lvl {mbLevel}
+              Town Hall Lvl {thLevel} · {serverSpeed}x Speed
             </span>
           </div>
 
           <div className="bs-summary-card">
-            <span className="bs-summary-card__label">Total Population at Max</span>
+            <span className="bs-summary-card__label">Population Gained</span>
             <strong className="bs-summary-card__value">
-              +{totals.maxPop} <small>Pop</small>
+              +{rangeSummary.popGain} <small>Pop</small>
             </strong>
             <span className="bs-summary-card__sub">
-              ~{(totals.totalCost / (totals.maxPop || 1)).toFixed(0)} res / Pop
+              {rangeSummary.popGain > 0
+                ? `~${Math.round(rangeSummary.totalCost / rangeSummary.popGain).toLocaleString()} res / Pop`
+                : '0 Pop'}
             </span>
           </div>
 
           <div className="bs-summary-card">
-            <span className="bs-summary-card__label">Culture Points at Max</span>
+            <span className="bs-summary-card__label">Culture Points Gained</span>
             <strong className="bs-summary-card__value">
-              +{totals.maxCp} <small>CP/day</small>
+              +{rangeSummary.cpGain} <small>CP/day</small>
             </strong>
             <span className="bs-summary-card__sub">
-              ~{(totals.totalCost / (totals.maxCp || 1)).toFixed(0)} res / CP
+              {rangeSummary.cpGain > 0
+                ? `~${Math.round(rangeSummary.totalCost / rangeSummary.cpGain).toLocaleString()} res / CP`
+                : '0 CP'}
             </span>
           </div>
         </div>
@@ -376,16 +513,32 @@ export function BuildingStats() {
             <thead>
               <tr>
                 <th className="bs-th bs-th--sticky">Lvl</th>
-                <th className="bs-th">🪵 Wood</th>
-                <th className="bs-th">🧱 Clay</th>
-                <th className="bs-th">⛏️ Iron</th>
-                <th className="bs-th">🌾 Crop</th>
+                <th className="bs-th">
+                  <span className="bs-th-content">
+                    {woodIcon && <img src={woodIcon} alt="" className="bs-res-icon" />} Wood
+                  </span>
+                </th>
+                <th className="bs-th">
+                  <span className="bs-th-content">
+                    {clayIcon && <img src={clayIcon} alt="" className="bs-res-icon" />} Clay
+                  </span>
+                </th>
+                <th className="bs-th">
+                  <span className="bs-th-content">
+                    {ironIcon && <img src={ironIcon} alt="" className="bs-res-icon" />} Iron
+                  </span>
+                </th>
+                <th className="bs-th">
+                  <span className="bs-th-content">
+                    {cropIcon && <img src={cropIcon} alt="" className="bs-res-icon" />} Crop
+                  </span>
+                </th>
                 <th className="bs-th">Total Res</th>
                 <th className="bs-th">Pop (Δ)</th>
                 <th className="bs-th">CP/d (Δ)</th>
                 <th className="bs-th">res / CP</th>
                 <th className="bs-th">res / Pop</th>
-                <th className="bs-th">Build Time (MB {mbLevel})</th>
+                <th className="bs-th">Build Time (TH {thLevel})</th>
                 <th className="bs-th bs-th--effects">Effects & Production</th>
               </tr>
             </thead>
@@ -397,8 +550,10 @@ export function BuildingStats() {
                 const cpDelta = prevLvl ? lvl.cp - prevLvl.cp : lvl.cp;
                 const resPerCp = cpDelta > 0 ? Math.round(levelCost / cpDelta) : null;
                 const resPerPop = popDelta > 0 ? Math.round(levelCost / popDelta) : null;
-                const scaledTime = lvl.time !== null ? lvl.time * mbFactor : null;
+                const baseTime = lvl.time ?? 0;
+                const scaledTime = lvl.time !== null ? (baseTime * thFactor) / serverSpeed : null;
                 const isCityLevel = lvl.level > 20;
+                const isInRange = lvl.level > fromLevel && lvl.level <= toLevel;
 
                 const effectsList = Object.entries(lvl.effects || {})
                   .map(([k, v]) => formatEffectLabel(k, v))
@@ -407,7 +562,9 @@ export function BuildingStats() {
                 return (
                   <tr
                     key={lvl.level}
-                    className={`bs-tr ${isCityLevel ? 'bs-tr--city' : ''}`}
+                    className={`bs-tr ${isCityLevel ? 'bs-tr--city' : ''} ${isInRange ? 'is-in-range' : ''}`}
+                    onClick={() => handleRowClick(lvl.level)}
+                    title={`Click to set summary range to Level ${lvl.level}`}
                   >
                     <td className="bs-td bs-td--sticky bs-td--lvl">
                       <strong>Lvl {lvl.level}</strong>
@@ -417,10 +574,30 @@ export function BuildingStats() {
                         </span>
                       )}
                     </td>
-                    <td className="bs-td">{lvl.wood.toLocaleString()}</td>
-                    <td className="bs-td">{lvl.clay.toLocaleString()}</td>
-                    <td className="bs-td">{lvl.iron.toLocaleString()}</td>
-                    <td className="bs-td">{lvl.crop.toLocaleString()}</td>
+                    <td className="bs-td">
+                      <span className="bs-cell-res">
+                        {woodIcon && <img src={woodIcon} alt="" className="bs-res-icon" />}
+                        {lvl.wood.toLocaleString()}
+                      </span>
+                    </td>
+                    <td className="bs-td">
+                      <span className="bs-cell-res">
+                        {clayIcon && <img src={clayIcon} alt="" className="bs-res-icon" />}
+                        {lvl.clay.toLocaleString()}
+                      </span>
+                    </td>
+                    <td className="bs-td">
+                      <span className="bs-cell-res">
+                        {ironIcon && <img src={ironIcon} alt="" className="bs-res-icon" />}
+                        {lvl.iron.toLocaleString()}
+                      </span>
+                    </td>
+                    <td className="bs-td">
+                      <span className="bs-cell-res">
+                        {cropIcon && <img src={cropIcon} alt="" className="bs-res-icon" />}
+                        {lvl.crop.toLocaleString()}
+                      </span>
+                    </td>
                     <td className="bs-td bs-td--total-cost">
                       <strong>{levelCost.toLocaleString()}</strong>
                     </td>

@@ -1,33 +1,11 @@
 import { BUILDINGS_BY_GID, type CatalogBuilding } from './buildingCatalog';
 
-// Main Building level 1-20 construction time reduction factors
-const MB_FACTORS: Record<number, number> = {
-  1: 1.0,
-  2: 0.964,
-  3: 0.929,
-  4: 0.896,
-  5: 0.864,
-  6: 0.833,
-  7: 0.803,
-  8: 0.774,
-  9: 0.746,
-  10: 0.719,
-  11: 0.693,
-  12: 0.668,
-  13: 0.644,
-  14: 0.621,
-  15: 0.598,
-  16: 0.577,
-  17: 0.556,
-  18: 0.536,
-  19: 0.517,
-  20: 0.493,
-};
-
-export function getMainBuildingFactor(mbLevel: number): number {
-  const lvl = Math.max(1, Math.min(20, Math.round(mbLevel)));
-  return MB_FACTORS[lvl] || 1.0;
+export function getTownHallFactor(thLevel: number): number {
+  const lvl = Math.max(1, Math.min(22, Math.round(thLevel)));
+  return Math.pow(0.964, lvl - 1);
 }
+
+export const getMainBuildingFactor = getTownHallFactor;
 
 export function formatTimeSeconds(seconds: number | null | undefined): string {
   if (seconds === null || seconds === undefined || isNaN(seconds) || seconds <= 0) {
@@ -82,6 +60,7 @@ export function formatEffectLabel(key: string, value: number | null | undefined)
     case 'troopVisibility':
       return value > 0 ? `Shows troop incoming units` : 'Rallying & targeting base';
     case 'merchants':
+      if (value <= 0) return '';
       return `${value} ${value === 1 ? 'Merchant' : 'Merchants'}`;
     case 'trainingTimeBarracks':
     case 'trainingTimeStable':

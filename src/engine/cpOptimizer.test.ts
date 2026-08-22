@@ -16,6 +16,7 @@ import {
   isBuildingAllowed,
   type VillageState,
   MAIN_BUILDING_GID,
+  TOWN_HALL_GID,
   WAREHOUSE_GID,
   GRANARY_GID,
   getBuildingMaxLevel,
@@ -174,8 +175,9 @@ describe('CP Build-Order Optimizer Engine', () => {
   });
 
   it('supports city building level 22 maximums and verified CP values', () => {
-    // City allows levels 1-22 for WH, Granary, Barracks, Stable, Workshop, and Town Hall
-    const th = BUILDINGS_BY_GID.get(24)!;
+    // City allows levels 1-22 for WH, Granary, Barracks, Stable, Workshop, and Town Hall (GID 15)
+    const th = BUILDINGS_BY_GID.get(TOWN_HALL_GID)!;
+    expect(th.name).toBe('Town Hall');
     expect(th.levels[21].cp).toBe(138); // Level 22 Town Hall = 138 CP
 
     const wh = BUILDINGS_BY_GID.get(WAREHOUSE_GID)!;
@@ -196,18 +198,20 @@ describe('CP Build-Order Optimizer Engine', () => {
     expect(ws.levels[21].cp).toBe(207); // Level 22 Workshop = 207 CP
 
     // In a normal village (non-city), max level is 20
-    expect(getBuildingMaxLevel(24, false)).toBe(20);
+    expect(getBuildingMaxLevel(TOWN_HALL_GID, false)).toBe(20);
     expect(getBuildingMaxLevel(WAREHOUSE_GID, false)).toBe(20);
 
     // In a city, max level is 22 for city upgradeable buildings
-    expect(getBuildingMaxLevel(24, true)).toBe(22);
+    expect(getBuildingMaxLevel(TOWN_HALL_GID, true)).toBe(22);
     expect(getBuildingMaxLevel(WAREHOUSE_GID, true)).toBe(22);
     expect(getBuildingMaxLevel(GRANARY_GID, true)).toBe(22);
     expect(getBuildingMaxLevel(19, true)).toBe(22);
     expect(getBuildingMaxLevel(20, true)).toBe(22);
     expect(getBuildingMaxLevel(21, true)).toBe(22);
-    // Non-city upgradeable buildings remain max 20
-    expect(getBuildingMaxLevel(MAIN_BUILDING_GID, true)).toBe(20);
+
+    // Festival Grounds (24) is max 20 even in a city
+    expect(getBuildingMaxLevel(24, true)).toBe(20);
+    expect(getBuildingMaxLevel(24, false)).toBe(20);
   });
 
   it('correctly round-trips village state in compact format for shareable links', () => {

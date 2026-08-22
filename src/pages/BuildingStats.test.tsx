@@ -3,8 +3,9 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { BuildingStats } from './BuildingStats';
-import { getMainBuildingFactor, formatTimeSeconds, formatEffectLabel, describePrerequisites } from '../data/buildingEffects';
-import { BUILDINGS_BY_GID } from '../data/buildingCatalog';
+import { getTownHallFactor, formatTimeSeconds, formatEffectLabel, describePrerequisites } from '../data/buildingEffects';
+import { BUILDINGS, BUILDINGS_BY_GID } from '../data/buildingCatalog';
+import { TOWN_HALL_GID, FESTIVAL_GROUNDS_GID } from '../engine/cpOptimizer';
 
 let container: HTMLDivElement;
 let root: Root;
@@ -14,9 +15,12 @@ const click = (el: Element) =>
     el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
   });
 
-const changeInput = (input: HTMLInputElement, value: string) => {
+const changeInput = (input: HTMLInputElement | HTMLSelectElement, value: string) => {
   act(() => {
-    const valueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+    const valueSetter = Object.getOwnPropertyDescriptor(
+      input instanceof HTMLInputElement ? window.HTMLInputElement.prototype : window.HTMLSelectElement.prototype,
+      'value'
+    )?.set;
     if (valueSetter) {
       valueSetter.call(input, value);
     } else {
@@ -29,7 +33,7 @@ const changeInput = (input: HTMLInputElement, value: string) => {
 
 describe('BuildingStats Component & Effect Helpers', () => {
   beforeEach(() => {
-    window.location.hash = '#tool=buildings&b=town-hall&mb=20';
+    window.location.hash = '#tool=buildings&b=town-hall&th=20';
     container = document.createElement('div');
     document.body.appendChild(container);
     root = createRoot(container);
@@ -42,16 +46,16 @@ describe('BuildingStats Component & Effect Helpers', () => {
     window.location.hash = '';
   });
 
-  it('renders default building (Town Hall) with hero details, aggregate stats, and level 22 progression', () => {
+  it('renders default building (Town Hall / GID 15) with hero details, aggregate stats, and level 22 progression', () => {
     expect(container.textContent).toContain('Town Hall');
     expect(container.textContent).toContain('Infrastructure');
     expect(container.textContent).toContain('City Upgradeable (Lvl 22)');
 
     // Check table headers
-    expect(container.textContent).toContain('🪵 Wood');
-    expect(container.textContent).toContain('🧱 Clay');
-    expect(container.textContent).toContain('⛏️ Iron');
-    expect(container.textContent).toContain('🌾 Crop');
+    expect(container.textContent).toContain('Wood');
+    expect(container.textContent).toContain('Clay');
+    expect(container.textContent).toContain('Iron');
+    expect(container.textContent).toContain('Crop');
 
     // Town Hall should show levels 1 to 22
     expect(container.textContent).toContain('Lvl 1');
@@ -63,32 +67,20 @@ describe('BuildingStats Component & Effect Helpers', () => {
     expect(container.textContent).toContain('+138');
   });
 
-  it('filters buildings by category when clicking category tabs', () => {
-    const resTab = [...container.querySelectorAll('.bs-filter-tabs .pill')].find(
-      (b) => b.textContent?.includes('Resources')
-    ) as HTMLElement;
-    expect(resTab).toBeTruthy();
-    click(resTab);
+  it('displays all 3 categories (Resources, Infrastructure, Military) with all buildings visible simultaneously', () => {
+    expect(container.textContent).toContain('Resources');
+    expect(container.textContent).toContain('Infrastructure');
+    expect(container.textContent).toContain('Military');
 
-    // Should display Woodcutter and Clay Pit, but not Town Hall
     const cardNames = Array.from(container.querySelectorAll('.bs-card__name')).map((c) => c.textContent);
     expect(cardNames).toContain('Woodcutter');
-    expect(cardNames).toContain('Clay Pit');
-    expect(cardNames).not.toContain('Town Hall');
-
-    // Click "Military" category tab
-    const milTab = [...container.querySelectorAll('.bs-filter-tabs .pill')].find(
-      (b) => b.textContent?.includes('Military')
-    ) as HTMLElement;
-    expect(milTab).toBeTruthy();
-    click(milTab);
-
-    const milNames = Array.from(container.querySelectorAll('.bs-card__name')).map((c) => c.textContent);
-    expect(milNames).toContain('Barracks');
-    expect(milNames).toContain('Stable');
+    expect(cardNames).toContain('Town Hall');
+    expect(cardNames).toContain('Festival Grounds');
+    expect(cardNames).toContain('Barracks');
+    expect(cardNames.length).toBe(BUILDINGS.length);
   });
 
-  it('filters buildings by search text', () => {
+  it('filters buildings live by search text', () => {
     const searchInput = container.querySelector('.bs-search-input') as HTMLInputElement;
     expect(searchInput).toBeTruthy();
 
@@ -100,30 +92,63 @@ describe('BuildingStats Component & Effect Helpers', () => {
     expect(cardNames).not.toContain('Barracks');
   });
 
-  it('dynamically scales construction time when adjusting Main Building slider', () => {
+  it('supports selecting level ranges and dynamically recalculates total resource costs and build times', () => {
+    // Preset: Level 0 -> 10
+    const p10Btn = [...container.querySelectorAll('.bs-range-presets .pill')].find(
+      (b) => b.textContent?.includes('Lvl 0 → 10')
+    ) as HTMLElement;
+    expect(p10Btn).toBeTruthy();
+    click(p10Btn);
+
+    expect(container.textContent).toContain('Total Cost (Lvl 0 → 10)');
+
+    // In-range table rows are highlighted
+    const highlightedRows = container.querySelectorAll('.bs-tr.is-in-range');
+    expect(highlightedRows.length).toBe(10);
+
+    // Clicking a row in the table sets the range
+    const row5 = container.querySelectorAll('.bs-tr')[4] as HTMLElement; // Lvl 5
+    click(row5);
+
+    expect(container.textContent).toContain('Total Cost (Lvl 0 → 5)');
+  });
+
+  it('dynamically scales construction time when adjusting Town Hall slider and Server Speed', () => {
     const slider = container.querySelector('.bs-mb-slider') as HTMLInputElement;
     expect(slider).toBeTruthy();
 
     changeInput(slider, '1');
 
     expect(container.textContent).toContain('Lvl 1');
-    expect(container.textContent).toContain('Build Speed: 100% (100.0% time)');
-  });
+    expect(container.textContent).toContain('100% Speed (100.0% time)');
 
-  it('selects a different building when clicking a card in the grid', () => {
-    const whCard = [...container.querySelectorAll('.bs-card')].find(
-      (c) => c.textContent?.includes('Warehouse')
+    // Speed 3x
+    const speed3Btn = [...container.querySelectorAll('.bs-speed-buttons .pill')].find(
+      (b) => b.textContent?.includes('3x')
     ) as HTMLElement;
-    expect(whCard).toBeTruthy();
-    click(whCard);
+    expect(speed3Btn).toBeTruthy();
+    click(speed3Btn);
 
-    expect(container.querySelector('.bs-hero__title')?.textContent).toBe('Warehouse');
-    expect(container.textContent).toContain('125,000 Resource Capacity');
+    expect(container.textContent).toContain('3x Speed');
   });
 
-  it('correctly calculates MB speed reduction factors and time formatting', () => {
-    expect(getMainBuildingFactor(1)).toBe(1.0);
-    expect(getMainBuildingFactor(20)).toBe(0.493);
+  it('selects Festival Grounds (GID 24) when clicking its card', () => {
+    const fgCard = [...container.querySelectorAll('.bs-card')].find(
+      (c) => c.textContent?.includes('Festival Grounds')
+    ) as HTMLElement;
+    expect(fgCard).toBeTruthy();
+    click(fgCard);
+
+    expect(container.querySelector('.bs-hero__title')?.textContent).toBe('Festival Grounds');
+    expect(container.textContent).toContain('Small Party:');
+    // Festival Grounds is max level 20 (not level 22)
+    expect(container.textContent).toContain('Max Level: 20');
+  });
+
+  it('correctly calculates Town Hall speed reduction factors and time formatting', () => {
+    expect(getTownHallFactor(1)).toBe(1.0);
+    expect(Number(getTownHallFactor(20).toFixed(3))).toBe(0.498);
+    expect(Number(getTownHallFactor(22).toFixed(3))).toBe(0.463);
 
     expect(formatTimeSeconds(45)).toBe('45s');
     expect(formatTimeSeconds(125)).toBe('2m 5s');
@@ -133,18 +158,25 @@ describe('BuildingStats Component & Effect Helpers', () => {
     expect(formatTimeSeconds(null)).toBe('Instant');
   });
 
-  it('formats building effects cleanly into human-readable strings', () => {
+  it('formats building effects cleanly and suppresses empty merchant counters on Embassy', () => {
     expect(formatEffectLabel('storageWarehouse', 80000)).toBe('80,000 Resource Capacity');
     expect(formatEffectLabel('production1', 500)).toBe('+500 Wood/hr');
     expect(formatEffectLabel('productionBoost1', 0.25)).toBe('+25% Wood Production');
     expect(formatEffectLabel('trainingTimeBarracks', 0.135)).toBe('13.5% Training Time');
     expect(formatEffectLabel('traps', 400)).toBe('400 Traps');
+    expect(formatEffectLabel('merchants', 0)).toBe('');
+
+    const emb = BUILDINGS_BY_GID.get(18)!;
+    expect(emb.levels[0].effects?.merchants).toBeUndefined();
   });
 
-  it('describes prerequisites accurately', () => {
-    const th = BUILDINGS_BY_GID.get(24)!;
+  it('describes prerequisites accurately for Town Hall and other structures', () => {
+    const th = BUILDINGS_BY_GID.get(TOWN_HALL_GID)!;
     const prereqs = describePrerequisites(th);
-    expect(prereqs.length).toBeGreaterThan(0);
-    expect(prereqs.some((p) => p.includes('Main Building') || p.includes('Academy'))).toBe(true);
+    expect(Array.isArray(prereqs)).toBe(true);
+
+    const fg = BUILDINGS_BY_GID.get(FESTIVAL_GROUNDS_GID)!;
+    const fgPrereqs = describePrerequisites(fg);
+    expect(fgPrereqs.some((p) => p.includes('Town Hall') || p.includes('Academy'))).toBe(true);
   });
 });
