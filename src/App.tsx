@@ -107,39 +107,41 @@ export default function App() {
   return (
     <div className="app">
       <header className="app__header">
-        <div className="brand">
-          <span className="brand__mark" aria-hidden="true">⌬</span>
-          <div>
-            <span className="brand__name">
-              Thronewake Tools
-              <button
-                type="button"
-                className="brand__version"
-                onClick={() => setShowChangelog(true)}
-                title="View changelog"
-              >
-                v{APP_VERSION}
-              </button>
-            </span>
-            <span className="brand__tool">{tool.name}</span>
+        <div className="app__header-top">
+          <div className="brand">
+            <span className="brand__mark" aria-hidden="true">⌬</span>
+            <div>
+              <span className="brand__name">
+                Thronewake Tools
+                <button
+                  type="button"
+                  className="brand__version"
+                  onClick={() => setShowChangelog(true)}
+                  title="View changelog"
+                >
+                  v{APP_VERSION}
+                </button>
+              </span>
+              <span className="brand__tool">{tool.name}</span>
+            </div>
           </div>
-        </div>
 
-        <nav className="toolbar" aria-label="Tools">
-          {TOOLS.map((t) => (
-            <button
-              key={t.key}
-              type="button"
-              className={`pill pill--tool ${t.key === toolKey ? 'is-active' : ''}`}
-              aria-current={t.key === toolKey ? 'page' : undefined}
-              aria-label={t.name}
-              onClick={() => select(t.key)}
-            >
-              <span className="pill__emoji" aria-hidden="true">{t.icon}</span>
-              {t.name}
-            </button>
-          ))}
-        </nav>
+          <nav className="toolbar" aria-label="Tools">
+            {TOOLS.map((t) => (
+              <button
+                key={t.key}
+                type="button"
+                className={`pill pill--tool ${t.key === toolKey ? 'is-active' : ''}`}
+                aria-current={t.key === toolKey ? 'page' : undefined}
+                aria-label={t.name}
+                onClick={() => select(t.key)}
+              >
+                <span className="pill__emoji" aria-hidden="true">{t.icon}</span>
+                {t.name}
+              </button>
+            ))}
+          </nav>
+        </div>
 
         <p className="app__blurb">
           {tool.blurb} Runs entirely in your browser; the link in your address bar

@@ -1,6 +1,6 @@
 /**
- * Human-maintained release notes. Bump `APP_VERSION` and add an entry here
- * whenever a change is worth telling a returning user about.
+ * Player release notes. Bump `APP_VERSION` and add an entry here
+ * whenever a change is worth telling returning players about.
  */
 export const APP_VERSION = '1.8.0';
 
@@ -15,164 +15,63 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: '1.8.0',
     date: '2026-08-22',
     changes: [
-      'Building Stats & Encyclopedia: brand new interactive reference tool inspecting complete stats, costs, construction times, culture points, and effects across all 37 buildings.',
-      'Comprehensive Level 1–22 Progression Tables: view Wood, Clay, Iron, Crop, Total Cost, Pop (+Δ), CP/d (+Δ), res/CP & res/Pop efficiency scores, and formatted building effects for every level.',
-      'Main Building Speed Slider: interactive Lvl 1–20 MB controller dynamically recalculating real-time construction durations for all building levels.',
-      'City Level 22 Support: dedicated visual badges and stats for the 6 City-upgradeable buildings reaching Level 22 (Town Hall, Warehouse, Granary, Barracks, Stable, Workshop).',
-      'Category & Tribe Filtering: filter buildings by Category (Resources, Infrastructure, Military) and Tribe requirements (Embermark, Stormfang, Vaeloria), or search live by name and effects.',
-      'Aggregate Cost & Stat Cards: instant summary cards showing total resources to max level, total construction time at current MB level, max population, and max culture points.',
-      'Deep Linking & Shareable URLs: syncs selected building and MB level directly to the URL hash (#tool=buildings&b=town-hall&mb=20).',
+      'New Building Encyclopedia: browse upgrade costs, construction times, culture points, and effects for all 39 buildings.',
+      'City Level 22 Stats: view costs and progression for Level 22 Town Hall, Warehouse, Granary, Barracks, Stable, and Workshop.',
+      'Interactive Level Ranges: click table rows to sum total resource costs and build times between any two levels.',
+      'Live Game Calibration: all building stats, costs, and times are matched directly to Thronewake.',
+      'Town Hall & Server Speed: adjust Town Hall level and server speed sliders to see real-time construction times.',
     ],
   },
   {
     version: '1.7.0',
     date: '2026-08-21',
     changes: [
-      'CP & Population Build-Order Optimizer: brand new tool providing mathematically optimal building upgrade sequences for cheapest Culture Points (res/CP) and Population growth (res/Pop).',
-      'Dual Optimization Modes: instant switch between CP Mode and Population Mode with live village and empire-wide production/population metrics.',
-      'Multi-Village Realm Management: add, manage, and vertically reorder villages in your realm with shared URL state.',
-      'Single Capital Realm Rule: enforced strict single-capital invariant across multi-village realms with automatic Palace ↔ Residence conversion.',
-      'City Level 22 Maximums: Warehouse, Granary, Barracks, Stable, Workshop, and Town Hall can reach Level 22 in Cities with verified CP values (TH lvl 22 = 138 CP, WH & Granary lvl 22 = 69 CP each).',
-      'City Slot Expansion: shared building slots modeled with 20 base slots (plus dedicated Rally Point and Wall), with Cities automatically granted +3 extra slots (23 shared slots).',
-      'Multi-Instance Buildings: build additional copies of Warehouse, Granary, Shelter/Cranny, Trapper, and Herbalist once existing copies reach max level.',
-      'Prerequisite & Storage Gating: automatic scheduling of prerequisite chains and storage expansions (Warehouse & Granary) before candidate buildings.',
-      'Quick-Jump Level Dropdowns: direct level dropdown selectors (Lvl 1–20 / 22) alongside step increment/decrement buttons.',
-      'Faction-Exclusive Buildings: full modeling for Trapper (Vaeloria), Stormbrew Works (Stormfang Capital), and Rider’s Wells (Embermark).',
-      'Clean Infinity Badges: zero-gain and prerequisite steps cleanly formatted as ∞ res/Pop and ∞ res/CP.',
-      'Credits: optimization algorithms adapted from Zdeněk Kunovjánek (@Qira95 kingdomoptimizer).',
+      'New CP & Population Optimizer: calculate the cheapest upgrade order to grow Culture Points or village population.',
+      'Realm Management: manage multiple villages, designate capitals, and plan realm-wide build orders.',
+      'City Support: models 3 extra building slots and Level 22 city building upgrades.',
+      'Smart Requirements: automatically schedules prerequisites and warehouse expansions before expensive buildings.',
     ],
   },
   {
     version: '1.6.0',
     date: '2026-08-19',
     changes: [
-      'Operation Planner: defender player accounts — set safe hours once per defender and manage all targeted villages underneath.',
-      'Operation Planner: dual-stage launch alarms with a 1-minute warning chime and final 5-second countdown beeps.',
-      'Operation Planner: army alarm picker — choose which army triggers sound alerts, keeping alarms focused even while browsing filters.',
-      'Operation Planner: real-time send countdown ticker with urgency highlighting in the route plan.',
-      'Operation Planner: route plan filters — filter routes by attacker, target, viability, or real/fake.',
-      'Operation Planner: streamlined daily schedule with symmetric send/land pins and targeted village switcher pills.',
-      'Dark mode high-contrast improvements across native dropdowns and controls.',
-    ],
-  },
-  {
-    version: '1.5.6',
-    date: '2026-08-17',
-    changes: [
-      'Operation Planner: targeted players — set safe hours once per player and attach their villages to it.',
-      'Operation Planner: target cards are grouped under the player who owns them, with unassigned villages listed separately.',
-      'Operation Planner: mark each target Real or Fake; shown as a badge in the route plan with a real/fake tally.',
-      'Operation Planner: route plan now shows each target’s coordinates.',
-      'Operation Planner: optional local-time display alongside UTC, remembered per device and kept out of shared links.',
-      'Operation Planner: share links can no longer be truncated by a name containing URL characters.',
-    ],
-  },
-  {
-    version: '1.5.5',
-    date: '2026-08-17',
-    changes: [
-      'Operation Planner: interactive timeline lanes — click any attacker or defender in the daily schedule to switch routes directly.',
-      'Operation Planner: enhanced hover effects and keyboard navigation for timeline lanes.',
-    ],
-  },
-  {
-    version: '1.5.4',
-    date: '2026-08-17',
-    changes: [
-      'Operation Planner: strengthened URL-structural character sanitization in player and target names (credits: @Qira95).',
-      'Operation Planner: stricter UTC landing time validation and fallback render stability (credits: @Qira95).',
-      'Maintenance: upgraded Vite and Vitest dependencies to resolve security audit warnings (credits: @Qira95).',
-    ],
-  },
-  {
-    version: '1.5.3',
-    date: '2026-08-15',
-    changes: [
-      'Operation Planner: Discord-safe share link generation with whitespace substitution.',
-      'SEO & Metadata: rich OpenGraph & Twitter embeds for Discord and social link previews.',
-      'Operation Planner: live browser tab title updates based on the active tool.',
-    ],
-  },
-  {
-    version: '1.5.2',
-    date: '2026-08-15',
-    changes: [
-      'Operation Planner: human-readable clean compact link sharing without percent-encoding escaping.',
-      'Operation Planner: one-click "🔗 Copy Share Link" button with instant clipboard feedback.',
-      'Operation Planner: live browser URL and hash change synchronization.',
-      'Branding: official Thronewake crest emblem vector favicon.',
-    ],
-  },
-  {
-    version: '1.5.1',
-    date: '2026-08-15',
-    changes: [
-      'Operation Planner: compact 75% shorter shareable links.',
-      'Operation Planner: full backward compatibility for legacy JSON plan URL bookmarks.',
+      'Operation Planner: defender profiles to set safe hours once and manage all targeted villages.',
+      'Launch Alarms: sound warnings before launch time with customizable army alert selection.',
+      'Route Filters & Ticker: filter attacks by player or viability, with live launch countdowns.',
     ],
   },
   {
     version: '1.5.0',
     date: '2026-08-15',
     changes: [
-      'Operation Planner: added full coordinated multi-army attack & defense route calculation.',
-      'Operation Planner: chronological route sorting by Send time with precision seconds.',
-      'Operation Planner: interactive 3-faction Unit Grid Picker for slowest troop selection.',
-      'Operation Planner: detailed Safetime Checks (A, B, C, D) with interactive popovers and guidance tooltips.',
-      'Operation Planner: 24-hour UTC safe-time schedule timeline with sliding 6-hour max window enforcement.',
-      'Operation Planner: full-row route selection linked to lane highlighting and movement track safe window overlays.',
-      'Operation Planner: distinct color coding (Warm Ember for Attackers, Azure/Cyan for Defenders).',
-      'Operation Planner: resilient keyboard-friendly 24h time and negative coordinate inputs.',
-      'Operation Planner: compact 75% shorter shareable links and one-click Copy Share Link button with full backward compatibility for saved links.',
-    ],
-  },
-  {
-    version: '1.4.0',
-    date: '2026-08-15',
-    changes: [
-      'Added the Operation Planner for coordinated landings across multiple attackers and targets.',
-      'Travel time accounts for coordinate distance, the slowest troop, server speed, 1.5×/2× speed artifacts, and Bannerfield beyond 20 fields.',
-      'Optional attacker and defender safe times are checked at both send and landing, with a daily overlap timeline.',
+      'Operation Planner: coordinate multi-army attacks and reinforcements with safe time checks.',
+      'Interactive Timeline: 24-hour UTC schedule showing travel times, arrival times, and safe windows.',
+      'Shareable Links: share attack plans with alliance members using compact links.',
     ],
   },
   {
     version: '1.3.0',
     date: '2026-08-04',
     changes: [
-      'Unit Attributes: hover, focus or tap a unit\'s icon in the table for a stat card — attack, defense, speed, capacity and upkeep under the current smithy and building levels.',
-      'Army Calculator: the same stat card appears on the produced-army icons at the bottom, not on the unit-picker buttons.',
-    ],
-  },
-  {
-    version: '1.2.0',
-    date: '2026-08-04',
-    changes: [
-      'Army Calculator: fixed the 0 / 20 / 22 level shortcuts wrapping onto their own line.',
-      'Army Calculator: queue cells are divided by a hairline instead of a wide gap, and the level input is smaller.',
-      'Army Calculator: the cost icon sits next to its number instead of its label.',
-      'Army Calculator: training bonus now steps by 2% instead of 5%.',
-      'Tightened the mobile layout across breakpoints.',
-      'Added a version badge next to the wordmark; click it for the changelog.',
+      'Unit Stat Cards: click or hover any unit icon to inspect full combat stats, speed, capacity, and upkeep.',
+      'Smithy & Building Modifiers: live updates to combat power based on current smithy upgrade levels.',
     ],
   },
   {
     version: '1.1.0',
     date: '2026-08-03',
     changes: [
-      'Army Calculator: production run length is now a number plus a unit (hours / days / weeks / months).',
-      'Army Calculator: added a 1× / 3× / 10× server speed toggle, defaulting to 3×.',
-      "Army Calculator: Barracks #1/#2/Great Barracks (and the Stable equivalents) share one row and one unit picker; picking more than one unit splits each queue's time between them.",
-      'Army Calculator: attack is split into infantry and cavalry as well as the total, and upkeep is shown with Rider\'s Wells relief applied.',
-      'Army Calculator: added resources-per-hour, real game resource icons, and a horizontal army strip that keeps a slot for every unit, zeroes included.',
+      'Army Calculator: queue training time splits, custom duration runs, and hourly resource requirements.',
+      'Server Speed Selector: easily switch between 1x, 3x, and 10x speeds.',
     ],
   },
   {
     version: '1.0.0',
     date: '2026-07-25',
     changes: [
-      'Initial release: Unit Attributes calculator, ranking every unit against real Thronewake data.',
-      'Faction-scoped building modifiers (Rider\'s Wells, Stormbrew Works) and the smithy upgrade curve.',
-      'Mobile-friendly layout; every setting round-trips through a shareable URL.',
+      'Initial release: Unit Attributes and Combat Stats rankings for all Thronewake factions.',
+      'Mobile-friendly design with shareable URL state.',
     ],
   },
 ];

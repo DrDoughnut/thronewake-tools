@@ -64,18 +64,27 @@ code, .heading-formula {
 }
 
 .app__header {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   border-bottom: 1px solid var(--border);
-  padding-bottom: 12px;
-  margin-bottom: 14px;
+  padding-bottom: 14px;
+  margin-bottom: 16px;
+}
+
+.app__header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px 20px;
+  flex-wrap: wrap;
 }
 
 .brand {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-shrink: 0;
 }
 
 .brand__mark {
@@ -122,11 +131,10 @@ code, .heading-formula {
 }
 
 .app__blurb {
-  grid-column: 1 / -1;
-  margin: 8px 0 0;
+  margin: 0;
   max-width: none;
   color: var(--text-dim);
-  font-size: 14px;
+  font-size: 13.5px;
 }
 
 .app__body {
@@ -157,9 +165,9 @@ code, .heading-formula {
 
 @media (max-width: 640px) {
   .app { padding: 16px 12px 32px; }
-  .app__header { display: flex; flex-wrap: wrap; gap: 10px; padding-bottom: 12px; margin-bottom: 12px; }
-  .toolbar { order: 2; }
-  .app__blurb { order: 3; margin-top: 0; }
+  .app__header { gap: 10px; padding-bottom: 12px; margin-bottom: 12px; }
+  .app__header-top { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .toolbar { width: 100%; }
   .app__body { gap: 16px; }
   .brand__mark { font-size: 24px; }
   .brand__tool { font-size: 20px; }
@@ -656,14 +664,20 @@ select:focus, .select:focus, .text-input:focus {
 /* ── Tool navigation ─────────────────────────────────────────────────── */
 
 .toolbar {
-  grid-column: 2;
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  align-items: center;
   margin: 0;
 }
 
-.pill--tool { border-radius: var(--radius); padding: 7px 15px; font-size: 15px; }
+.pill--tool {
+  border-radius: var(--radius);
+  padding: 6px 12px;
+  font-size: 13.5px;
+  font-weight: 550;
+  white-space: nowrap;
+}
 .pill__emoji { margin-inline-end: 5px; }
 
 /* ── Army calculator ─────────────────────────────────────────────────── */
