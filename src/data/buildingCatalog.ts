@@ -10695,9 +10695,8 @@ export const BUILDINGS: CatalogBuilding[] = [
         "pop": 3,
         "cp": 5,
         "effects": {
-          "healTime": 1,
-          "woundedCapacity": 100,
-          "woundedCapacityPlus": 125
+          "healTime": 0.5,
+          "woundedCapacity": 188
         }
       },
       {
@@ -10710,9 +10709,8 @@ export const BUILDINGS: CatalogBuilding[] = [
         "pop": 5,
         "cp": 6,
         "effects": {
-          "healTime": 0.9,
-          "woundedCapacity": 125,
-          "woundedCapacityPlus": 156
+          "healTime": 0.45,
+          "woundedCapacity": 234
         }
       },
       {
@@ -10725,9 +10723,8 @@ export const BUILDINGS: CatalogBuilding[] = [
         "pop": 7,
         "cp": 7,
         "effects": {
-          "healTime": 0.81,
-          "woundedCapacity": 150,
-          "woundedCapacityPlus": 188
+          "healTime": 0.405,
+          "woundedCapacity": 281
         }
       },
       {
@@ -10740,9 +10737,8 @@ export const BUILDINGS: CatalogBuilding[] = [
         "pop": 9,
         "cp": 8,
         "effects": {
-          "healTime": 0.7290000000000001,
-          "woundedCapacity": 190,
-          "woundedCapacityPlus": 238
+          "healTime": 0.3645,
+          "woundedCapacity": 356
         }
       },
       {
@@ -10755,9 +10751,8 @@ export const BUILDINGS: CatalogBuilding[] = [
         "pop": 11,
         "cp": 10,
         "effects": {
-          "healTime": 0.6561000000000001,
-          "woundedCapacity": 230,
-          "woundedCapacityPlus": 288
+          "healTime": 0.3281,
+          "woundedCapacity": 431
         }
       },
       {
@@ -10770,9 +10765,8 @@ export const BUILDINGS: CatalogBuilding[] = [
         "pop": 13,
         "cp": 12,
         "effects": {
-          "healTime": 0.5904900000000001,
-          "woundedCapacity": 280,
-          "woundedCapacityPlus": 350
+          "healTime": 0.2952,
+          "woundedCapacity": 525
         }
       },
       {
@@ -10785,9 +10779,8 @@ export const BUILDINGS: CatalogBuilding[] = [
         "pop": 15,
         "cp": 14,
         "effects": {
-          "healTime": 0.531441,
-          "woundedCapacity": 350,
-          "woundedCapacityPlus": 438
+          "healTime": 0.2657,
+          "woundedCapacity": 656
         }
       },
       {
@@ -10800,9 +10793,8 @@ export const BUILDINGS: CatalogBuilding[] = [
         "pop": 17,
         "cp": 17,
         "effects": {
-          "healTime": 0.4782969000000001,
-          "woundedCapacity": 430,
-          "woundedCapacityPlus": 538
+          "healTime": 0.2391,
+          "woundedCapacity": 806
         }
       },
       {
@@ -10815,9 +10807,8 @@ export const BUILDINGS: CatalogBuilding[] = [
         "pop": 19,
         "cp": 21,
         "effects": {
-          "healTime": 0.4304672100000001,
-          "woundedCapacity": 520,
-          "woundedCapacityPlus": 650
+          "healTime": 0.2152,
+          "woundedCapacity": 975
         }
       },
       {
@@ -10830,9 +10821,8 @@ export const BUILDINGS: CatalogBuilding[] = [
         "pop": 21,
         "cp": 25,
         "effects": {
-          "healTime": 0.3874204890000001,
-          "woundedCapacity": 640,
-          "woundedCapacityPlus": 800
+          "healTime": 0.1937,
+          "woundedCapacity": 1200
         }
       },
       {
@@ -10845,9 +10835,8 @@ export const BUILDINGS: CatalogBuilding[] = [
         "pop": 24,
         "cp": 30,
         "effects": {
-          "healTime": 0.3486784401000001,
-          "woundedCapacity": 790,
-          "woundedCapacityPlus": 988
+          "healTime": 0.1743,
+          "woundedCapacity": 1481
         }
       },
       {
@@ -10860,9 +10849,8 @@ export const BUILDINGS: CatalogBuilding[] = [
         "pop": 27,
         "cp": 36,
         "effects": {
-          "healTime": 0.31381059609000006,
-          "woundedCapacity": 1000,
-          "woundedCapacityPlus": 1250
+          "healTime": 0.1569,
+          "woundedCapacity": 1875
         }
       },
       {
@@ -10875,9 +10863,8 @@ export const BUILDINGS: CatalogBuilding[] = [
         "pop": 30,
         "cp": 43,
         "effects": {
-          "healTime": 0.2824295364810001,
-          "woundedCapacity": 1200,
-          "woundedCapacityPlus": 1500
+          "healTime": 0.1412,
+          "woundedCapacity": 2250
         }
       },
       {
@@ -10890,9 +10877,8 @@ export const BUILDINGS: CatalogBuilding[] = [
         "pop": 33,
         "cp": 51,
         "effects": {
-          "healTime": 0.2541865828329001,
-          "woundedCapacity": 1500,
-          "woundedCapacityPlus": 1875
+          "healTime": 0.1271,
+          "woundedCapacity": 2813
         }
       },
       {
@@ -10905,9 +10891,8 @@ export const BUILDINGS: CatalogBuilding[] = [
         "pop": 36,
         "cp": 62,
         "effects": {
-          "healTime": 0.2287679245496101,
-          "woundedCapacity": 1800,
-          "woundedCapacityPlus": 2250
+          "healTime": 0.1144,
+          "woundedCapacity": 3375
         }
       },
       {
@@ -10920,9 +10905,8 @@ export const BUILDINGS: CatalogBuilding[] = [
         "pop": 39,
         "cp": 74,
         "effects": {
-          "healTime": 0.20589113209464907,
-          "woundedCapacity": 2200,
-          "woundedCapacityPlus": 2750
+          "healTime": 0.1029,
+          "woundedCapacity": 4125
         }
       },
       {
@@ -10935,9 +10919,8 @@ export const BUILDINGS: CatalogBuilding[] = [
         "pop": 42,
         "cp": 89,
         "effects": {
-          "healTime": 0.18530201888518416,
-          "woundedCapacity": 2700,
-          "woundedCapacityPlus": 3375
+          "healTime": 0.0927,
+          "woundedCapacity": 5063
         }
       },
       {
@@ -10950,9 +10933,8 @@ export const BUILDINGS: CatalogBuilding[] = [
         "pop": 45,
         "cp": 106,
         "effects": {
-          "healTime": 0.16677181699666577,
-          "woundedCapacity": 3400,
-          "woundedCapacityPlus": 4250
+          "healTime": 0.0834,
+          "woundedCapacity": 6375
         }
       },
       {
@@ -10965,9 +10947,8 @@ export const BUILDINGS: CatalogBuilding[] = [
         "pop": 48,
         "cp": 128,
         "effects": {
-          "healTime": 0.15009463529699918,
-          "woundedCapacity": 4200,
-          "woundedCapacityPlus": 5250
+          "healTime": 0.075,
+          "woundedCapacity": 7875
         }
       },
       {
@@ -10980,9 +10961,8 @@ export const BUILDINGS: CatalogBuilding[] = [
         "pop": 51,
         "cp": 153,
         "effects": {
-          "healTime": 0.13508517176729928,
-          "woundedCapacity": 5100,
-          "woundedCapacityPlus": 6375
+          "healTime": 0.0675,
+          "woundedCapacity": 9563
         }
       }
     ]

@@ -29,18 +29,24 @@ export function formatTimeSeconds(seconds: number | null | undefined): string {
   return `${secs}s`;
 }
 
-export function formatEffectLabel(key: string, value: number | null | undefined): string {
+export function formatEffectLabel(
+  key: string,
+  value: number | null | undefined,
+  serverSpeed: number = 1
+): string {
   if (value === null || value === undefined) return '';
+
+  const spd = Math.max(1, serverSpeed);
 
   switch (key) {
     case 'production1':
-      return `+${value.toLocaleString()} Wood/hr`;
+      return `+${(value * spd).toLocaleString()} Wood/hr`;
     case 'production2':
-      return `+${value.toLocaleString()} Clay/hr`;
+      return `+${(value * spd).toLocaleString()} Clay/hr`;
     case 'production3':
-      return `+${value.toLocaleString()} Iron/hr`;
+      return `+${(value * spd).toLocaleString()} Iron/hr`;
     case 'production4':
-      return `+${value.toLocaleString()} Crop/hr`;
+      return `+${(value * spd).toLocaleString()} Crop/hr`;
     case 'productionBoost1':
       return `+${Math.round(value * 100)}% Wood Production`;
     case 'productionBoost2':
@@ -70,7 +76,7 @@ export function formatEffectLabel(key: string, value: number | null | undefined)
     case 'storageCranny':
       return `${value.toLocaleString()} Protected Res`;
     case 'storageCrannyGaul':
-      return `${value.toLocaleString()} Protected (Gauls)`;
+      return `${value.toLocaleString()} Protected (Vaeloria)`;
     case 'smallPartyTime':
       return `Small Party: ${formatTimeSeconds(value)}`;
     case 'largePartyTime':
@@ -80,7 +86,7 @@ export function formatEffectLabel(key: string, value: number | null | undefined)
     case 'merchantBoost':
       return `+${Math.round(value * 100)}% Merchant Capacity`;
     case 'merchantBoostRoman':
-      return `+${Math.round(value * 100)}% (Romans)`;
+      return `+${Math.round(value * 100)}% (Embermark)`;
     case 'durability':
       return `+${Math.round(value * 100)}% Building Durability`;
     case 'offBoost':
@@ -88,15 +94,13 @@ export function formatEffectLabel(key: string, value: number | null | undefined)
     case 'partyTime':
       return `Celebration: ${formatTimeSeconds(value)}`;
     case 'traps':
-      return `${value.toLocaleString()} Traps`;
+      return `${(value * spd).toLocaleString()} Traps`;
     case 'reduceSupply':
-      return `Reduces cavalry upkeep by -1`;
+      return `Reduces cavalry upkeep by -1 (Embermark)`;
     case 'healTime':
       return `${(value * 100).toFixed(1)}% Healing Time`;
     case 'woundedCapacity':
-      return `${value.toLocaleString()} Wounded Recovery`;
-    case 'woundedCapacityPlus':
-      return `${value.toLocaleString()} Wounded (Plus)`;
+      return `${value.toLocaleString()} Wounded Capacity`;
     default:
       return `${key}: ${value}`;
   }
@@ -112,12 +116,12 @@ export function describePrerequisites(building: CatalogBuilding): string[] {
       reqs.push(`${names} Level ${p.level || 1}`);
     } else if (p.type === 'Tribe') {
       const tribeNames: Record<number, string> = {
-        1: 'Embermark Dominion (Romans)',
-        2: 'Stormfang Clans (Teutons)',
-        3: 'Vaeloria (Gauls)',
+        1: 'Embermark Dominion',
+        2: 'Stormfang Clans',
+        3: 'Vaeloria',
       };
       const vids = p.vid || [];
-      const names = vids.map((v) => tribeNames[v] || `Tribe #${v}`).join(', ');
+      const names = vids.map((v) => tribeNames[v] || `Faction #${v}`).join(', ');
       reqs.push(`Exclusive to ${names}`);
     } else if (p.type === 'Capital') {
       reqs.push('Capital only');

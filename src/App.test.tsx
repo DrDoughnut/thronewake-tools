@@ -829,20 +829,19 @@ describe('the Building Stats tool', () => {
     click(bldgTab);
   });
 
-  it('renders category tabs, search input, building cards, and level progression table', () => {
+  it('renders 3 horizontal category columns, search input, and building cards', () => {
     expect(window.location.hash).toContain('tool=buildings');
     expect(container.textContent).toContain('Building Stats');
-    expect(container.textContent).toContain('Town Hall');
-    expect(container.textContent).toContain('Town Hall Level:');
-    expect(container.textContent).toContain('Wood');
-    expect(container.textContent).toContain('Total Cost');
+    expect(container.textContent).toContain('Resources');
+    expect(container.textContent).toContain('Infrastructure');
+    expect(container.textContent).toContain('Military');
 
-    // Table rows exist
-    const rows = container.querySelectorAll('.bs-table tbody tr');
-    expect(rows.length).toBeGreaterThan(0);
+    // All building cards exist
+    const cards = container.querySelectorAll('.bs-card');
+    expect(cards.length).toBeGreaterThan(30);
   });
 
-  it('switches buildings when clicking a card in the grid', () => {
+  it('opens large modal dialog with stats table when clicking a card in the grid', () => {
     const whCard = [...container.querySelectorAll('.bs-card')].find(
       (c) => c.textContent?.includes('Warehouse')
     ) as HTMLElement;
@@ -850,7 +849,21 @@ describe('the Building Stats tool', () => {
     click(whCard);
 
     expect(window.location.hash).toContain('b=warehouse');
+    expect(container.querySelector('.bs-modal-content')).toBeTruthy();
     expect(container.querySelector('.bs-hero__title')?.textContent).toBe('Warehouse');
+    expect(container.textContent).toContain('Town Hall Level:');
+    expect(container.textContent).toContain('Wood');
+    expect(container.textContent).toContain('Total Cost');
+
+    // Table rows exist inside modal
+    const rows = container.querySelectorAll('.bs-table tbody tr');
+    expect(rows.length).toBeGreaterThan(0);
+
+    // Close modal
+    const closeBtn = container.querySelector('.bs-modal-close') as HTMLElement;
+    expect(closeBtn).toBeTruthy();
+    click(closeBtn);
+    expect(container.querySelector('.bs-modal-content')).toBeNull();
   });
 });
 

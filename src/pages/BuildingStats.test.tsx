@@ -46,7 +46,7 @@ describe('BuildingStats Component & Effect Helpers', () => {
     window.location.hash = '';
   });
 
-  it('renders default building (Town Hall / GID 15) with hero details, aggregate stats, and level 22 progression', () => {
+  it('renders default building modal (Town Hall / GID 15) with hero details, aggregate stats, and level 22 progression', () => {
     expect(container.textContent).toContain('Town Hall');
     expect(container.textContent).toContain('Infrastructure');
     expect(container.textContent).toContain('City Upgradeable (Lvl 22)');
@@ -67,7 +67,7 @@ describe('BuildingStats Component & Effect Helpers', () => {
     expect(container.textContent).toContain('+138');
   });
 
-  it('displays all 3 categories (Resources, Infrastructure, Military) with all buildings visible simultaneously', () => {
+  it('displays all 3 categories (Resources, Infrastructure, Military) horizontally with all buildings visible', () => {
     expect(container.textContent).toContain('Resources');
     expect(container.textContent).toContain('Infrastructure');
     expect(container.textContent).toContain('Military');
@@ -124,16 +124,17 @@ describe('BuildingStats Component & Effect Helpers', () => {
     expect(container.textContent).toContain('100% Speed (100.0% time)');
 
     // Speed 3x
-    const speed3Btn = [...container.querySelectorAll('.bs-speed-buttons .pill')].find(
+    const speed3Btn = [...container.querySelectorAll('.bs-speed-btn')].find(
       (b) => b.textContent?.includes('3x')
     ) as HTMLElement;
     expect(speed3Btn).toBeTruthy();
     click(speed3Btn);
 
+    expect(speed3Btn.classList.contains('is-selected')).toBe(true);
     expect(container.textContent).toContain('3x Speed');
   });
 
-  it('selects Festival Grounds (GID 24) when clicking its card', () => {
+  it('selects Festival Grounds (GID 24) when clicking its card and closes modal when clicking close button', () => {
     const fgCard = [...container.querySelectorAll('.bs-card')].find(
       (c) => c.textContent?.includes('Festival Grounds')
     ) as HTMLElement;
@@ -144,6 +145,14 @@ describe('BuildingStats Component & Effect Helpers', () => {
     expect(container.textContent).toContain('Small Party:');
     // Festival Grounds is max level 20 (not level 22)
     expect(container.textContent).toContain('Max Level: 20');
+
+    // Close modal
+    const closeBtn = container.querySelector('.bs-modal-close') as HTMLElement;
+    expect(closeBtn).toBeTruthy();
+    click(closeBtn);
+
+    // Modal is dismissed
+    expect(container.querySelector('.bs-modal-overlay')).toBeNull();
   });
 
   it('correctly calculates Town Hall speed reduction factors and time formatting', () => {
@@ -159,19 +168,21 @@ describe('BuildingStats Component & Effect Helpers', () => {
     expect(formatTimeSeconds(null)).toBe('Instant');
   });
 
-  it('formats building effects cleanly and suppresses empty merchant counters on Embassy', () => {
-    expect(formatEffectLabel('storageWarehouse', 80000)).toBe('80,000 Resource Capacity');
-    expect(formatEffectLabel('production1', 500)).toBe('+500 Wood/hr');
+  it('formats building effects cleanly and scales traps and production by server speed', () => {
+    expect(formatEffectLabel('storageWarehouse', 80000, 1)).toBe('80,000 Resource Capacity');
+    expect(formatEffectLabel('production1', 500, 3)).toBe('+1,500 Wood/hr');
+    expect(formatEffectLabel('traps', 400, 3)).toBe('1,200 Traps');
     expect(formatEffectLabel('productionBoost1', 0.25)).toBe('+25% Wood Production');
     expect(formatEffectLabel('trainingTimeBarracks', 0.135)).toBe('13.5% Training Time');
-    expect(formatEffectLabel('traps', 400)).toBe('400 Traps');
+    expect(formatEffectLabel('healTime', 0.068)).toBe('6.8% Healing Time');
+    expect(formatEffectLabel('woundedCapacity', 9563)).toBe('9,563 Wounded Capacity');
     expect(formatEffectLabel('merchants', 0)).toBe('');
 
     const emb = BUILDINGS_BY_GID.get(18)!;
     expect(emb.levels[0].effects?.merchants).toBeUndefined();
   });
 
-  it('describes prerequisites accurately for Town Hall and other structures', () => {
+  it('describes prerequisites accurately using lore factions', () => {
     const th = BUILDINGS_BY_GID.get(TOWN_HALL_GID)!;
     const prereqs = describePrerequisites(th);
     expect(Array.isArray(prereqs)).toBe(true);

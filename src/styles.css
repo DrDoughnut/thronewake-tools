@@ -3398,14 +3398,15 @@ select:focus, .select:focus, .text-input:focus {
   color: var(--text-dim);
 }
 
-/* 3-Category Layout (Compact, No Squishing, All Visible) */
-.bs-catalog-sections {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+/* Horizontal 3-Column Category Layout (Resources | Infrastructure | Military) */
+.bs-columns-layout {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  align-items: start;
 }
 
-.bs-catalog-section {
+.bs-category-column {
   background: hsl(220, 18%, 10%);
   border: 1px solid hsl(220, 15%, 22%);
   border-radius: var(--radius);
@@ -3415,21 +3416,24 @@ select:focus, .select:focus, .text-input:focus {
   gap: 10px;
 }
 
-.bs-catalog-section__title {
+.bs-category-column__header {
+  border-bottom: 1px solid hsl(220, 15%, 18%);
+  padding-bottom: 8px;
+}
+
+.bs-category-column__title {
   margin: 0;
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 700;
   display: flex;
   align-items: center;
   gap: 6px;
   color: var(--accent-light, #72c2dd);
-  border-bottom: 1px solid hsl(220, 15%, 18%);
-  padding-bottom: 6px;
 }
 
-.bs-grid {
+.bs-column-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: 8px;
 }
 
@@ -3457,8 +3461,8 @@ select:focus, .select:focus, .text-input:focus {
 }
 
 .bs-card__icon {
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   aspect-ratio: 1 / 1;
   border-radius: 6px;
   background: hsl(220, 20%, 8%);
@@ -3476,7 +3480,7 @@ select:focus, .select:focus, .text-input:focus {
 }
 
 .bs-card__name {
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
@@ -3484,32 +3488,84 @@ select:focus, .select:focus, .text-input:focus {
 }
 
 .bs-card__meta {
-  font-size: 10.5px;
+  font-size: 10px;
   color: var(--text-dim);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-/* Detail Panel */
-.bs-detail-panel {
+/* Modal Overlay & Dialog */
+.bs-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: bs-fade-in 0.15s ease-out;
+}
+
+@keyframes bs-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.bs-modal-content {
   background: hsl(220, 18%, 10%);
-  border: 1px solid hsl(220, 15%, 22%);
+  border: 1px solid hsl(220, 15%, 25%);
   border-radius: var(--radius);
-  padding: 16px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+  width: 100%;
+  max-width: 1200px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-.bs-hero {
+.bs-modal-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
   border-bottom: 1px solid hsl(220, 15%, 18%);
   padding-bottom: 14px;
+}
+
+.bs-modal-header__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  flex: 0 1 380px;
+  width: 100%;
+}
+
+.bs-modal-close {
+  background: hsl(220, 18%, 15%);
+  border: 1px solid hsl(220, 15%, 25%);
+  color: var(--text-dim);
+  border-radius: 6px;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.15s ease;
+}
+.bs-modal-close:hover {
+  background: hsl(0, 60%, 35%);
+  border-color: hsl(0, 60%, 45%);
+  color: #fff;
 }
 
 .bs-hero__main {
@@ -3520,8 +3576,8 @@ select:focus, .select:focus, .text-input:focus {
 }
 
 .bs-hero__icon {
-  width: 50px;
-  height: 50px;
+  width: 52px;
+  height: 52px;
   aspect-ratio: 1 / 1;
   border-radius: 8px;
   background: hsl(220, 20%, 8%);
@@ -3553,7 +3609,7 @@ select:focus, .select:focus, .text-input:focus {
 
 .bs-hero__description {
   margin: 0;
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--text-dim);
 }
 
@@ -3578,17 +3634,12 @@ select:focus, .select:focus, .text-input:focus {
 }
 
 .bs-prereq-badge {
-  font-size: 11px;
+  font-size: 10.5px;
   background: hsl(220, 18%, 15%);
   border: 1px solid hsl(220, 15%, 26%);
   border-radius: 4px;
   padding: 1px 6px;
   color: #a5c2e8;
-}
-
-.bs-hero__controls {
-  flex: 0 1 360px;
-  width: 100%;
 }
 
 .bs-modifiers-box {
@@ -3599,6 +3650,7 @@ select:focus, .select:focus, .text-input:focus {
   border: 1px solid hsl(220, 15%, 22%);
   border-radius: var(--radius);
   padding: 10px 12px;
+  width: 100%;
 }
 
 .bs-th-control {
@@ -3625,13 +3677,6 @@ select:focus, .select:focus, .text-input:focus {
   cursor: pointer;
 }
 
-.bs-mb-ticks {
-  display: flex;
-  justify-content: space-between;
-  font-size: 9.5px;
-  color: var(--text-dim);
-}
-
 .bs-speed-control {
   display: flex;
   align-items: center;
@@ -3649,6 +3694,28 @@ select:focus, .select:focus, .text-input:focus {
 .bs-speed-buttons {
   display: flex;
   gap: 5px;
+}
+
+.bs-speed-btn {
+  background: hsl(220, 18%, 16%);
+  border: 1px solid hsl(220, 15%, 25%);
+  color: var(--text-dim);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.bs-speed-btn:hover {
+  background: hsl(220, 18%, 22%);
+  color: var(--text);
+}
+.bs-speed-btn.is-selected {
+  background: hsl(42, 85%, 52%);
+  border-color: hsl(42, 90%, 60%);
+  color: #000;
+  box-shadow: 0 0 6px rgba(230, 175, 46, 0.4);
 }
 
 /* Range Selection Instructions Bar */
@@ -3743,6 +3810,8 @@ select:focus, .select:focus, .text-input:focus {
   border: 1px solid hsl(220, 15%, 22%);
   border-radius: var(--radius);
   background: hsl(220, 18%, 11%);
+  max-height: 480px;
+  overflow-y: auto;
 }
 
 .bs-table {
@@ -3759,6 +3828,9 @@ select:focus, .select:focus, .text-input:focus {
   font-weight: 600;
   color: #d1d5db;
   border-bottom: 2px solid hsl(220, 15%, 25%);
+  position: sticky;
+  top: 0;
+  z-index: 3;
 }
 
 .bs-th-content {
@@ -3770,7 +3842,7 @@ select:focus, .select:focus, .text-input:focus {
 .bs-th--sticky {
   position: sticky;
   left: 0;
-  z-index: 2;
+  z-index: 4;
   background: hsl(220, 20%, 14%);
 }
 
@@ -3880,18 +3952,20 @@ select:focus, .select:focus, .text-input:focus {
   opacity: 0.5;
 }
 
-@media (max-width: 768px) {
-  .bs-hero {
+@media (max-width: 900px) {
+  .bs-columns-layout {
+    grid-template-columns: 1fr;
+  }
+  .bs-modal-header {
     flex-direction: column;
     align-items: stretch;
   }
-  .bs-hero__controls {
+  .bs-modal-header__actions {
     flex: 1 1 auto;
-  }
-  .bs-grid {
-    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    align-items: stretch;
   }
 }
+
 
 
 
