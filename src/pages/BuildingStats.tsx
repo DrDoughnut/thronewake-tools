@@ -376,7 +376,18 @@ export function BuildingStats() {
             aria-modal="true"
             aria-label={`${selectedBuilding.name} Stats & Details`}
           >
-            {/* Modal Header */}
+            {/* Top-Right Absolute Close Button */}
+            <button
+              type="button"
+              className="bs-modal-close"
+              onClick={closeModal}
+              title="Close (Esc)"
+              aria-label="Close modal"
+            >
+              ✕
+            </button>
+
+            {/* Modal Header: Hero Info */}
             <div className="bs-modal-header">
               <div className="bs-hero__main">
                 {buildingIcon(selectedBuilding.gid) && (
@@ -416,56 +427,46 @@ export function BuildingStats() {
                   )}
                 </div>
               </div>
+            </div>
 
-              {/* Close Button & Modifiers */}
-              <div className="bs-modal-header__actions">
-                <button
-                  type="button"
-                  className="bs-modal-close"
-                  onClick={closeModal}
-                  title="Close (Esc)"
-                  aria-label="Close modal"
+            {/* Compact Modifiers Strip: Town Hall Dropdown & Server Speed */}
+            <div className="bs-modal-modifiers">
+              <div className="bs-modifier-item">
+                <label htmlFor="bs-th-select" className="bs-modifier-label">
+                  Town Hall:
+                </label>
+                <select
+                  id="bs-th-select"
+                  className="select bs-modifier-select"
+                  value={thLevel}
+                  onChange={(e) => setThLevel(Number(e.target.value))}
+                  aria-label="Town Hall Level"
                 >
-                  ✕
-                </button>
-                <div className="bs-modifiers-box">
-                  <div className="bs-th-control">
-                    <div className="bs-th-control__header">
-                      <label htmlFor="bs-th-slider" className="bs-th-control__label">
-                        Town Hall Level: <strong>Lvl {thLevel}</strong>
-                      </label>
-                      <span className="bs-th-control__factor">
-                        {(100 / thFactor).toFixed(0)}% Speed ({(thFactor * 100).toFixed(1)}% time)
-                      </span>
-                    </div>
-                    <input
-                      id="bs-th-slider"
-                      type="range"
-                      min={1}
-                      max={22}
-                      step={1}
-                      value={thLevel}
-                      onChange={(e) => setThLevel(Number(e.target.value))}
-                      className="bs-mb-slider"
-                      aria-label="Town Hall Level Slider"
-                    />
-                  </div>
+                  {Array.from({ length: 22 }, (_, i) => i + 1).map((lvl) => {
+                    const factor = getTownHallFactor(lvl);
+                    const speedPct = (100 / factor).toFixed(0);
+                    return (
+                      <option key={lvl} value={lvl}>
+                        Lvl {lvl} ({speedPct}% speed · {(factor * 100).toFixed(1)}% time)
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
 
-                  <div className="bs-speed-control">
-                    <span className="bs-speed-control__label">Server Speed:</span>
-                    <div className="bs-speed-buttons">
-                      {SPEED_OPTIONS.map((spd) => (
-                        <button
-                          key={spd}
-                          type="button"
-                          className={`bs-speed-btn ${serverSpeed === spd ? 'is-selected' : ''}`}
-                          onClick={() => setServerSpeed(spd)}
-                        >
-                          {spd}x
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+              <div className="bs-modifier-item">
+                <span className="bs-modifier-label">Server Speed:</span>
+                <div className="bs-speed-buttons">
+                  {SPEED_OPTIONS.map((spd) => (
+                    <button
+                      key={spd}
+                      type="button"
+                      className={`bs-speed-btn ${serverSpeed === spd ? 'is-selected' : ''}`}
+                      onClick={() => setServerSpeed(spd)}
+                    >
+                      {spd}x
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>

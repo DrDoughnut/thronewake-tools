@@ -851,7 +851,7 @@ describe('the Building Stats tool', () => {
     expect(window.location.hash).toContain('b=warehouse');
     expect(container.querySelector('.bs-modal-content')).toBeTruthy();
     expect(container.querySelector('.bs-hero__title')?.textContent).toBe('Warehouse');
-    expect(container.textContent).toContain('Town Hall Level:');
+    expect(container.textContent).toContain('Town Hall:');
     expect(container.textContent).toContain('Wood');
     expect(container.textContent).toContain('Total Cost');
 

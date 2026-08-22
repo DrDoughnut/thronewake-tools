@@ -114,14 +114,14 @@ describe('BuildingStats Component & Effect Helpers', () => {
     expect(container.querySelectorAll('.bs-tr.is-in-range').length).toBe(0);
   });
 
-  it('dynamically scales construction time when adjusting Town Hall slider and Server Speed', () => {
-    const slider = container.querySelector('.bs-mb-slider') as HTMLInputElement;
-    expect(slider).toBeTruthy();
+  it('dynamically scales construction time when adjusting Town Hall dropdown and Server Speed', () => {
+    const thSelect = container.querySelector('.bs-modifier-select') as HTMLSelectElement;
+    expect(thSelect).toBeTruthy();
 
-    changeInput(slider, '1');
+    changeInput(thSelect, '1');
 
-    expect(container.textContent).toContain('Lvl 1');
-    expect(container.textContent).toContain('100% Speed (100.0% time)');
+    expect(thSelect.value).toBe('1');
+    expect(container.textContent).toContain('Town Hall Lvl 1');
 
     // Speed 3x
     const speed3Btn = [...container.querySelectorAll('.bs-speed-btn')].find(
