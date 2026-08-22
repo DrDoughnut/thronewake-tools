@@ -787,5 +787,37 @@ describe('the CP optimizer tool', () => {
     expect(badges.some((t) => t?.includes('999999'))).toBe(false);
     expect(badges.some((t) => t?.includes('NaN'))).toBe(false);
   });
+
+  it('updates slot capacity to 25 when converting village to City and expands city building max level to 22', () => {
+    // Normal village has 22 base slots
+    expect(container.textContent).toContain('22');
+
+    // Click "City" toggle
+    const cityBtn = [...container.querySelectorAll('.cp-setting-item--toggles .pill--toggle')].find(
+      (b) => b.textContent?.includes('City')
+    ) as HTMLElement;
+    expect(cityBtn).toBeTruthy();
+    click(cityBtn);
+
+    // City gets +3 extra slots (22 + 3 = 25)
+    expect(container.textContent).toContain('25');
+
+    // Add Warehouse to active village
+    const addBtn = container.querySelector('.cp-buildings-panel .pill--primary') as HTMLElement;
+    click(addBtn);
+
+    const whBtn = [...container.querySelectorAll('.cp-picker-card')].find(
+      (b) => b.textContent?.includes('Warehouse')
+    ) as HTMLElement;
+    expect(whBtn).toBeTruthy();
+    click(whBtn);
+
+    // In a city, Warehouse level selector offers up to Level 22
+    const levelSelects = container.querySelectorAll('.cp-level-select');
+    const whSelect = levelSelects[levelSelects.length - 1] as HTMLSelectElement;
+    expect(whSelect).toBeTruthy();
+    const options = Array.from(whSelect.options).map((o) => o.value);
+    expect(options).toContain('22');
+  });
 });
 

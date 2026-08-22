@@ -30,7 +30,20 @@ export const RESOURCE_FIELD_GIDS = new Set([1, 2, 3, 4]);
 // Dedicated positions: Rally point (16), Watch Tower (31)
 export const DEDICATED_SLOT_GIDS = new Set([16, 31]);
 
-export const BASE_BUILDING_SLOTS = 20;
+export const BASE_BUILDING_SLOTS = 22;
+export const CITY_EXTRA_SLOTS = 3;
+
+// Buildings that can reach level 22 in a City:
+// Warehouse (10), Granary (11), Barracks (19), Stable (20), Workshop (21), Town Hall (24)
+export const CITY_UPGRADEABLE_GIDS = new Set([
+  WAREHOUSE_GID, // 10
+  GRANARY_GID,   // 11
+  19,            // Barracks
+  20,            // Stable
+  21,            // Workshop
+  24,            // Town Hall
+]);
+
 // Herbalist (46), Warehouse (10), Granary (11), Cranny (23), Trapper (36)
 export const MULTI_INSTANCE_GIDS = new Set([10, 11, 23, 36, 46]);
 
@@ -59,6 +72,18 @@ export function occupiesSharedSlot(gid: number): boolean {
   return !DEDICATED_SLOT_GIDS.has(gid);
 }
 
+export function getBuildingMaxLevel(gid: number, isCity: boolean): number {
+  const b = BUILDINGS_BY_GID.get(gid);
+  if (!b) return 20;
+  if (isCity && CITY_UPGRADEABLE_GIDS.has(gid)) {
+    return 22;
+  }
+  if (!isCity && CITY_UPGRADEABLE_GIDS.has(gid)) {
+    return 20;
+  }
+  return b.maxLevel;
+}
+
 export function usedBuildingSlots(village: VillageState): number {
   const singleTypes = new Set<number>();
   let multiCopies = 0;
@@ -74,8 +99,9 @@ export function usedBuildingSlots(village: VillageState): number {
 }
 
 export function buildingSlotCapacity(village: VillageState): number {
+  const citySlots = village.isCity ? CITY_EXTRA_SLOTS : 0;
   const extra = Math.max(0, village.extensionSlots || 0);
-  return BASE_BUILDING_SLOTS + extra;
+  return BASE_BUILDING_SLOTS + citySlots + extra;
 }
 
 export function isBuildingAllowed(
@@ -249,6 +275,7 @@ export function computeBuildOrder(
     builtLevels = {},
     capacity = Infinity,
     extraOccupiedSlots = 0,
+    isCity = false,
     isAllowed = () => true,
     validate = false,
   }: {
@@ -256,6 +283,7 @@ export function computeBuildOrder(
     builtLevels?: Record<number, number>;
     capacity?: number;
     extraOccupiedSlots?: number;
+    isCity?: boolean;
     isAllowed?: (gid: number, builtGids: Set<number>) => boolean;
     validate?: boolean;
   } = {}
@@ -273,11 +301,19 @@ export function computeBuildOrder(
   const granaryBuilding = byGid.get(GRANARY_GID);
   const warehouseCap = [
     BASE_STORAGE,
-    ...(warehouseBuilding ? warehouseBuilding.levels.map((l) => l.effects.storageWarehouse || 0) : []),
+    ...(warehouseBuilding
+      ? warehouseBuilding.levels
+          .filter((l) => isCity || l.level <= 20)
+          .map((l) => l.effects.storageWarehouse || 0)
+      : []),
   ];
   const granaryCap = [
     BASE_STORAGE,
-    ...(granaryBuilding ? granaryBuilding.levels.map((l) => l.effects.storageGranary || 0) : []),
+    ...(granaryBuilding
+      ? granaryBuilding.levels
+          .filter((l) => isCity || l.level <= 20)
+          .map((l) => l.effects.storageGranary || 0)
+      : []),
   ];
 
   const requirementsByGid: Record<number, string[]> = {};
@@ -296,6 +332,7 @@ export function computeBuildOrder(
   const costData: CostEntry[] = [];
   for (const b of domainBuildings) {
     b.levels.forEach((levelDetail, index) => {
+      if (!isCity && levelDetail.level > 20) return;
       const levelCost = levelDetail.wood + levelDetail.clay + levelDetail.iron + levelDetail.crop;
       const cpGain = index ? levelDetail.cp - b.levels[index - 1].cp : levelDetail.cp;
       const popGain = index ? levelDetail.pop - b.levels[index - 1].pop : levelDetail.pop;
@@ -633,6 +670,7 @@ export function getRecommendations(
     builtLevels,
     capacity: buildingSlotCapacity(village),
     extraOccupiedSlots,
+    isCity: village.isCity,
     isAllowed,
   });
 }

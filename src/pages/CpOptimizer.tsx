@@ -14,6 +14,8 @@ import {
   villageTotalPop,
   usedBuildingSlots,
   buildingSlotCapacity,
+  getBuildingMaxLevel,
+  MULTI_INSTANCE_GIDS,
   encodeVillageCompact,
   decodeVillageCompact,
   type VillageState,
@@ -305,8 +307,7 @@ export function CpOptimizer() {
   const updateBuildingLevel = (bId: string, delta: number) => {
     const targetB = activeVillage.buildings.find((b) => b.id === bId);
     if (!targetB) return;
-    const catalogEntry = BUILDINGS_BY_GID.get(targetB.gid);
-    const maxL = catalogEntry ? catalogEntry.maxLevel : 20;
+    const maxL = getBuildingMaxLevel(targetB.gid, activeVillage.isCity);
     const nextLevel = Math.max(1, Math.min(maxL, targetB.level + delta));
 
     patchActiveVillage({
@@ -319,8 +320,7 @@ export function CpOptimizer() {
   const setBuildingLevel = (bId: string, level: number) => {
     const targetB = activeVillage.buildings.find((b) => b.id === bId);
     if (!targetB) return;
-    const catalogEntry = BUILDINGS_BY_GID.get(targetB.gid);
-    const maxL = catalogEntry ? catalogEntry.maxLevel : 20;
+    const maxL = getBuildingMaxLevel(targetB.gid, activeVillage.isCity);
     const nextLevel = Math.max(1, Math.min(maxL, level));
 
     patchActiveVillage({
@@ -339,6 +339,27 @@ export function CpOptimizer() {
   const addBuildingToVillage = (gid: number) => {
     const catalogEntry = BUILDINGS_BY_GID.get(gid);
     if (!catalogEntry) return;
+    const maxL = getBuildingMaxLevel(gid, activeVillage.isCity);
+
+    if (MULTI_INSTANCE_GIDS.has(gid)) {
+      const instances = activeVillage.buildings.filter((b) => b.gid === gid);
+      const underMax = instances.find((b) => b.level < maxL);
+      if (underMax && instances.length > 0) {
+        updateBuildingLevel(underMax.id, 1);
+        setPickerOpen(false);
+        return;
+      }
+      const newBuilding: VillageBuilding = {
+        id: 'b' + Date.now() + Math.random().toString(36).slice(2, 6),
+        gid,
+        level: 1,
+      };
+      patchActiveVillage({
+        buildings: [...activeVillage.buildings, newBuilding],
+      });
+      setPickerOpen(false);
+      return;
+    }
 
     const existing = activeVillage.buildings.find((b) => b.gid === gid);
     if (existing) {
@@ -348,7 +369,7 @@ export function CpOptimizer() {
     }
 
     const newBuilding: VillageBuilding = {
-      id: 'b' + Date.now(),
+      id: 'b' + Date.now() + Math.random().toString(36).slice(2, 6),
       gid,
       level: 1,
     };
@@ -771,7 +792,7 @@ export function CpOptimizer() {
                 {activeVillage.buildings.map((b) => {
                   const catalogEntry = BUILDINGS_BY_GID.get(b.gid);
                   const name = catalogEntry ? catalogEntry.name : 'Building #' + b.gid;
-                  const maxL = catalogEntry ? catalogEntry.maxLevel : 20;
+                  const maxL = getBuildingMaxLevel(b.gid, activeVillage.isCity);
                   const levelCp = catalogEntry && catalogEntry.levels[b.level - 1] ? catalogEntry.levels[b.level - 1].cp : 0;
                   const levelPop = catalogEntry && catalogEntry.levels[b.level - 1] ? catalogEntry.levels[b.level - 1].pop : 0;
                   const iconUrl = buildingIcon(b.gid);
@@ -966,6 +987,18 @@ export function CpOptimizer() {
             <div className="cp-picker-grid">
               {availableBuildings.map((b) => {
                 const iconUrl = buildingIcon(b.gid);
+                const maxL = getBuildingMaxLevel(b.gid, activeVillage.isCity);
+                const instances = activeVillage.buildings.filter((vb) => vb.gid === b.gid);
+                let subText = `${b.category} · Max Lvl ${maxL}`;
+                if (instances.length > 0) {
+                  if (MULTI_INSTANCE_GIDS.has(b.gid)) {
+                    const allMaxed = instances.every((inst) => inst.level >= maxL);
+                    subText = `${instances.length} built · ${allMaxed ? '+ Add Another' : 'Upgrade'}`;
+                  } else {
+                    subText = `Lvl ${instances[0].level} built`;
+                  }
+                }
+
                 return (
                   <button
                     key={b.gid}
@@ -978,7 +1011,7 @@ export function CpOptimizer() {
                     )}
                     <div>
                       <strong>{b.name}</strong>
-                      <small>{b.category} · Max Lvl {b.maxLevel}</small>
+                      <small>{subText}</small>
                     </div>
                   </button>
                 );

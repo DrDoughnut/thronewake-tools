@@ -17,6 +17,8 @@ import {
   type VillageState,
   MAIN_BUILDING_GID,
   WAREHOUSE_GID,
+  GRANARY_GID,
+  getBuildingMaxLevel,
   PALACE_GID,
   RESIDENCE_GID,
 } from './cpOptimizer';
@@ -160,7 +162,52 @@ describe('CP Build-Order Optimizer Engine', () => {
     };
 
     expect(usedBuildingSlots(village)).toBe(3); // MB + 2 Warehouses
-    expect(buildingSlotCapacity(village)).toBe(23); // 20 base + 3 extension
+    expect(buildingSlotCapacity(village)).toBe(25); // 22 base + 3 extension
+
+    // City gets +3 extra slots (22 + 3 = 25 default, or 22 + 3 + 3 = 28 with 3 extensions)
+    const cityVillage: VillageState = {
+      ...village,
+      isCity: true,
+      extensionSlots: 0,
+    };
+    expect(buildingSlotCapacity(cityVillage)).toBe(25); // 22 base + 3 city
+  });
+
+  it('supports city building level 22 maximums and verified CP values', () => {
+    // City allows levels 1-22 for WH, Granary, Barracks, Stable, Workshop, and Town Hall
+    const th = BUILDINGS_BY_GID.get(24)!;
+    expect(th.levels[21].cp).toBe(138); // Level 22 Town Hall = 138 CP
+
+    const wh = BUILDINGS_BY_GID.get(WAREHOUSE_GID)!;
+    expect(wh.levels[21].cp).toBe(69);  // Level 22 Warehouse = 69 CP
+    expect(wh.levels[21].effects.storageWarehouse).toBe(125000);
+
+    const gr = BUILDINGS_BY_GID.get(GRANARY_GID)!;
+    expect(gr.levels[21].cp).toBe(69);  // Level 22 Granary = 69 CP
+    expect(gr.levels[21].effects.storageGranary).toBe(125000);
+
+    const bar = BUILDINGS_BY_GID.get(19)!;
+    expect(bar.levels[21].cp).toBe(69); // Level 22 Barracks = 69 CP
+
+    const stb = BUILDINGS_BY_GID.get(20)!;
+    expect(stb.levels[21].cp).toBe(138); // Level 22 Stable = 138 CP
+
+    const ws = BUILDINGS_BY_GID.get(21)!;
+    expect(ws.levels[21].cp).toBe(207); // Level 22 Workshop = 207 CP
+
+    // In a normal village (non-city), max level is 20
+    expect(getBuildingMaxLevel(24, false)).toBe(20);
+    expect(getBuildingMaxLevel(WAREHOUSE_GID, false)).toBe(20);
+
+    // In a city, max level is 22 for city upgradeable buildings
+    expect(getBuildingMaxLevel(24, true)).toBe(22);
+    expect(getBuildingMaxLevel(WAREHOUSE_GID, true)).toBe(22);
+    expect(getBuildingMaxLevel(GRANARY_GID, true)).toBe(22);
+    expect(getBuildingMaxLevel(19, true)).toBe(22);
+    expect(getBuildingMaxLevel(20, true)).toBe(22);
+    expect(getBuildingMaxLevel(21, true)).toBe(22);
+    // Non-city upgradeable buildings remain max 20
+    expect(getBuildingMaxLevel(MAIN_BUILDING_GID, true)).toBe(20);
   });
 
   it('correctly round-trips village state in compact format for shareable links', () => {

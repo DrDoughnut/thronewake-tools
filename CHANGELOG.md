@@ -23,8 +23,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Shareable URLs**: Compressed URL hash encoding/decoding (`v1_...`) supporting instant setup sharing.
 - **Single Capital Realm Enforcement**:
   - Enforced strict single-capital rule across the entire realm. Designating a new Capital automatically updates the former capital to a regular village and converts Palace ↔ Residence.
+- **City Building Level 22 Maximums**:
+  - Warehouse, Granary, Barracks, Stable, Workshop, and Town Hall can reach **Level 22** in a City with exact CP progression (Level 22 Town Hall = 138 CP, Level 22 Warehouse & Granary = 69 CP each).
+- **City Slot Expansion**:
+  - Base building slots updated to **22 slots** (with Cities automatically granted +3 extra slots for **25 total slots**).
+- **Multi-Instance Building Support**:
+  - Additional copies of Warehouse, Granary, Shelter/Cranny, Trapper, and Herbalist can now be constructed once existing copies reach max level.
 - **Quick-Jump Building Level Dropdown**:
-  - Added an interactive `<select>` dropdown inside each building row to jump directly to any level from 1 to 20 without having to click the increment button 20 times.
+  - Added an interactive `<select>` dropdown inside each building row to jump directly to any level from 1 to 20 (or 22 in Cities) without having to click the increment button repeatedly.
 
 ### Fixed
 - Fixed Embassy (GID 18) and Expedition Camp (GID 37) population tables where marginal population increments had been saved instead of cumulative totals.

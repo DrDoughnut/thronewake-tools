@@ -1641,7 +1641,7 @@ export const BUILDINGS: CatalogBuilding[] = [
     "slug": "warehouse",
     "name": "Warehouse",
     "category": "Infrastructure",
-    "maxLevel": 20,
+    "maxLevel": 22,
     "cultureBase": 1,
     "effects": [
       "storageWarehouse"
@@ -1915,6 +1915,32 @@ export const BUILDINGS: CatalogBuilding[] = [
         "effects": {
           "storageWarehouse": 80000
         }
+      },
+      {
+        "level": 21,
+        "time": 84456,
+        "wood": 41995,
+        "clay": 53990,
+        "iron": 29990,
+        "crop": 0,
+        "pop": 32,
+        "cp": 51,
+        "effects": {
+          "storageWarehouse": 100000
+        }
+      },
+      {
+        "level": 22,
+        "time": 101347,
+        "wood": 55855,
+        "clay": 71805,
+        "iron": 39885,
+        "crop": 0,
+        "pop": 34,
+        "cp": 69,
+        "effects": {
+          "storageWarehouse": 125000
+        }
       }
     ]
   },
@@ -1923,7 +1949,7 @@ export const BUILDINGS: CatalogBuilding[] = [
     "slug": "granary",
     "name": "Granary",
     "category": "Infrastructure",
-    "maxLevel": 20,
+    "maxLevel": 22,
     "cultureBase": 1,
     "effects": [
       "storageGranary"
@@ -2196,6 +2222,32 @@ export const BUILDINGS: CatalogBuilding[] = [
         "cp": 38,
         "effects": {
           "storageGranary": 80000
+        }
+      },
+      {
+        "level": 21,
+        "time": 80784,
+        "wood": 23995,
+        "clay": 29990,
+        "iron": 20995,
+        "crop": 6000,
+        "pop": 32,
+        "cp": 51,
+        "effects": {
+          "storageGranary": 100000
+        }
+      },
+      {
+        "level": 22,
+        "time": 96941,
+        "wood": 31915,
+        "clay": 39885,
+        "iron": 27925,
+        "crop": 7980,
+        "pop": 34,
+        "cp": 69,
+        "effects": {
+          "storageGranary": 125000
         }
       }
     ]
@@ -3854,7 +3906,7 @@ export const BUILDINGS: CatalogBuilding[] = [
     "slug": "barracks",
     "name": "Barracks",
     "category": "Military",
-    "maxLevel": 20,
+    "maxLevel": 22,
     "cultureBase": 1,
     "effects": [
       "trainingTimeBarracks"
@@ -4135,6 +4187,32 @@ export const BUILDINGS: CatalogBuilding[] = [
         "effects": {
           "trainingTimeBarracks": 0.13508517176729928
         }
+      },
+      {
+        "level": 21,
+        "time": 88128,
+        "wood": 62990,
+        "clay": 41995,
+        "iron": 77985,
+        "crop": 35990,
+        "pop": 66,
+        "cp": 51,
+        "effects": {
+          "trainingTimeBarracks": 0.121577
+        }
+      },
+      {
+        "level": 22,
+        "time": 105754,
+        "wood": 83775,
+        "clay": 55855,
+        "iron": 103720,
+        "crop": 47865,
+        "pop": 70,
+        "cp": 69,
+        "effects": {
+          "trainingTimeBarracks": 0.109419
+        }
       }
     ]
   },
@@ -4143,7 +4221,7 @@ export const BUILDINGS: CatalogBuilding[] = [
     "slug": "stable",
     "name": "Stable",
     "category": "Military",
-    "maxLevel": 20,
+    "maxLevel": 22,
     "cultureBase": 2,
     "effects": [
       "trainingTimeStable"
@@ -4424,6 +4502,32 @@ export const BUILDINGS: CatalogBuilding[] = [
         "effects": {
           "trainingTimeStable": 0.13508517176729928
         }
+      },
+      {
+        "level": 21,
+        "time": 95472,
+        "wood": 77985,
+        "clay": 41995,
+        "iron": 65990,
+        "crop": 29990,
+        "pop": 76,
+        "cp": 102,
+        "effects": {
+          "trainingTimeStable": 0.121577
+        }
+      },
+      {
+        "level": 22,
+        "time": 114566,
+        "wood": 103720,
+        "clay": 55855,
+        "iron": 87765,
+        "crop": 39885,
+        "pop": 80,
+        "cp": 138,
+        "effects": {
+          "trainingTimeStable": 0.109419
+        }
       }
     ]
   },
@@ -4432,7 +4536,7 @@ export const BUILDINGS: CatalogBuilding[] = [
     "slug": "workshop",
     "name": "Workshop",
     "category": "Military",
-    "maxLevel": 20,
+    "maxLevel": 22,
     "cultureBase": 3,
     "effects": [
       "trainingTimeWorkshop"
@@ -4712,6 +4816,32 @@ export const BUILDINGS: CatalogBuilding[] = [
         "cp": 115,
         "effects": {
           "trainingTimeWorkshop": 0.13508517176729928
+        }
+      },
+      {
+        "level": 21,
+        "time": 112643,
+        "wood": 64115,
+        "clay": 71085,
+        "iron": 83630,
+        "crop": 44600,
+        "pop": 54,
+        "cp": 154,
+        "effects": {
+          "trainingTimeWorkshop": 0.121577
+        }
+      },
+      {
+        "level": 22,
+        "time": 132919,
+        "wood": 82065,
+        "clay": 90990,
+        "iron": 107045,
+        "crop": 57090,
+        "pop": 57,
+        "cp": 207,
+        "effects": {
+          "trainingTimeWorkshop": 0.109419
         }
       }
     ]
@@ -5123,8 +5253,8 @@ export const BUILDINGS: CatalogBuilding[] = [
     "slug": "town-hall",
     "name": "Town Hall",
     "category": "Infrastructure",
-    "maxLevel": 20,
-    "cultureBase": 5,
+    "maxLevel": 22,
+    "cultureBase": 2,
     "effects": [
       "smallPartyTime",
       "largePartyTime"
@@ -5154,7 +5284,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "iron": 1260,
         "crop": 600,
         "pop": 4,
-        "cp": 6,
+        "cp": 2,
         "effects": {
           "smallPartyTime": 86400,
           "largePartyTime": null
@@ -5168,7 +5298,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "iron": 1615,
         "crop": 770,
         "pop": 6,
-        "cp": 7,
+        "cp": 3,
         "effects": {
           "smallPartyTime": 83289.59999999999,
           "largePartyTime": null
@@ -5182,7 +5312,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "iron": 2065,
         "crop": 985,
         "pop": 8,
-        "cp": 9,
+        "cp": 3,
         "effects": {
           "smallPartyTime": 80291.17439999999,
           "largePartyTime": null
@@ -5196,7 +5326,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "iron": 2640,
         "crop": 1260,
         "pop": 10,
-        "cp": 10,
+        "cp": 4,
         "effects": {
           "smallPartyTime": 77400.69212159999,
           "largePartyTime": null
@@ -5210,7 +5340,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "iron": 3380,
         "crop": 1610,
         "pop": 12,
-        "cp": 12,
+        "cp": 5,
         "effects": {
           "smallPartyTime": 74614.2672052224,
           "largePartyTime": null
@@ -5224,7 +5354,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "iron": 4330,
         "crop": 2060,
         "pop": 15,
-        "cp": 15,
+        "cp": 6,
         "effects": {
           "smallPartyTime": 71928.15358583439,
           "largePartyTime": null
@@ -5238,7 +5368,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "iron": 5540,
         "crop": 2640,
         "pop": 18,
-        "cp": 18,
+        "cp": 7,
         "effects": {
           "smallPartyTime": 69338.74005674434,
           "largePartyTime": null
@@ -5252,7 +5382,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "iron": 7095,
         "crop": 3380,
         "pop": 21,
-        "cp": 21,
+        "cp": 9,
         "effects": {
           "smallPartyTime": 66842.54541470154,
           "largePartyTime": null
@@ -5266,7 +5396,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "iron": 9080,
         "crop": 4325,
         "pop": 24,
-        "cp": 26,
+        "cp": 10,
         "effects": {
           "smallPartyTime": 64436.21377977229,
           "largePartyTime": null
@@ -5280,7 +5410,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "iron": 11620,
         "crop": 5535,
         "pop": 27,
-        "cp": 31,
+        "cp": 12,
         "effects": {
           "smallPartyTime": 62116.51008370048,
           "largePartyTime": 155291.27520925118
@@ -5294,7 +5424,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "iron": 14875,
         "crop": 7085,
         "pop": 30,
-        "cp": 37,
+        "cp": 15,
         "effects": {
           "smallPartyTime": 59880.315720687264,
           "largePartyTime": 149700.78930171815
@@ -5308,7 +5438,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "iron": 19040,
         "crop": 9065,
         "pop": 33,
-        "cp": 45,
+        "cp": 18,
         "effects": {
           "smallPartyTime": 57724.62435474252,
           "largePartyTime": 144311.5608868563
@@ -5322,7 +5452,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "iron": 24370,
         "crop": 11605,
         "pop": 36,
-        "cp": 53,
+        "cp": 21,
         "effects": {
           "smallPartyTime": 55646.53787797179,
           "largePartyTime": 139116.34469492946
@@ -5336,7 +5466,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "iron": 31195,
         "crop": 14855,
         "pop": 39,
-        "cp": 64,
+        "cp": 26,
         "effects": {
           "smallPartyTime": 53643.262514364804,
           "largePartyTime": 134108.156285912
@@ -5350,7 +5480,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "iron": 39930,
         "crop": 19015,
         "pop": 42,
-        "cp": 77,
+        "cp": 31,
         "effects": {
           "smallPartyTime": 51712.10506384767,
           "largePartyTime": 129280.26265961917
@@ -5364,7 +5494,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "iron": 51110,
         "crop": 24340,
         "pop": 46,
-        "cp": 92,
+        "cp": 37,
         "effects": {
           "smallPartyTime": 49850.46928154914,
           "largePartyTime": 124626.17320387287
@@ -5378,7 +5508,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "iron": 65425,
         "crop": 31155,
         "pop": 50,
-        "cp": 111,
+        "cp": 44,
         "effects": {
           "smallPartyTime": 48055.852387413375,
           "largePartyTime": 120139.63096853343
@@ -5392,7 +5522,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "iron": 83740,
         "crop": 39875,
         "pop": 54,
-        "cp": 133,
+        "cp": 53,
         "effects": {
           "smallPartyTime": 46325.84170146649,
           "largePartyTime": 115814.60425366623
@@ -5406,7 +5536,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "iron": 107190,
         "crop": 51040,
         "pop": 58,
-        "cp": 160,
+        "cp": 64,
         "effects": {
           "smallPartyTime": 44658.1114002137,
           "largePartyTime": 111645.27850053423
@@ -5420,10 +5550,38 @@ export const BUILDINGS: CatalogBuilding[] = [
         "iron": 137200,
         "crop": 65335,
         "pop": 62,
-        "cp": 192,
+        "cp": 77,
         "effects": {
           "smallPartyTime": 43050.419389806004,
           "largePartyTime": 107626.04847451502
+        }
+      },
+      {
+        "level": 21,
+        "time": 158861,
+        "wood": 174225,
+        "clay": 154715,
+        "iron": 175615,
+        "crop": 83630,
+        "pop": 66,
+        "cp": 102,
+        "effects": {
+          "smallPartyTime": 40898,
+          "largePartyTime": 102245
+        }
+      },
+      {
+        "level": 22,
+        "time": 187456,
+        "wood": 223010,
+        "clay": 198035,
+        "iron": 224785,
+        "crop": 107045,
+        "pop": 70,
+        "cp": 138,
+        "effects": {
+          "smallPartyTime": 38853,
+          "largePartyTime": 97133
         }
       }
     ]
