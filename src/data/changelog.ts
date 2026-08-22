@@ -20,7 +20,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       'Multi-Village Realm Management: add, manage, and vertically reorder villages in your realm with shared URL state.',
       'Single Capital Realm Rule: enforced strict single-capital invariant across multi-village realms with automatic Palace ↔ Residence conversion.',
       'City Level 22 Maximums: Warehouse, Granary, Barracks, Stable, Workshop, and Town Hall can reach Level 22 in Cities with verified CP values (TH lvl 22 = 138 CP, WH & Granary lvl 22 = 69 CP each).',
-      'City Slot Expansion: base building slots updated to 22, with Cities automatically granted +3 extra slots (25 total slots).',
+      'City Slot Expansion: shared building slots modeled with 20 base slots (plus dedicated Rally Point and Wall), with Cities automatically granted +3 extra slots (23 shared slots).',
       'Multi-Instance Buildings: build additional copies of Warehouse, Granary, Shelter/Cranny, Trapper, and Herbalist once existing copies reach max level.',
       'Prerequisite & Storage Gating: automatic scheduling of prerequisite chains and storage expansions (Warehouse & Granary) before candidate buildings.',
       'Quick-Jump Level Dropdowns: direct level dropdown selectors (Lvl 1–20 / 22) alongside step increment/decrement buttons.',

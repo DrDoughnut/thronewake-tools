@@ -162,15 +162,15 @@ describe('CP Build-Order Optimizer Engine', () => {
     };
 
     expect(usedBuildingSlots(village)).toBe(3); // MB + 2 Warehouses
-    expect(buildingSlotCapacity(village)).toBe(25); // 22 base + 3 extension
+    expect(buildingSlotCapacity(village)).toBe(23); // 20 base + 3 extension
 
-    // City gets +3 extra slots (22 + 3 = 25 default, or 22 + 3 + 3 = 28 with 3 extensions)
+    // City gets +3 extra slots (20 + 3 = 23 default, or 20 + 3 + 3 = 26 with 3 extensions)
     const cityVillage: VillageState = {
       ...village,
       isCity: true,
       extensionSlots: 0,
     };
-    expect(buildingSlotCapacity(cityVillage)).toBe(25); // 22 base + 3 city
+    expect(buildingSlotCapacity(cityVillage)).toBe(23); // 20 base + 3 city
   });
 
   it('supports city building level 22 maximums and verified CP values', () => {

@@ -30,7 +30,7 @@ export const RESOURCE_FIELD_GIDS = new Set([1, 2, 3, 4]);
 // Dedicated positions: Rally point (16), Watch Tower (31)
 export const DEDICATED_SLOT_GIDS = new Set([16, 31]);
 
-export const BASE_BUILDING_SLOTS = 22;
+export const BASE_BUILDING_SLOTS = 20;
 export const CITY_EXTRA_SLOTS = 3;
 
 // Buildings that can reach level 22 in a City:

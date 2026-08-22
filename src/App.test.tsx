@@ -788,9 +788,9 @@ describe('the CP optimizer tool', () => {
     expect(badges.some((t) => t?.includes('NaN'))).toBe(false);
   });
 
-  it('updates slot capacity to 25 when converting village to City and expands city building max level to 22', () => {
-    // Normal village has 22 base slots
-    expect(container.textContent).toContain('22');
+  it('updates slot capacity to 23 when converting village to City and expands city building max level to 22', () => {
+    // Normal village has 20 base shared slots
+    expect(container.textContent).toContain('20');
 
     // Click "City" toggle
     const cityBtn = [...container.querySelectorAll('.cp-setting-item--toggles .pill--toggle')].find(
@@ -799,8 +799,8 @@ describe('the CP optimizer tool', () => {
     expect(cityBtn).toBeTruthy();
     click(cityBtn);
 
-    // City gets +3 extra slots (22 + 3 = 25)
-    expect(container.textContent).toContain('25');
+    // City gets +3 extra slots (20 + 3 = 23)
+    expect(container.textContent).toContain('23');
 
     // Add Warehouse to active village
     const addBtn = container.querySelector('.cp-buildings-panel .pill--primary') as HTMLElement;

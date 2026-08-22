@@ -26,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **City Building Level 22 Maximums**:
   - Warehouse, Granary, Barracks, Stable, Workshop, and Town Hall can reach **Level 22** in a City with exact CP progression (Level 22 Town Hall = 138 CP, Level 22 Warehouse & Granary = 69 CP each).
 - **City Slot Expansion**:
-  - Base building slots updated to **22 slots** (with Cities automatically granted +3 extra slots for **25 total slots**).
+  - Shared building slot capacity modeled accurately with **20 base shared slots** (plus dedicated Rally Point and Wall), and Cities automatically granted +3 extra slots for **23 shared slots**.
 - **Multi-Instance Building Support**:
   - Additional copies of Warehouse, Granary, Shelter/Cranny, Trapper, and Herbalist can now be constructed once existing copies reach max level.
 - **Quick-Jump Building Level Dropdown**:
