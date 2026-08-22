@@ -212,6 +212,125 @@ export function villageTotalPop(village: VillageState): number {
   return villageBuildingPop(village) + villageFieldPop(village);
 }
 
+export interface ResourceCost {
+  wood: number;
+  clay: number;
+  iron: number;
+  crop: number;
+  total: number;
+}
+
+export function buildingCumulativeCost(gid: number, targetLevel: number): ResourceCost {
+  const building = BUILDINGS_BY_GID.get(gid);
+  if (!building || targetLevel < 1) {
+    return { wood: 0, clay: 0, iron: 0, crop: 0, total: 0 };
+  }
+  const capped = Math.min(targetLevel, building.maxLevel);
+  let wood = 0;
+  let clay = 0;
+  let iron = 0;
+  let crop = 0;
+  for (let i = 0; i < capped; i++) {
+    const lvl = building.levels[i];
+    if (lvl) {
+      wood += lvl.wood;
+      clay += lvl.clay;
+      iron += lvl.iron;
+      crop += lvl.crop;
+    }
+  }
+  return {
+    wood,
+    clay,
+    iron,
+    crop,
+    total: wood + clay + iron + crop,
+  };
+}
+
+export function fieldCumulativeCost(fieldLevel: number): ResourceCost {
+  if (fieldLevel < 1) {
+    return { wood: 0, clay: 0, iron: 0, crop: 0, total: 0 };
+  }
+  const woodcutter = buildingCumulativeCost(1, fieldLevel);
+  const clayPit = buildingCumulativeCost(2, fieldLevel);
+  const ironMine = buildingCumulativeCost(3, fieldLevel);
+  const cropland = buildingCumulativeCost(4, fieldLevel);
+
+  const wood = woodcutter.wood * 4 + clayPit.wood * 4 + ironMine.wood * 4 + cropland.wood * 6;
+  const clay = woodcutter.clay * 4 + clayPit.clay * 4 + ironMine.clay * 4 + cropland.clay * 6;
+  const iron = woodcutter.iron * 4 + clayPit.iron * 4 + ironMine.iron * 4 + cropland.iron * 6;
+  const crop = woodcutter.crop * 4 + clayPit.crop * 4 + ironMine.crop * 4 + cropland.crop * 6;
+
+  return {
+    wood,
+    clay,
+    iron,
+    crop,
+    total: wood + clay + iron + crop,
+  };
+}
+
+export function villageBuildingCost(village: VillageState): ResourceCost {
+  let wood = 0;
+  let clay = 0;
+  let iron = 0;
+  let crop = 0;
+
+  for (const b of village.buildings) {
+    if (!b.level || b.level < 1) continue;
+    const cost = buildingCumulativeCost(b.gid, b.level);
+    wood += cost.wood;
+    clay += cost.clay;
+    iron += cost.iron;
+    crop += cost.crop;
+  }
+
+  return {
+    wood,
+    clay,
+    iron,
+    crop,
+    total: wood + clay + iron + crop,
+  };
+}
+
+export function villageFieldCost(village: VillageState): ResourceCost {
+  return fieldCumulativeCost(village.fieldLevel || 0);
+}
+
+export function villageNetworth(village: VillageState): ResourceCost {
+  const bCost = villageBuildingCost(village);
+  const fCost = villageFieldCost(village);
+
+  return {
+    wood: bCost.wood + fCost.wood,
+    clay: bCost.clay + fCost.clay,
+    iron: bCost.iron + fCost.iron,
+    crop: bCost.crop + fCost.crop,
+    total: bCost.total + fCost.total,
+  };
+}
+
+export function accountNetworth(villages: VillageState[]): ResourceCost {
+  let wood = 0;
+  let clay = 0;
+  let iron = 0;
+  let crop = 0;
+  let total = 0;
+
+  for (const v of villages) {
+    const nw = villageNetworth(v);
+    wood += nw.wood;
+    clay += nw.clay;
+    iron += nw.iron;
+    crop += nw.crop;
+    total += nw.total;
+  }
+
+  return { wood, clay, iron, crop, total };
+}
+
 export type OptimizerMetric = 'cp' | 'pop';
 
 export interface CostEntry {

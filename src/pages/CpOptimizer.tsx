@@ -12,6 +12,10 @@ import {
   villageBuildingPop,
   villageFieldPop,
   villageTotalPop,
+  villageBuildingCost,
+  villageFieldCost,
+  villageNetworth,
+  accountNetworth,
   usedBuildingSlots,
   buildingSlotCapacity,
   getBuildingMaxLevel,
@@ -297,6 +301,14 @@ export function CpOptimizer() {
     [appState.villages]
   );
 
+  const bNetworth = useMemo(() => villageBuildingCost(activeVillage), [activeVillage]);
+  const fNetworth = useMemo(() => villageFieldCost(activeVillage), [activeVillage]);
+  const activeNetworth = useMemo(() => villageNetworth(activeVillage), [activeVillage]);
+  const empireNetworth = useMemo(
+    () => accountNetworth(appState.villages),
+    [appState.villages]
+  );
+
   const usedSlots = useMemo(() => usedBuildingSlots(activeVillage), [activeVillage]);
   const totalSlots = useMemo(() => buildingSlotCapacity(activeVillage), [activeVillage]);
 
@@ -489,6 +501,7 @@ export function CpOptimizer() {
               const isCurrent = v.id === activeVillage.id;
               const vCp = villageTotalCp(v);
               const vPop = villageTotalPop(v);
+              const vNetworth = villageNetworth(v);
               const vSlots = usedBuildingSlots(v);
               const vMaxSlots = buildingSlotCapacity(v);
 
@@ -551,6 +564,12 @@ export function CpOptimizer() {
                     <span className="cp-village-card-v__cp">
                       {optimizerMetric === 'pop' ? `${vPop.toLocaleString()} Pop` : `+${vCp.toLocaleString()} CP/d`}
                     </span>
+                    <span
+                      className="cp-village-card-v__networth"
+                      title={`Invested resources: ${vNetworth.total.toLocaleString()} (Wood: ${vNetworth.wood.toLocaleString()}, Clay: ${vNetworth.clay.toLocaleString()}, Iron: ${vNetworth.iron.toLocaleString()}, Crop: ${vNetworth.crop.toLocaleString()})`}
+                    >
+                      💎 {vNetworth.total >= 1000000 ? `${(vNetworth.total / 1000000).toFixed(2)}M` : vNetworth.total >= 1000 ? `${(vNetworth.total / 1000).toFixed(1)}k` : vNetworth.total.toLocaleString()} res
+                    </span>
                     <span className="cp-village-card-v__slots">{vSlots}/{vMaxSlots} slots</span>
                   </div>
 
@@ -599,7 +618,7 @@ export function CpOptimizer() {
                   <label className="cp-label">
                     <span>Faction</span>
                     <select
-                      className="text-input"
+                      className="select"
                       value={activeVillage.faction}
                       onChange={(e) => patchActiveVillage({ faction: e.target.value })}
                     >
@@ -632,11 +651,14 @@ export function CpOptimizer() {
                   </button>
                 </div>
 
-                {/* Average Field Level */}
+                {/* Average Resource Field Level */}
                 <div className="cp-setting-item">
-                  <label className="cp-label" title="Average resource field level (18 fields total)">
-                    <span>Avg Resource Field Level (0–20): <strong>{activeVillage.fieldLevel || 0}</strong></span>
-                    <div className="cp-field-slider-wrap">
+                  <label className="cp-label">
+                    <div className="cp-label-split">
+                      <span>Resource Fields (All 18)</span>
+                      <strong>Lvl {activeVillage.fieldLevel || 0}</strong>
+                    </div>
+                    <div className="cp-slider-wrap">
                       <input
                         type="range"
                         min="0"
@@ -691,7 +713,7 @@ export function CpOptimizer() {
                 <div>
                   <span className="op-section-tag op-section-tag--target">Live Overview</span>
                   <h2 className="panel__title">
-                    {optimizerMetric === 'pop' ? 'Population & Slots' : 'Culture Points & Slots'}
+                    {optimizerMetric === 'pop' ? 'Population & Investment' : 'Culture Points & Networth'}
                   </h2>
                 </div>
               </div>
@@ -745,7 +767,11 @@ export function CpOptimizer() {
                     )}
                   </span>
                   <div className="cp-stat-card__breakdown">
-                    <span>{appState.villages.length} {appState.villages.length === 1 ? 'village' : 'villages'} in realm</span>
+                    <span>{appState.villages.length} {appState.villages.length === 1 ? 'village' : 'villages'}</span>
+                    <span>·</span>
+                    <span title={`Empire Networth: ${empireNetworth.total.toLocaleString()} res (Wood: ${empireNetworth.wood.toLocaleString()}, Clay: ${empireNetworth.clay.toLocaleString()}, Iron: ${empireNetworth.iron.toLocaleString()}, Crop: ${empireNetworth.crop.toLocaleString()})`}>
+                      Empire: <strong>{empireNetworth.total >= 1000000 ? `${(empireNetworth.total / 1000000).toFixed(2)}M` : empireNetworth.total.toLocaleString()} res</strong>
+                    </span>
                   </div>
                 </div>
 
@@ -757,6 +783,26 @@ export function CpOptimizer() {
                   </span>
                   <div className="cp-stat-card__breakdown">
                     <span>{totalSlots - usedSlots} slots remaining</span>
+                  </div>
+                </div>
+
+                {/* Metric 4: Village Networth (Invested Resources) */}
+                <div className="cp-stat-card">
+                  <span className="cp-stat-card__label">Village Networth</span>
+                  <span
+                    className="cp-stat-card__val"
+                    title={`Total invested resources: ${activeNetworth.total.toLocaleString()} (Wood: ${activeNetworth.wood.toLocaleString()}, Clay: ${activeNetworth.clay.toLocaleString()}, Iron: ${activeNetworth.iron.toLocaleString()}, Crop: ${activeNetworth.crop.toLocaleString()})`}
+                  >
+                    {activeNetworth.total.toLocaleString()} <small>res</small>
+                  </span>
+                  <div className="cp-stat-card__breakdown">
+                    <span title={`Buildings invested: ${bNetworth.total.toLocaleString()} res (Wood: ${bNetworth.wood.toLocaleString()}, Clay: ${bNetworth.clay.toLocaleString()}, Iron: ${bNetworth.iron.toLocaleString()}, Crop: ${bNetworth.crop.toLocaleString()})`}>
+                      Buildings: <strong>{bNetworth.total.toLocaleString()}</strong>
+                    </span>
+                    <span>·</span>
+                    <span title={`Fields invested: ${fNetworth.total.toLocaleString()} res (Wood: ${fNetworth.wood.toLocaleString()}, Clay: ${fNetworth.clay.toLocaleString()}, Iron: ${fNetworth.iron.toLocaleString()}, Crop: ${fNetworth.crop.toLocaleString()})`}>
+                      Fields: <strong>{fNetworth.total.toLocaleString()}</strong>
+                    </span>
                   </div>
                 </div>
               </div>

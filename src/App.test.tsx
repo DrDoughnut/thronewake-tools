@@ -819,6 +819,12 @@ describe('the CP optimizer tool', () => {
     const options = Array.from(whSelect.options).map((o) => o.value);
     expect(options).toContain('22');
   });
+
+  it('calculates and displays Village and Empire Networth in the CP optimizer overview', () => {
+    expect(container.textContent).toContain('Village Networth');
+    expect(container.textContent).toContain('res');
+    expect(container.textContent).toContain('Empire:');
+  });
 });
 
 describe('the Building Stats tool', () => {

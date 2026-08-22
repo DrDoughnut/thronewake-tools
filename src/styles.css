@@ -2795,6 +2795,12 @@ select:focus, .select:focus, .text-input:focus {
   font-weight: 750;
 }
 
+.cp-village-card-v__networth {
+  color: #72c2dd;
+  font-size: 11px;
+  font-weight: 600;
+}
+
 .cp-village-card-v__slots {
   color: var(--text-dim);
   font-size: 11px;

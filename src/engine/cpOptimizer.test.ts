@@ -9,6 +9,12 @@ import {
   villageBuildingPop,
   villageFieldPop,
   villageTotalPop,
+  buildingCumulativeCost,
+  fieldCumulativeCost,
+  villageBuildingCost,
+  villageFieldCost,
+  villageNetworth,
+  accountNetworth,
   usedBuildingSlots,
   buildingSlotCapacity,
   encodeVillageCompact,
@@ -399,5 +405,70 @@ describe('CP Build-Order Optimizer Engine', () => {
       ],
     };
     expect(villageBuildingPop(vWithEmbassy)).toBe(21);
+  });
+
+  it('calculates building, field, and total village networth accurately from buildingCatalog', () => {
+    // Level 1 Embassy: wood=180, clay=130, iron=150, crop=80 -> total=540
+    const embLvl1Cost = buildingCumulativeCost(18, 1);
+    expect(embLvl1Cost).toEqual({
+      wood: 180,
+      clay: 130,
+      iron: 150,
+      crop: 80,
+      total: 540,
+    });
+
+    // Level 0 returns 0
+    expect(buildingCumulativeCost(18, 0)).toEqual({
+      wood: 0,
+      clay: 0,
+      iron: 0,
+      crop: 0,
+      total: 0,
+    });
+
+    expect(fieldCumulativeCost(0)).toEqual({
+      wood: 0,
+      clay: 0,
+      iron: 0,
+      crop: 0,
+      total: 0,
+    });
+    expect(fieldCumulativeCost(1).total).toBeGreaterThan(0);
+
+    // Test village with Embassy L1 and MB L1
+    const mbL1 = BUILDINGS_BY_GID.get(MAIN_BUILDING_GID)!.levels[0];
+    const mbL1Cost = mbL1.wood + mbL1.clay + mbL1.iron + mbL1.crop;
+
+    const testVillage: VillageState = {
+      id: 'v_test',
+      name: 'Networth Test Village',
+      faction: 'embermark_dominion',
+      isCapital: false,
+      isCity: false,
+      fieldLevel: 1, // All 18 fields at Level 1
+      extensionSlots: 0,
+      buildings: [
+        { id: 'b_mb', gid: MAIN_BUILDING_GID, level: 1 },
+        { id: 'b_emb', gid: 18, level: 1 },
+      ],
+    };
+
+    const bCost = villageBuildingCost(testVillage);
+    expect(bCost.total).toBe(540 + mbL1Cost);
+
+    const fCost = villageFieldCost(testVillage);
+    expect(fCost.total).toBeGreaterThan(0);
+
+    const nw = villageNetworth(testVillage);
+    expect(nw.total).toBe(bCost.total + fCost.total);
+    expect(nw.wood).toBe(bCost.wood + fCost.wood);
+    expect(nw.clay).toBe(bCost.clay + fCost.clay);
+    expect(nw.iron).toBe(bCost.iron + fCost.iron);
+    expect(nw.crop).toBe(bCost.crop + fCost.crop);
+
+    // Account Networth with 2 villages
+    const accNw = accountNetworth([testVillage, testVillage]);
+    expect(accNw.total).toBe(nw.total * 2);
   });
 });
