@@ -841,7 +841,7 @@ describe('the Building Stats tool', () => {
     expect(cards.length).toBeGreaterThan(30);
   });
 
-  it('renders stats table and switches active building when clicking a card in the grid', () => {
+  it('opens modal dialog with stats table when clicking a card in the grid and closes it with the close button', () => {
     const whCard = [...container.querySelectorAll('.bs-card')].find(
       (c) => c.textContent?.includes('Warehouse')
     ) as HTMLElement;
@@ -849,15 +849,21 @@ describe('the Building Stats tool', () => {
     click(whCard);
 
     expect(window.location.hash).toContain('b=warehouse');
-    expect(container.querySelector('.bs-details-section')).toBeTruthy();
+    expect(container.querySelector('.bs-modal-content')).toBeTruthy();
     expect(container.querySelector('.bs-hero__title')?.textContent).toBe('Warehouse');
     expect(container.textContent).toContain('Town Hall Level:');
     expect(container.textContent).toContain('Wood');
     expect(container.textContent).toContain('Total Cost');
 
-    // Table rows exist in page
+    // Table rows exist in modal
     const rows = container.querySelectorAll('.bs-table tbody tr');
     expect(rows.length).toBe(22); // Warehouse has 22 levels
+
+    // Close modal
+    const closeBtn = container.querySelector('.bs-modal-close') as HTMLElement;
+    expect(closeBtn).toBeTruthy();
+    click(closeBtn);
+    expect(container.querySelector('.bs-modal-content')).toBeNull();
   });
 });
 

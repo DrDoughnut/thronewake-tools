@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { BUILDINGS, BUILDINGS_BY_GID, type CatalogBuilding } from '../data/buildingCatalog';
 import { buildingIcon, statIcon } from '../icons';
 import {
@@ -29,7 +29,7 @@ export function BuildingStats() {
       const found = BUILDINGS.find((b) => b.slug === bSlug);
       if (found) return found.gid;
     }
-    return TOWN_HALL_GID; // GID 15 default
+    return TOWN_HALL_GID; // Default Town Hall
   }, [hashParams]);
 
   const initialTh = useMemo(() => {
@@ -44,7 +44,7 @@ export function BuildingStats() {
     return SPEED_OPTIONS.includes(parsed as ServerSpeed) ? (parsed as ServerSpeed) : 1;
   }, [hashParams]);
 
-  const [selectedGid, setSelectedGid] = useState<number>(initialGid);
+  const [selectedGid, setSelectedGid] = useState<number | null>(initialGid);
   const [thLevel, setThLevel] = useState<number>(initialTh);
   const [serverSpeed, setServerSpeed] = useState<ServerSpeed>(initialSpeed);
   const [searchQuery, setSearchQuery] = useState('');
@@ -63,19 +63,24 @@ export function BuildingStats() {
     endLevel: 22,
   });
 
-  const selectedBuilding: CatalogBuilding = useMemo(() => {
-    return BUILDINGS_BY_GID.get(selectedGid) ?? BUILDINGS[0];
+  const selectedBuilding: CatalogBuilding | null = useMemo(() => {
+    return selectedGid !== null ? BUILDINGS_BY_GID.get(selectedGid) ?? null : null;
   }, [selectedGid]);
 
-  const maxLvl = selectedBuilding.maxLevel;
-  const isCityBuilding = CITY_UPGRADEABLE_GIDS.has(selectedBuilding.gid);
+  const maxLvl = selectedBuilding?.maxLevel ?? 20;
+  const isCityBuilding = selectedBuilding ? CITY_UPGRADEABLE_GIDS.has(selectedBuilding.gid) : false;
   const thFactor = getTownHallFactor(thLevel);
 
   // Sync state to URL hash
   useEffect(() => {
     const params = new URLSearchParams(window.location.hash.replace(/^#/, ''));
     params.set('tool', 'buildings');
-    params.set('b', selectedBuilding.slug);
+    if (selectedBuilding) {
+      params.set('b', selectedBuilding.slug);
+    } else {
+      params.delete('b');
+      params.delete('gid');
+    }
     params.set('th', String(thLevel));
     if (serverSpeed !== 1) {
       params.set('speed', String(serverSpeed));
@@ -86,17 +91,35 @@ export function BuildingStats() {
     if (window.location.hash !== newHash) {
       window.history.replaceState(null, '', newHash);
     }
-  }, [selectedBuilding.slug, thLevel, serverSpeed]);
+  }, [selectedBuilding, thLevel, serverSpeed]);
 
   // Reset range selection when switching buildings
   useEffect(() => {
-    setSelection({
-      step: 0,
-      firstLevel: null,
-      startLevel: 0,
-      endLevel: selectedBuilding.maxLevel,
-    });
-  }, [selectedBuilding.gid, selectedBuilding.maxLevel]);
+    if (selectedBuilding) {
+      setSelection({
+        step: 0,
+        firstLevel: null,
+        startLevel: 0,
+        endLevel: selectedBuilding.maxLevel,
+      });
+    }
+  }, [selectedBuilding?.gid, selectedBuilding?.maxLevel]);
+
+  // Close modal handler
+  const closeModal = useCallback(() => {
+    setSelectedGid(null);
+  }, []);
+
+  // Close on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        closeModal();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [closeModal]);
 
   // Filtered buildings for browser
   const filteredBuildings = useMemo(() => {
@@ -129,6 +152,23 @@ export function BuildingStats() {
 
   // Dynamic Range Summary
   const rangeSummary = useMemo(() => {
+    if (!selectedBuilding) {
+      return {
+        startLevel: 0,
+        endLevel: 0,
+        wood: 0,
+        clay: 0,
+        iron: 0,
+        crop: 0,
+        totalCost: 0,
+        totalTime: 0,
+        popGain: 0,
+        cpGain: 0,
+        levelsCount: 0,
+        isCustomRange: false,
+      };
+    }
+
     const startIdx = Math.max(0, Math.min(selection.startLevel, maxLvl));
     const endIdx = Math.max(startIdx, Math.min(selection.endLevel, maxLvl));
 
@@ -175,7 +215,7 @@ export function BuildingStats() {
   }, [selectedBuilding, selection, maxLvl, thFactor, serverSpeed]);
 
   const prereqDescriptions = useMemo(
-    () => describePrerequisites(selectedBuilding),
+    () => (selectedBuilding ? describePrerequisites(selectedBuilding) : []),
     [selectedBuilding]
   );
 
@@ -243,33 +283,9 @@ export function BuildingStats() {
               </button>
             )}
           </div>
-
-          {/* Mobile Quick Dropdown */}
-          <div className="bs-mobile-picker">
-            <label htmlFor="bs-quick-select" className="bs-mobile-picker__label">
-              Jump to:
-            </label>
-            <select
-              id="bs-quick-select"
-              className="select bs-mobile-picker__select"
-              value={selectedGid}
-              onChange={(e) => handleSelectBuilding(Number(e.target.value))}
-              aria-label="Select building"
-            >
-              {CATEGORIES.map((cat) => {
-                const bList = BUILDINGS.filter((b) => b.category === cat);
-                return (
-                  <optgroup key={cat} label={cat}>
-                    {bList.map((b) => (
-                      <option key={b.gid} value={b.gid}>
-                        {b.name} (Max Lvl {b.maxLevel})
-                      </option>
-                    ))}
-                  </optgroup>
-                );
-              })}
-            </select>
-          </div>
+          <span className="bs-search-hint">
+            Click any building to open full stats, upgrade costs, construction times, and effects.
+          </span>
         </div>
 
         {/* Category Filter Chips */}
@@ -298,351 +314,369 @@ export function BuildingStats() {
         </div>
       </div>
 
-      {/* Selected Building Details & Progression Panel */}
-      <section className="bs-details-section" aria-label={`${selectedBuilding.name} Stats & Details`}>
-        {/* Header Row */}
-        <div className="bs-details-header">
-          <div className="bs-hero__main">
-            {buildingIcon(selectedBuilding.gid) && (
-              <img
-                src={buildingIcon(selectedBuilding.gid)}
-                alt=""
-                className="bs-hero__icon"
-                aria-hidden="true"
-              />
-            )}
-            <div className="bs-hero__info">
-              <div className="bs-hero__title-row">
-                <h2 className="bs-hero__title">{selectedBuilding.name}</h2>
-                <span className="bs-hero__category-pill pill pill--tiny">
-                  {selectedBuilding.category}
-                </span>
-                {isCityBuilding && (
-                  <span className="pill pill--tiny pill--accent">
-                    🏙️ City Upgradeable (Lvl 22)
-                  </span>
-                )}
+      {/* 3-Column Category Browser Grid */}
+      <div className="bs-columns-layout">
+        {CATEGORIES.map((cat) => {
+          const list = categorizedBuildings[cat];
+          const catEmoji = cat === 'Resources' ? '🌾' : cat === 'Infrastructure' ? '🏛️' : '⚔️';
+
+          return (
+            <div key={cat} className="bs-category-column">
+              <div className="bs-category-column__header">
+                <h3 className="bs-category-column__title">
+                  <span>{catEmoji} {cat}</span>
+                  <span className="bs-badge-count">({list.length})</span>
+                </h3>
               </div>
-              <p className="bs-hero__description">
-                Base Culture Points: <strong>+{selectedBuilding.cultureBase} CP/day</strong> · Max Level: <strong>{selectedBuilding.maxLevel}</strong>
-              </p>
-              {prereqDescriptions.length > 0 && (
-                <div className="bs-hero__prereqs">
-                  <span className="bs-hero__prereqs-label">Prerequisites:</span>
-                  <div className="bs-hero__prereqs-list">
-                    {prereqDescriptions.map((req, idx) => (
-                      <span key={idx} className="bs-prereq-badge">
-                        {req}
+              <div className="bs-column-grid" role="listbox" aria-label={`${cat} buildings`}>
+                {list.map((b) => {
+                  const isSelected = selectedGid === b.gid;
+                  const iconUrl = buildingIcon(b.gid);
+                  const isCity = CITY_UPGRADEABLE_GIDS.has(b.gid);
+
+                  return (
+                    <button
+                      key={b.gid}
+                      type="button"
+                      role="option"
+                      aria-selected={isSelected}
+                      className={`bs-card ${isSelected ? 'is-selected' : ''}`}
+                      onClick={() => handleSelectBuilding(b.gid)}
+                    >
+                      {iconUrl && (
+                        <img
+                          src={iconUrl}
+                          alt=""
+                          className="bs-card__icon"
+                          aria-hidden="true"
+                        />
+                      )}
+                      <div className="bs-card__info">
+                        <strong className="bs-card__name">{b.name}</strong>
+                        <span className="bs-card__meta">
+                          Max Lvl {isCity ? '20 (22 City)' : b.maxLevel}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Building Details Modal Dialog */}
+      {selectedBuilding && (
+        <div className="bs-modal-overlay" onClick={closeModal}>
+          <div
+            className="bs-modal-content"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label={`${selectedBuilding.name} Stats & Details`}
+          >
+            {/* Modal Header */}
+            <div className="bs-modal-header">
+              <div className="bs-hero__main">
+                {buildingIcon(selectedBuilding.gid) && (
+                  <img
+                    src={buildingIcon(selectedBuilding.gid)}
+                    alt=""
+                    className="bs-hero__icon"
+                    aria-hidden="true"
+                  />
+                )}
+                <div className="bs-hero__info">
+                  <div className="bs-hero__title-row">
+                    <h2 className="bs-hero__title">{selectedBuilding.name}</h2>
+                    <span className="bs-hero__category-pill pill pill--tiny">
+                      {selectedBuilding.category}
+                    </span>
+                    {isCityBuilding && (
+                      <span className="pill pill--tiny pill--accent">
+                        🏙️ City Upgradeable (Lvl 22)
                       </span>
-                    ))}
+                    )}
+                  </div>
+                  <p className="bs-hero__description">
+                    Base Culture Points: <strong>+{selectedBuilding.cultureBase} CP/day</strong> · Max Level: <strong>{selectedBuilding.maxLevel}</strong>
+                  </p>
+                  {prereqDescriptions.length > 0 && (
+                    <div className="bs-hero__prereqs">
+                      <span className="bs-hero__prereqs-label">Prerequisites:</span>
+                      <div className="bs-hero__prereqs-list">
+                        {prereqDescriptions.map((req, idx) => (
+                          <span key={idx} className="bs-prereq-badge">
+                            {req}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Close Button & Modifiers */}
+              <div className="bs-modal-header__actions">
+                <button
+                  type="button"
+                  className="bs-modal-close"
+                  onClick={closeModal}
+                  title="Close (Esc)"
+                  aria-label="Close modal"
+                >
+                  ✕
+                </button>
+                <div className="bs-modifiers-box">
+                  <div className="bs-th-control">
+                    <div className="bs-th-control__header">
+                      <label htmlFor="bs-th-slider" className="bs-th-control__label">
+                        Town Hall Level: <strong>Lvl {thLevel}</strong>
+                      </label>
+                      <span className="bs-th-control__factor">
+                        {(100 / thFactor).toFixed(0)}% Speed ({(thFactor * 100).toFixed(1)}% time)
+                      </span>
+                    </div>
+                    <input
+                      id="bs-th-slider"
+                      type="range"
+                      min={1}
+                      max={22}
+                      step={1}
+                      value={thLevel}
+                      onChange={(e) => setThLevel(Number(e.target.value))}
+                      className="bs-mb-slider"
+                      aria-label="Town Hall Level Slider"
+                    />
+                  </div>
+
+                  <div className="bs-speed-control">
+                    <span className="bs-speed-control__label">Server Speed:</span>
+                    <div className="bs-speed-buttons">
+                      {SPEED_OPTIONS.map((spd) => (
+                        <button
+                          key={spd}
+                          type="button"
+                          className={`bs-speed-btn ${serverSpeed === spd ? 'is-selected' : ''}`}
+                          onClick={() => setServerSpeed(spd)}
+                        >
+                          {spd}x
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              )}
+              </div>
             </div>
-          </div>
 
-          {/* Modifiers Box */}
-          <div className="bs-modifiers-box">
-            <div className="bs-th-control">
-              <div className="bs-th-control__header">
-                <label htmlFor="bs-th-slider" className="bs-th-control__label">
-                  Town Hall Level: <strong>Lvl {thLevel}</strong>
-                </label>
-                <span className="bs-th-control__factor">
-                  {(100 / thFactor).toFixed(0)}% Speed ({(thFactor * 100).toFixed(1)}% time)
+            {/* Range Selection Instructions Bar */}
+            <div className="bs-selection-bar">
+              <span className="bs-selection-tip">
+                💡 <strong>Interactive Range:</strong> Click row <strong>A</strong> then row <strong>B</strong> in the table below to sum a level range (3rd click resets to full).
+              </span>
+            </div>
+
+            {/* Dynamic Summary Cards */}
+            <div className="bs-summary-grid">
+              <div className="bs-summary-card">
+                <span className="bs-summary-card__label">
+                  Total Cost (Lvl {rangeSummary.startLevel} → {rangeSummary.endLevel})
+                </span>
+                <strong className="bs-summary-card__value">
+                  {rangeSummary.totalCost.toLocaleString()} <small>res</small>
+                </strong>
+                <div className="bs-summary-card__res-row">
+                  <span className="bs-res-item">
+                    {woodIcon && <img src={woodIcon} alt="Wood" className="bs-res-icon" />}
+                    {rangeSummary.wood.toLocaleString()}
+                  </span>
+                  <span className="bs-res-item">
+                    {clayIcon && <img src={clayIcon} alt="Clay" className="bs-res-icon" />}
+                    {rangeSummary.clay.toLocaleString()}
+                  </span>
+                  <span className="bs-res-item">
+                    {ironIcon && <img src={ironIcon} alt="Iron" className="bs-res-icon" />}
+                    {rangeSummary.iron.toLocaleString()}
+                  </span>
+                  <span className="bs-res-item">
+                    {cropIcon && <img src={cropIcon} alt="Crop" className="bs-res-icon" />}
+                    {rangeSummary.crop.toLocaleString()}
+                  </span>
+                </div>
+              </div>
+
+              <div className="bs-summary-card">
+                <span className="bs-summary-card__label">
+                  Total Build Time ({rangeSummary.levelsCount} {rangeSummary.levelsCount === 1 ? 'level' : 'levels'})
+                </span>
+                <strong className="bs-summary-card__value">
+                  {formatTimeSeconds(rangeSummary.totalTime)}
+                </strong>
+                <span className="bs-summary-card__sub">
+                  Town Hall Lvl {thLevel} · {serverSpeed}x Speed
                 </span>
               </div>
-              <input
-                id="bs-th-slider"
-                type="range"
-                min={1}
-                max={22}
-                step={1}
-                value={thLevel}
-                onChange={(e) => setThLevel(Number(e.target.value))}
-                className="bs-mb-slider"
-                aria-label="Town Hall Level Slider"
-              />
-            </div>
 
-            <div className="bs-speed-control">
-              <span className="bs-speed-control__label">Server Speed:</span>
-              <div className="bs-speed-buttons">
-                {SPEED_OPTIONS.map((spd) => (
-                  <button
-                    key={spd}
-                    type="button"
-                    className={`bs-speed-btn ${serverSpeed === spd ? 'is-selected' : ''}`}
-                    onClick={() => setServerSpeed(spd)}
-                  >
-                    {spd}x
-                  </button>
-                ))}
+              <div className="bs-summary-card">
+                <span className="bs-summary-card__label">Population Gained</span>
+                <strong className="bs-summary-card__value">
+                  +{rangeSummary.popGain} <small>Pop</small>
+                </strong>
+                <span className="bs-summary-card__sub">
+                  {rangeSummary.popGain > 0
+                    ? `~${Math.round(rangeSummary.totalCost / rangeSummary.popGain).toLocaleString()} res / Pop`
+                    : '0 Pop'}
+                </span>
+              </div>
+
+              <div className="bs-summary-card">
+                <span className="bs-summary-card__label">Culture Points Gained</span>
+                <strong className="bs-summary-card__value">
+                  +{rangeSummary.cpGain} <small>CP/day</small>
+                </strong>
+                <span className="bs-summary-card__sub">
+                  {rangeSummary.cpGain > 0
+                    ? `~${Math.round(rangeSummary.totalCost / rangeSummary.cpGain).toLocaleString()} res / CP`
+                    : '0 CP'}
+                </span>
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* Range Selection Instructions Bar */}
-        <div className="bs-selection-bar">
-          <span className="bs-selection-tip">
-            💡 <strong>Interactive Range:</strong> Click row <strong>A</strong> then row <strong>B</strong> in the table below to sum a level range (3rd click resets to full).
-          </span>
-        </div>
-
-        {/* Dynamic Summary Cards */}
-        <div className="bs-summary-grid">
-          <div className="bs-summary-card">
-            <span className="bs-summary-card__label">
-              Total Cost (Lvl {rangeSummary.startLevel} → {rangeSummary.endLevel})
-            </span>
-            <strong className="bs-summary-card__value">
-              {rangeSummary.totalCost.toLocaleString()} <small>res</small>
-            </strong>
-            <div className="bs-summary-card__res-row">
-              <span className="bs-res-item">
-                {woodIcon && <img src={woodIcon} alt="Wood" className="bs-res-icon" />}
-                {rangeSummary.wood.toLocaleString()}
-              </span>
-              <span className="bs-res-item">
-                {clayIcon && <img src={clayIcon} alt="Clay" className="bs-res-icon" />}
-                {rangeSummary.clay.toLocaleString()}
-              </span>
-              <span className="bs-res-item">
-                {ironIcon && <img src={ironIcon} alt="Iron" className="bs-res-icon" />}
-                {rangeSummary.iron.toLocaleString()}
-              </span>
-              <span className="bs-res-item">
-                {cropIcon && <img src={cropIcon} alt="Crop" className="bs-res-icon" />}
-                {rangeSummary.crop.toLocaleString()}
-              </span>
-            </div>
-          </div>
-
-          <div className="bs-summary-card">
-            <span className="bs-summary-card__label">
-              Total Build Time ({rangeSummary.levelsCount} {rangeSummary.levelsCount === 1 ? 'level' : 'levels'})
-            </span>
-            <strong className="bs-summary-card__value">
-              {formatTimeSeconds(rangeSummary.totalTime)}
-            </strong>
-            <span className="bs-summary-card__sub">
-              Town Hall Lvl {thLevel} · {serverSpeed}x Speed
-            </span>
-          </div>
-
-          <div className="bs-summary-card">
-            <span className="bs-summary-card__label">Population Gained</span>
-            <strong className="bs-summary-card__value">
-              +{rangeSummary.popGain} <small>Pop</small>
-            </strong>
-            <span className="bs-summary-card__sub">
-              {rangeSummary.popGain > 0
-                ? `~${Math.round(rangeSummary.totalCost / rangeSummary.popGain).toLocaleString()} res / Pop`
-                : '0 Pop'}
-            </span>
-          </div>
-
-          <div className="bs-summary-card">
-            <span className="bs-summary-card__label">Culture Points Gained</span>
-            <strong className="bs-summary-card__value">
-              +{rangeSummary.cpGain} <small>CP/day</small>
-            </strong>
-            <span className="bs-summary-card__sub">
-              {rangeSummary.cpGain > 0
-                ? `~${Math.round(rangeSummary.totalCost / rangeSummary.cpGain).toLocaleString()} res / CP`
-                : '0 CP'}
-            </span>
-          </div>
-        </div>
-
-        {/* Full Level Progression Table */}
-        <div className="bs-table-container">
-          <table className="bs-table">
-            <thead>
-              <tr>
-                <th className="bs-th bs-th--sticky">Lvl</th>
-                <th className="bs-th">
-                  <span className="bs-th-content">
-                    {woodIcon && <img src={woodIcon} alt="" className="bs-res-icon" />} Wood
-                  </span>
-                </th>
-                <th className="bs-th">
-                  <span className="bs-th-content">
-                    {clayIcon && <img src={clayIcon} alt="" className="bs-res-icon" />} Clay
-                  </span>
-                </th>
-                <th className="bs-th">
-                  <span className="bs-th-content">
-                    {ironIcon && <img src={ironIcon} alt="" className="bs-res-icon" />} Iron
-                  </span>
-                </th>
-                <th className="bs-th">
-                  <span className="bs-th-content">
-                    {cropIcon && <img src={cropIcon} alt="" className="bs-res-icon" />} Crop
-                  </span>
-                </th>
-                <th className="bs-th">Total Res</th>
-                <th className="bs-th">Pop (Δ)</th>
-                <th className="bs-th">CP/d (Δ)</th>
-                <th className="bs-th">res / CP</th>
-                <th className="bs-th">res / Pop</th>
-                <th className="bs-th">Build Time (TH {thLevel})</th>
-                <th className="bs-th bs-th--effects">Effects & Production</th>
-              </tr>
-            </thead>
-            <tbody>
-              {selectedBuilding.levels.map((lvl, idx) => {
-                const prevLvl = idx > 0 ? selectedBuilding.levels[idx - 1] : null;
-                const levelCost = lvl.wood + lvl.clay + lvl.iron + lvl.crop;
-                const popDelta = prevLvl ? lvl.pop - prevLvl.pop : lvl.pop;
-                const cpDelta = prevLvl ? lvl.cp - prevLvl.cp : lvl.cp;
-                const resPerCp = cpDelta > 0 ? Math.round(levelCost / cpDelta) : null;
-                const resPerPop = popDelta > 0 ? Math.round(levelCost / popDelta) : null;
-                const baseTime = lvl.time ?? 0;
-                const scaledTime = lvl.time !== null ? (baseTime * thFactor) / serverSpeed : null;
-                const isCityLevel = lvl.level > 20;
-                const isInRange = selection.step > 0 && lvl.level > selection.startLevel && lvl.level <= selection.endLevel;
-
-                const effectsList = Object.entries(lvl.effects || {})
-                  .map(([k, v]) => formatEffectLabel(k, v, serverSpeed))
-                  .filter(Boolean);
-                const effectsText = effectsList.join(' · ');
-
-                return (
-                  <tr
-                    key={lvl.level}
-                    className={`bs-tr ${isCityLevel ? 'bs-tr--city' : ''} ${isInRange ? 'is-in-range' : ''}`}
-                    onClick={() => handleRowClick(lvl.level)}
-                    title={`Click to set range at Level ${lvl.level}`}
-                  >
-                    <td className="bs-td bs-td--sticky">
-                      <div className="bs-td-lvl-content">
-                        <strong>Lvl {lvl.level}</strong>
-                        {isCityLevel && (
-                          <span className="bs-badge-city" title="City Only Level">
-                            City
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="bs-td">
-                      <span className="bs-cell-res">
-                        {woodIcon && <img src={woodIcon} alt="" className="bs-res-icon" />}
-                        {lvl.wood.toLocaleString()}
+            {/* Full Level Progression Table */}
+            <div className="bs-table-container">
+              <table className="bs-table">
+                <thead>
+                  <tr>
+                    <th className="bs-th bs-th--sticky">Lvl</th>
+                    <th className="bs-th">
+                      <span className="bs-th-content">
+                        {woodIcon && <img src={woodIcon} alt="" className="bs-res-icon" />} Wood
                       </span>
-                    </td>
-                    <td className="bs-td">
-                      <span className="bs-cell-res">
-                        {clayIcon && <img src={clayIcon} alt="" className="bs-res-icon" />}
-                        {lvl.clay.toLocaleString()}
+                    </th>
+                    <th className="bs-th">
+                      <span className="bs-th-content">
+                        {clayIcon && <img src={clayIcon} alt="" className="bs-res-icon" />} Clay
                       </span>
-                    </td>
-                    <td className="bs-td">
-                      <span className="bs-cell-res">
-                        {ironIcon && <img src={ironIcon} alt="" className="bs-res-icon" />}
-                        {lvl.iron.toLocaleString()}
+                    </th>
+                    <th className="bs-th">
+                      <span className="bs-th-content">
+                        {ironIcon && <img src={ironIcon} alt="" className="bs-res-icon" />} Iron
                       </span>
-                    </td>
-                    <td className="bs-td">
-                      <span className="bs-cell-res">
-                        {cropIcon && <img src={cropIcon} alt="" className="bs-res-icon" />}
-                        {lvl.crop.toLocaleString()}
+                    </th>
+                    <th className="bs-th">
+                      <span className="bs-th-content">
+                        {cropIcon && <img src={cropIcon} alt="" className="bs-res-icon" />} Crop
                       </span>
-                    </td>
-                    <td className="bs-td bs-td--total-cost">
-                      <strong>{levelCost.toLocaleString()}</strong>
-                    </td>
-                    <td className="bs-td">
-                      {lvl.pop}{' '}
-                      <span className="bs-delta-badge">
-                        (+{popDelta})
-                      </span>
-                    </td>
-                    <td className="bs-td">
-                      +{lvl.cp}{' '}
-                      <span className="bs-delta-badge">
-                        (+{cpDelta})
-                      </span>
-                    </td>
-                    <td className="bs-td bs-td--eff">
-                      {resPerCp !== null ? `${resPerCp.toLocaleString()}` : '∞'}
-                    </td>
-                    <td className="bs-td bs-td--eff">
-                      {resPerPop !== null ? `${resPerPop.toLocaleString()}` : '∞'}
-                    </td>
-                    <td className="bs-td bs-td--time">
-                      {formatTimeSeconds(scaledTime)}
-                    </td>
-                    <td className="bs-td bs-td--effects" title={effectsText || undefined}>
-                      {effectsText ? (
-                        <span className="bs-effect-text">{effectsText}</span>
-                      ) : (
-                        <span className="bs-no-effect">—</span>
-                      )}
-                    </td>
+                    </th>
+                    <th className="bs-th">Total Res</th>
+                    <th className="bs-th">Pop (Δ)</th>
+                    <th className="bs-th">CP/d (Δ)</th>
+                    <th className="bs-th">res / CP</th>
+                    <th className="bs-th">res / Pop</th>
+                    <th className="bs-th">Build Time (TH {thLevel})</th>
+                    <th className="bs-th bs-th--effects">Effects & Production</th>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </section>
+                </thead>
+                <tbody>
+                  {selectedBuilding.levels.map((lvl, idx) => {
+                    const prevLvl = idx > 0 ? selectedBuilding.levels[idx - 1] : null;
+                    const levelCost = lvl.wood + lvl.clay + lvl.iron + lvl.crop;
+                    const popDelta = prevLvl ? lvl.pop - prevLvl.pop : lvl.pop;
+                    const cpDelta = prevLvl ? lvl.cp - prevLvl.cp : lvl.cp;
+                    const resPerCp = cpDelta > 0 ? Math.round(levelCost / cpDelta) : null;
+                    const resPerPop = popDelta > 0 ? Math.round(levelCost / popDelta) : null;
+                    const baseTime = lvl.time ?? 0;
+                    const scaledTime = lvl.time !== null ? (baseTime * thFactor) / serverSpeed : null;
+                    const isCityLevel = lvl.level > 20;
+                    const isInRange = selection.step > 0 && lvl.level > selection.startLevel && lvl.level <= selection.endLevel;
 
-      {/* Horizontal 3-Column Category Browser Layout */}
-      <div className="bs-browser-section">
-        <h3 className="bs-browser-heading">All Buildings ({filteredBuildings.length})</h3>
-        <div className="bs-columns-layout">
-          {CATEGORIES.map((cat) => {
-            const list = categorizedBuildings[cat];
-            const catEmoji = cat === 'Resources' ? '🌾' : cat === 'Infrastructure' ? '🏛️' : '⚔️';
-
-            return (
-              <div key={cat} className="bs-category-column">
-                <div className="bs-category-column__header">
-                  <h4 className="bs-category-column__title">
-                    <span>{catEmoji} {cat}</span>
-                    <span className="bs-badge-count">({list.length})</span>
-                  </h4>
-                </div>
-                <div className="bs-column-grid" role="listbox" aria-label={`${cat} buildings`}>
-                  {list.map((b) => {
-                    const isSelected = selectedBuilding.gid === b.gid;
-                    const iconUrl = buildingIcon(b.gid);
-                    const isCity = CITY_UPGRADEABLE_GIDS.has(b.gid);
+                    const effectsList = Object.entries(lvl.effects || {})
+                      .map(([k, v]) => formatEffectLabel(k, v, serverSpeed))
+                      .filter(Boolean);
+                    const effectsText = effectsList.join(' · ');
 
                     return (
-                      <button
-                        key={b.gid}
-                        type="button"
-                        role="option"
-                        aria-selected={isSelected}
-                        className={`bs-card ${isSelected ? 'is-selected' : ''}`}
-                        onClick={() => handleSelectBuilding(b.gid)}
+                      <tr
+                        key={lvl.level}
+                        className={`bs-tr ${isCityLevel ? 'bs-tr--city' : ''} ${isInRange ? 'is-in-range' : ''}`}
+                        onClick={() => handleRowClick(lvl.level)}
+                        title={`Click to set range at Level ${lvl.level}`}
                       >
-                        {iconUrl && (
-                          <img
-                            src={iconUrl}
-                            alt=""
-                            className="bs-card__icon"
-                            aria-hidden="true"
-                          />
-                        )}
-                        <div className="bs-card__info">
-                          <strong className="bs-card__name">{b.name}</strong>
-                          <span className="bs-card__meta">
-                            Max Lvl {isCity ? '20 (22 City)' : b.maxLevel}
+                        <td className="bs-td bs-td--sticky">
+                          <div className="bs-td-lvl-content">
+                            <strong>Lvl {lvl.level}</strong>
+                            {isCityLevel && (
+                              <span className="bs-badge-city" title="City Only Level">
+                                City
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="bs-td">
+                          <span className="bs-cell-res">
+                            {woodIcon && <img src={woodIcon} alt="" className="bs-res-icon" />}
+                            {lvl.wood.toLocaleString()}
                           </span>
-                        </div>
-                      </button>
+                        </td>
+                        <td className="bs-td">
+                          <span className="bs-cell-res">
+                            {clayIcon && <img src={clayIcon} alt="" className="bs-res-icon" />}
+                            {lvl.clay.toLocaleString()}
+                          </span>
+                        </td>
+                        <td className="bs-td">
+                          <span className="bs-cell-res">
+                            {ironIcon && <img src={ironIcon} alt="" className="bs-res-icon" />}
+                            {lvl.iron.toLocaleString()}
+                          </span>
+                        </td>
+                        <td className="bs-td">
+                          <span className="bs-cell-res">
+                            {cropIcon && <img src={cropIcon} alt="" className="bs-res-icon" />}
+                            {lvl.crop.toLocaleString()}
+                          </span>
+                        </td>
+                        <td className="bs-td bs-td--total-cost">
+                          <strong>{levelCost.toLocaleString()}</strong>
+                        </td>
+                        <td className="bs-td">
+                          {lvl.pop}{' '}
+                          <span className="bs-delta-badge">
+                            (+{popDelta})
+                          </span>
+                        </td>
+                        <td className="bs-td">
+                          +{lvl.cp}{' '}
+                          <span className="bs-delta-badge">
+                            (+{cpDelta})
+                          </span>
+                        </td>
+                        <td className="bs-td bs-td--eff">
+                          {resPerCp !== null ? `${resPerCp.toLocaleString()}` : '∞'}
+                        </td>
+                        <td className="bs-td bs-td--eff">
+                          {resPerPop !== null ? `${resPerPop.toLocaleString()}` : '∞'}
+                        </td>
+                        <td className="bs-td bs-td--time">
+                          {formatTimeSeconds(scaledTime)}
+                        </td>
+                        <td className="bs-td bs-td--effects" title={effectsText || undefined}>
+                          {effectsText ? (
+                            <span className="bs-effect-text">{effectsText}</span>
+                          ) : (
+                            <span className="bs-no-effect">—</span>
+                          )}
+                        </td>
+                      </tr>
                     );
                   })}
-                </div>
-              </div>
-            );
-          })}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

@@ -134,7 +134,7 @@ describe('BuildingStats Component & Effect Helpers', () => {
     expect(container.textContent).toContain('3x Speed');
   });
 
-  it('selects Festival Grounds (GID 24) when clicking its card or mobile dropdown', () => {
+  it('selects Festival Grounds (GID 24) when clicking its card and closes modal when clicking close button', () => {
     const fgCard = [...container.querySelectorAll('.bs-card')].find(
       (c) => c.textContent?.includes('Festival Grounds')
     ) as HTMLElement;
@@ -146,12 +146,13 @@ describe('BuildingStats Component & Effect Helpers', () => {
     // Festival Grounds is max level 20 (not level 22)
     expect(container.textContent).toContain('Max Level: 20');
 
-    // Switch via mobile dropdown
-    const select = container.querySelector('.bs-mobile-picker__select') as HTMLSelectElement;
-    expect(select).toBeTruthy();
-    changeInput(select, '10'); // Warehouse GID 10
+    // Close modal
+    const closeBtn = container.querySelector('.bs-modal-close') as HTMLElement;
+    expect(closeBtn).toBeTruthy();
+    click(closeBtn);
 
-    expect(container.querySelector('.bs-hero__title')?.textContent).toBe('Warehouse');
+    // Modal is dismissed
+    expect(container.querySelector('.bs-modal-overlay')).toBeNull();
   });
 
   it('correctly calculates Town Hall speed reduction factors and time formatting', () => {
