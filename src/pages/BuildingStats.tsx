@@ -565,13 +565,15 @@ export function BuildingStats() {
                         onClick={() => handleRowClick(lvl.level)}
                         title={`Click to set range at Level ${lvl.level}`}
                       >
-                        <td className="bs-td bs-td--sticky bs-td--lvl">
-                          <strong>Lvl {lvl.level}</strong>
-                          {isCityLevel && (
-                            <span className="bs-badge-city" title="City Only Level">
-                              City
-                            </span>
-                          )}
+                        <td className="bs-td bs-td--sticky">
+                          <div className="bs-td-lvl-content">
+                            <strong>Lvl {lvl.level}</strong>
+                            {isCityLevel && (
+                              <span className="bs-badge-city" title="City Only Level">
+                                City
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="bs-td">
                           <span className="bs-cell-res">
