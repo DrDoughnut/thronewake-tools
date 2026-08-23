@@ -135,20 +135,17 @@ export default function App() {
       }
       if (nextCount >= 10) {
         setOpClickCount(0);
-        setV2Unlocked((curr) => {
-          const nextState = !curr;
+        if (v2Unlocked) {
           try {
-            localStorage.setItem(StorageKeys.V2_UNLOCKED, nextState ? '1' : '0');
+            localStorage.removeItem(StorageKeys.V2_UNLOCKED);
+            localStorage.removeItem('thronewake.teamroom.session');
           } catch {}
-          if (nextState) {
-            setIsSecretModalOpen(true);
-            setSecretToast('🕵️ TOP SECRET V2 PROTOCOL ACTIVATED');
-          } else {
-            setSecretToast('🔒 Operation Planner v2 Locked (Standard Mode Active)');
-          }
+          setV2Unlocked(false);
+          setSecretToast('🔒 Operation Planner v2 Locked (Standard Mode Active)');
           setTimeout(() => setSecretToast(null), 4000);
-          return nextState;
-        });
+        } else {
+          setIsSecretModalOpen(true);
+        }
       } else {
         setOpClickCount(nextCount);
       }
@@ -161,8 +158,12 @@ export default function App() {
 
   const handleConnectSecretRoom = (passcode: string) => {
     try {
+      localStorage.setItem(StorageKeys.V2_UNLOCKED, '1');
       localStorage.setItem('thronewake.teamroom.session', passcode);
     } catch {}
+    setV2Unlocked(true);
+    setSecretToast('🕵️ TOP SECRET V2 PROTOCOL ACTIVATED');
+    setTimeout(() => setSecretToast(null), 4000);
     select('operations');
   };
 

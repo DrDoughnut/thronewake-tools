@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
 import { APP_VERSION } from './data/changelog';
 import { decodeState } from './pages/OperationPlanner';
@@ -36,6 +36,14 @@ const values = () =>
 const click = (el: Element) =>
   act(() => {
     el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  });
+
+const setInputValue = (input: HTMLInputElement, value: string) =>
+  act(() => {
+    const descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+    descriptor?.set?.call(input, value);
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.dispatchEvent(new Event('change', { bubbles: true }));
   });
 
 describe('the app', () => {
@@ -635,11 +643,7 @@ describe('the operation planner', () => {
     // Enter room passcode in the modal and submit
     const modalInput = container.querySelector('.secret-modal-input') as HTMLInputElement;
     expect(modalInput).toBeTruthy();
-    act(() => {
-      modalInput.value = 'potatoes69';
-      modalInput.dispatchEvent(new Event('input', { bubbles: true }));
-      modalInput.dispatchEvent(new Event('change', { bubbles: true }));
-    });
+    setInputValue(modalInput, 'password123');
     const connectBtn = container.querySelector('.secret-modal-btn-connect') as HTMLButtonElement;
     click(connectBtn);
 
@@ -654,15 +658,34 @@ describe('the operation planner', () => {
     expect(container.textContent).toContain('v2 Secret');
   });
 
-  it('toggles attackers and targets between active and benched states, updating route count in v2 mode', () => {
+  it('toggles attackers and targets between active and benched states, updating route count in v2 mode', async () => {
     const opTab = [...container.querySelectorAll('.pill--tool')].find(
       (b) => b.getAttribute('aria-label') === 'Operation Planner',
     )!;
     for (let i = 0; i < 10; i++) {
       click(opTab);
     }
-    const connectBtn = container.querySelector('.secret-modal-btn-connect') as HTMLButtonElement;
-    if (connectBtn) click(connectBtn);
+    const modalInput = container.querySelector('.secret-modal-input') as HTMLInputElement;
+    if (modalInput) {
+      setInputValue(modalInput, 'password123');
+      const connectBtn = container.querySelector('.secret-modal-btn-connect') as HTMLButtonElement;
+      click(connectBtn);
+    }
+
+    const roomInput = container.querySelector('.op-team-room-input') as HTMLInputElement;
+    if (roomInput) {
+      setInputValue(roomInput, 'password123');
+      const roomConnectBtn = container.querySelector('.op-team-room-form button') as HTMLButtonElement;
+      if (roomConnectBtn) click(roomConnectBtn);
+    }
+
+    const start = Date.now();
+    while (!container.querySelector('.op-participant-chip--attacker')) {
+      if (Date.now() - start > 1500) break;
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 20));
+      });
+    }
 
     // Initially 1 attacker and 1 target -> 1 route
     expect(container.querySelectorAll('.op-routes tbody .op-route-row')).toHaveLength(1);
@@ -685,6 +708,79 @@ describe('the operation planner', () => {
       attackerChip.click();
     });
     expect(container.querySelectorAll('.op-routes tbody .op-route-row')).toHaveLength(1);
+  });
+
+  it('supports toggling auto-save and warns on sync when unsaved changes exist in v2 mode', async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ result: null }),
+    });
+
+    try {
+      const opTab = [...container.querySelectorAll('.pill--tool')].find(
+        (b) => b.getAttribute('aria-label') === 'Operation Planner',
+      )!;
+      for (let i = 0; i < 10; i++) {
+        click(opTab);
+      }
+
+      const modalInput = container.querySelector('.secret-modal-input') as HTMLInputElement;
+      if (modalInput) {
+        setInputValue(modalInput, 'password123');
+        const connectBtn = container.querySelector('.secret-modal-btn-connect') as HTMLButtonElement;
+        click(connectBtn);
+      }
+
+      const roomInput = container.querySelector('.op-team-room-input') as HTMLInputElement;
+      if (roomInput) {
+        setInputValue(roomInput, 'password123');
+        const roomConnectBtn = container.querySelector('.op-team-room-form button') as HTMLButtonElement;
+        if (roomConnectBtn) click(roomConnectBtn);
+      }
+
+      // Wait for room connection to resolve and show active controls
+      const start = Date.now();
+      while (!container.querySelector('.op-plan-tab-add')) {
+        if (Date.now() - start > 1500) break;
+        await act(async () => {
+          await new Promise((r) => setTimeout(r, 20));
+        });
+      }
+
+      // Auto-save toggle button
+      const autoSaveBtn = [...container.querySelectorAll('.op-team-room-actions button')].find(
+        (b) => b.textContent?.includes('Auto-Save'),
+      ) as HTMLElement;
+      expect(autoSaveBtn).toBeTruthy();
+      expect(autoSaveBtn.textContent).toContain('Auto-Save: OFF');
+
+      click(autoSaveBtn);
+      // Duplicate active operation tab (creates unsaved local change)
+      const duplicateBtn = [...container.querySelectorAll('.op-plan-tab__btn')].find(
+        (b) => b.getAttribute('title')?.includes('Duplicate') || b.textContent?.includes('📑'),
+      ) as HTMLElement;
+      expect(duplicateBtn).toBeTruthy();
+      click(duplicateBtn);
+
+      // Dirty badge should display
+      expect(container.textContent).toContain('Unsaved Local Changes');
+
+      // Clicking Sync should open overwrite safety modal
+      const syncBtn = [...container.querySelectorAll('.op-team-room-actions button')].find(
+        (b) => b.textContent?.includes('Sync'),
+      ) as HTMLElement;
+      expect(syncBtn).toBeTruthy();
+      click(syncBtn);
+
+      const safetyModal = container.querySelector('.op-modal.op-modal--compact');
+      expect(safetyModal).toBeTruthy();
+      expect(safetyModal?.textContent).toContain('Unsaved Local Changes');
+      expect(safetyModal?.textContent).toContain('Pulling from the cloud will overwrite your local changes');
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 });
 

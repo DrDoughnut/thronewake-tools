@@ -105,7 +105,7 @@ export function SecretUnlockModal({ isOpen, onClose, onConnectRoom }: SecretUnlo
           </h2>
 
           <p className="secret-modal-desc">
-            You have accessed the classified Zero-Knowledge Operation Planner with Multi-Wave Management and Team Room Cloud Synchronization.
+            Enter or create a secret Team Room passcode to access Multi-Wave Management, Alliance Master Roster, and Zero-Knowledge Cloud Synchronization.
           </p>
 
           <form className="secret-modal-form" onSubmit={handleSubmit}>
@@ -137,13 +137,6 @@ export function SecretUnlockModal({ isOpen, onClose, onConnectRoom }: SecretUnlo
                 disabled={!passcode.trim()}
               >
                 🔐 Connect to Room
-              </button>
-              <button
-                type="button"
-                className="pill secret-modal-btn-offline"
-                onClick={onClose}
-              >
-                Continue in Local Mode
               </button>
             </div>
           </form>

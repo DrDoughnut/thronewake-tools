@@ -4395,6 +4395,31 @@ select:focus, .select:focus, .text-input:focus {
   color: #2ecc71;
 }
 
+.op-team-room-status--dirty {
+  color: #f39c12;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  animation: pulse-dirty 2s infinite ease-in-out;
+}
+
+@keyframes pulse-dirty {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.op-save-btn--dirty {
+  background: linear-gradient(135deg, #e67e22, #d35400) !important;
+  box-shadow: 0 0 10px rgba(230, 126, 34, 0.45);
+}
+
+.op-autosave-active {
+  background: rgba(46, 204, 113, 0.18) !important;
+  border-color: #2ecc71 !important;
+  color: #2ecc71 !important;
+}
+
 .op-team-room-status--saving {
   color: #3498db;
 }
@@ -4940,6 +4965,10 @@ select:focus, .select:focus, .text-input:focus {
   max-width: 960px;
 }
 
+.op-modal--compact {
+  max-width: 440px;
+}
+
 @keyframes fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -5476,7 +5505,8 @@ select:focus, .select:focus, .text-input:focus {
 }
 
 .secret-modal-btn-connect {
-  flex: 1.5;
+  width: 100%;
+  flex: 1;
   padding: 10px 16px;
   font-size: 13.5px;
   font-weight: 750;
@@ -5498,21 +5528,6 @@ select:focus, .select:focus, .text-input:focus {
   opacity: 0.4;
   cursor: not-allowed;
   box-shadow: none;
-}
-
-.secret-modal-btn-offline {
-  flex: 1;
-  padding: 10px 14px;
-  font-size: 12px;
-  background: hsl(220, 18%, 15%);
-  border: 1px solid hsl(220, 16%, 26%);
-  color: var(--text-dim);
-  cursor: pointer;
-}
-
-.secret-modal-btn-offline:hover {
-  background: hsl(220, 20%, 20%);
-  color: #fff;
 }
 
 

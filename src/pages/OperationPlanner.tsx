@@ -953,7 +953,13 @@ function ScheduleTimeline({
 
 // ── Main OperationPlanner Component ─────────────────────────────────────────
 
-export function OperationPlanner({ isV2Unlocked }: { isV2Unlocked?: boolean } = {}) {
+export function OperationPlanner({
+  isV2Unlocked,
+  onExitV2,
+}: {
+  isV2Unlocked?: boolean;
+  onExitV2?: () => void;
+} = {}) {
   const isV2Active = isV2Unlocked ?? (() => {
     try {
       return localStorage.getItem('thronewake.v2.unlocked') === '1';
@@ -1106,6 +1112,17 @@ export function OperationPlanner({ isV2Unlocked }: { isV2Unlocked?: boolean } = 
     writeShowLocal(showLocal);
   }, [showLocal]);
 
+  const [lastSavedSnapshot, setLastSavedSnapshot] = useState<string>('');
+
+  const currentSnapshot = useMemo(() => {
+    return JSON.stringify({ roster, operations, activeOpId });
+  }, [roster, operations, activeOpId]);
+
+  const hasUnsavedChanges = useMemo(() => {
+    if (!roomSession || !lastSavedSnapshot) return false;
+    return currentSnapshot !== lastSavedSnapshot;
+  }, [roomSession, lastSavedSnapshot, currentSnapshot]);
+
   // Team Room Handlers
   const handleRoomDataLoaded = (data: TeamRoomData, session: RoomCryptoSession) => {
     const migrated = migrateToMasterRoster(data);
@@ -1113,10 +1130,23 @@ export function OperationPlanner({ isV2Unlocked }: { isV2Unlocked?: boolean } = 
     setRoster(migrated.roster);
     setOperations(migrated.operations);
     setActiveOpId(migrated.activeOpId);
+    setLastSavedSnapshot(
+      JSON.stringify({
+        roster: migrated.roster,
+        operations: migrated.operations,
+        activeOpId: migrated.activeOpId,
+      })
+    );
   };
 
   const handleRoomDisconnected = () => {
     setRoomSession(null);
+    setLastSavedSnapshot('');
+    try {
+      localStorage.removeItem('thronewake.v2.unlocked');
+      localStorage.removeItem('thronewake.teamroom.session');
+    } catch {}
+    onExitV2?.();
   };
 
   const handleSaveRequested = async (): Promise<TeamRoomData> => {
@@ -1128,6 +1158,7 @@ export function OperationPlanner({ isV2Unlocked }: { isV2Unlocked?: boolean } = 
       operations,
       updatedAt: Date.now(),
     };
+    setLastSavedSnapshot(JSON.stringify({ roster, operations, activeOpId }));
     return payload;
   };
 
@@ -1548,71 +1579,76 @@ export function OperationPlanner({ isV2Unlocked }: { isV2Unlocked?: boolean } = 
       {isV2Active && (
         <>
           <TeamRoomBar
+            hasUnsavedChanges={hasUnsavedChanges}
             onRoomDataLoaded={handleRoomDataLoaded}
             onRoomDisconnected={handleRoomDisconnected}
             onSaveRequested={handleSaveRequested}
           />
 
-          {/* Master Roster Summary & Manager Strip (Top Level) */}
-          <section className="panel op-roster-summary-bar">
-            <div className="op-roster-summary-bar__content">
-              <div className="op-roster-summary-card">
-                <div className="op-roster-summary-card__info">
-                  <span className="op-roster-summary-card__icon">🛡️</span>
-                  <div>
-                    <strong className="op-roster-summary-card__title">
-                      Alliance Armies ({roster.attackers.length})
-                    </strong>
-                    <span className="op-roster-summary-card__sub">
-                      {marchingAttackers.length} marching in active op
-                    </span>
+          {roomSession && (
+            <>
+              {/* Master Roster Summary & Manager Strip (Top Level) */}
+              <section className="panel op-roster-summary-bar">
+                <div className="op-roster-summary-bar__content">
+                  <div className="op-roster-summary-card">
+                    <div className="op-roster-summary-card__info">
+                      <span className="op-roster-summary-card__icon">🛡️</span>
+                      <div>
+                        <strong className="op-roster-summary-card__title">
+                          Alliance Armies ({roster.attackers.length})
+                        </strong>
+                        <span className="op-roster-summary-card__sub">
+                          {marchingAttackers.length} marching in active op
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="pill pill--primary"
+                      onClick={() => setIsArmiesModalOpen(true)}
+                      title="Open full army editor modal to manage coords, troops, artifacts, and safe times"
+                    >
+                      👥 Manage Armies
+                    </button>
+                  </div>
+
+                  <div className="op-roster-summary-card">
+                    <div className="op-roster-summary-card__info">
+                      <span className="op-roster-summary-card__icon">🎯</span>
+                      <div>
+                        <strong className="op-roster-summary-card__title">
+                          Target Database ({roster.targets.length} Villages · {roster.players.length} Accounts)
+                        </strong>
+                        <span className="op-roster-summary-card__sub">
+                          {activeTargets.length} targeted in active op
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="pill pill--primary"
+                      onClick={() => setIsTargetsModalOpen(true)}
+                      title="Open target database modal to manage defender accounts and villages"
+                    >
+                      🎯 Manage Targets
+                    </button>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  className="pill pill--primary"
-                  onClick={() => setIsArmiesModalOpen(true)}
-                  title="Open full army editor modal to manage coords, troops, artifacts, and safe times"
-                >
-                  👥 Manage Armies
-                </button>
-              </div>
+              </section>
 
-              <div className="op-roster-summary-card">
-                <div className="op-roster-summary-card__info">
-                  <span className="op-roster-summary-card__icon">🎯</span>
-                  <div>
-                    <strong className="op-roster-summary-card__title">
-                      Target Database ({roster.targets.length} Villages · {roster.players.length} Accounts)
-                    </strong>
-                    <span className="op-roster-summary-card__sub">
-                      {activeTargets.length} targeted in active op
-                    </span>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  className="pill pill--primary"
-                  onClick={() => setIsTargetsModalOpen(true)}
-                  title="Open target database modal to manage defender accounts and villages"
-                >
-                  🎯 Manage Targets
-                </button>
-              </div>
-            </div>
-          </section>
-
-          {/* Multi-Operation Tabs */}
-          {operations.length > 0 && (
-            <OperationTabs
-              operations={operations}
-              activeOpId={activeOpId}
-              onSelectOp={handleSelectOp}
-              onCreateOp={handleCreateOp}
-              onDuplicateOp={handleDuplicateOp}
-              onRenameOp={handleRenameOp}
-              onDeleteOp={handleDeleteOp}
-            />
+              {/* Multi-Operation Tabs */}
+              {operations.length > 0 && (
+                <OperationTabs
+                  operations={operations}
+                  activeOpId={activeOpId}
+                  onSelectOp={handleSelectOp}
+                  onCreateOp={handleCreateOp}
+                  onDuplicateOp={handleDuplicateOp}
+                  onRenameOp={handleRenameOp}
+                  onDeleteOp={handleDeleteOp}
+                />
+              )}
+            </>
           )}
         </>
       )}
@@ -1704,7 +1740,7 @@ export function OperationPlanner({ isV2Unlocked }: { isV2Unlocked?: boolean } = 
       </section>
 
       {/* Mode-Specific Participant Configuration */}
-      {isV2Active ? (
+      {isV2Active && roomSession ? (
         /* Top-Secret v2: Operation March Participant Selector Checklist */
         <OperationParticipantPicker
           attackers={roster.attackers}
