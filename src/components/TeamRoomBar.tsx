@@ -29,9 +29,22 @@ export function TeamRoomBar({
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
 
   const saveInProgressRef = useRef(false);
+  const isConnectingRef = useRef(false);
+  const hasAutoConnectedRef = useRef(false);
+
+  const onRoomDataLoadedRef = useRef(onRoomDataLoaded);
+  const onRoomDisconnectedRef = useRef(onRoomDisconnected);
+  const onSaveRequestedRef = useRef(onSaveRequested);
+
+  useEffect(() => {
+    onRoomDataLoadedRef.current = onRoomDataLoaded;
+    onRoomDisconnectedRef.current = onRoomDisconnected;
+    onSaveRequestedRef.current = onSaveRequested;
+  });
 
   const handleConnect = useCallback(
     async (codeToUse?: string) => {
+      if (isConnectingRef.current) return;
       const code = (codeToUse || passcode).trim();
       if (!code || code.length < 2) {
         setStatus('error');
@@ -39,6 +52,7 @@ export function TeamRoomBar({
         return;
       }
 
+      isConnectingRef.current = true;
       setStatus('connecting');
       setStatusMsg('Deriving Zero-Knowledge encryption keys...');
 
@@ -71,7 +85,7 @@ export function TeamRoomBar({
           }
         } else {
           // New Room initialized with current local plan
-          const currentPlan = await onSaveRequested();
+          const currentPlan = await onSaveRequestedRef.current();
           loadedData = currentPlan;
           // Save initial encrypted payload to cloud
           const encrypted = await encryptPayload(loadedData, sess.cryptoKey);
@@ -87,17 +101,21 @@ export function TeamRoomBar({
           localStorage.setItem(ROOM_STORAGE_KEY, code);
         } catch {}
 
-        onRoomDataLoaded(loadedData, sess);
+        onRoomDataLoadedRef.current(loadedData, sess);
       } catch (err: unknown) {
         setStatus('error');
         setStatusMsg(err instanceof Error ? err.message : 'Unknown connection error');
+      } finally {
+        isConnectingRef.current = false;
       }
     },
-    [passcode, onSaveRequested, onRoomDataLoaded]
+    [passcode]
   );
 
-  // Auto-connect if saved room passcode exists on mount
+  // Auto-connect once on mount if saved room passcode exists
   useEffect(() => {
+    if (hasAutoConnectedRef.current) return;
+    hasAutoConnectedRef.current = true;
     try {
       const savedCode = localStorage.getItem(ROOM_STORAGE_KEY);
       if (savedCode && savedCode.trim().length >= 2) {
@@ -114,7 +132,7 @@ export function TeamRoomBar({
     setStatusMsg('Encrypting & saving plan...');
 
     try {
-      const currentData = await onSaveRequested();
+      const currentData = await onSaveRequestedRef.current();
       const encrypted = await encryptPayload(currentData, session.cryptoKey);
       const res = await saveToCloud(session.roomId, encrypted);
 
@@ -132,7 +150,7 @@ export function TeamRoomBar({
     } finally {
       saveInProgressRef.current = false;
     }
-  }, [session, onSaveRequested]);
+  }, [session]);
 
   const handleSync = useCallback(async () => {
     if (!session) return;
@@ -150,7 +168,7 @@ export function TeamRoomBar({
 
       const decrypted = await decryptPayload<TeamRoomData>(cloudRes.data, session.cryptoKey);
       if (decrypted) {
-        onRoomDataLoaded(decrypted, session);
+        onRoomDataLoadedRef.current(decrypted, session);
         setStatus('connected');
         setStatusMsg('Synced from cloud');
         setLastSyncedAt(new Date());
@@ -162,7 +180,7 @@ export function TeamRoomBar({
       setStatus('error');
       setStatusMsg('Sync error');
     }
-  }, [session, onRoomDataLoaded]);
+  }, [session]);
 
   const handleDisconnect = () => {
     setSession(null);
@@ -171,7 +189,7 @@ export function TeamRoomBar({
     try {
       localStorage.removeItem(ROOM_STORAGE_KEY);
     } catch {}
-    onRoomDisconnected();
+    onRoomDisconnectedRef.current();
   };
 
   const syncTimeStr = lastSyncedAt
