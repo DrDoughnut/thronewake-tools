@@ -5,11 +5,6 @@
  * No unencrypted plan data ever leaves the browser.
  */
 
-// Public KVdb bucket dedicated to Thronewake Tools Team Rooms
-// All data stored in this bucket is 100% encrypted ciphertext blobs.
-const DEFAULT_KVDB_BUCKET = 'A8aY4Z1xT6w7e9pQ2m5vK';
-const KVDB_BASE_URL = 'https://kvdb.io';
-
 export interface RoomCryptoSession {
   roomName: string;
   roomId: string;
@@ -176,16 +171,23 @@ export async function decryptPayload<T = unknown>(
   }
 }
 
+const CLOUD_STORAGE_BASE = 'https://api.cl1p.net';
+
 /**
  * Saves encrypted ciphertext to the cloud KV store.
  */
 export async function saveToCloud(
   roomId: string,
-  encryptedCiphertext: string,
-  bucket = DEFAULT_KVDB_BUCKET
+  encryptedCiphertext: string
 ): Promise<{ success: boolean; error?: string }> {
+  // Always cache locally as well
   try {
-    const url = `${KVDB_BASE_URL}/${bucket}/${roomId}`;
+    localStorage.setItem(`thronewake.room_cache.${roomId}`, encryptedCiphertext);
+  } catch {}
+
+  try {
+    const key = `tw_${roomId.slice(0, 24)}`;
+    const url = `${CLOUD_STORAGE_BASE}/${key}`;
     const res = await fetch(url, {
       method: 'POST',
       headers: {
@@ -194,7 +196,7 @@ export async function saveToCloud(
       body: encryptedCiphertext,
     });
 
-    if (!res.ok) {
+    if (!res.ok && res.status !== 201 && res.status !== 200) {
       return { success: false, error: `Cloud save failed (HTTP ${res.status})` };
     }
 
@@ -209,28 +211,47 @@ export async function saveToCloud(
  * Fetches encrypted ciphertext from the cloud KV store.
  */
 export async function loadFromCloud(
-  roomId: string,
-  bucket = DEFAULT_KVDB_BUCKET
+  roomId: string
 ): Promise<{ success: boolean; data?: string | null; error?: string }> {
   try {
-    const url = `${KVDB_BASE_URL}/${bucket}/${roomId}`;
+    const key = `tw_${roomId.slice(0, 24)}`;
+    const url = `${CLOUD_STORAGE_BASE}/${key}`;
     const res = await fetch(url, {
       method: 'GET',
     });
 
     if (res.status === 404) {
-      // Room does not exist yet
+      // Check local cache if cloud room is not yet saved
+      try {
+        const localCached = localStorage.getItem(`thronewake.room_cache.${roomId}`);
+        if (localCached) return { success: true, data: localCached };
+      } catch {}
       return { success: true, data: null };
     }
 
     if (!res.ok) {
+      // Fallback to local cache on cloud network error
+      try {
+        const localCached = localStorage.getItem(`thronewake.room_cache.${roomId}`);
+        if (localCached) return { success: true, data: localCached };
+      } catch {}
       return { success: false, error: `Cloud load failed (HTTP ${res.status})` };
     }
 
     const text = await res.text();
+    if (text) {
+      try {
+        localStorage.setItem(`thronewake.room_cache.${roomId}`, text);
+      } catch {}
+    }
     return { success: true, data: text };
   } catch (err: unknown) {
+    try {
+      const localCached = localStorage.getItem(`thronewake.room_cache.${roomId}`);
+      if (localCached) return { success: true, data: localCached };
+    } catch {}
     const message = err instanceof Error ? err.message : 'Network error';
     return { success: false, error: message };
   }
 }
+

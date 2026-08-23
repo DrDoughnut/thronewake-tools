@@ -5183,6 +5183,339 @@ select:focus, .select:focus, .text-input:focus {
   color: #ff6b6b;
 }
 
+/* ==========================================================================
+   Classified Protocol Unlock Modal & Top Secret HUD
+   ========================================================================== */
+
+.secret-toast {
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  background: rgba(10, 16, 26, 0.94);
+  backdrop-filter: blur(10px);
+  border: 1.5px solid #2ecc71;
+  box-shadow: 0 0 20px rgba(46, 204, 113, 0.45), 0 8px 32px rgba(0, 0, 0, 0.8);
+  color: #2ecc71;
+  font-family: var(--font-mono, monospace);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 9px 18px;
+  border-radius: 999px;
+  animation: secretToastSlide 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  pointer-events: none;
+  text-align: center;
+}
+
+@keyframes secretToastSlide {
+  0% { transform: translate(-50%, -20px); opacity: 0; }
+  100% { transform: translate(-50%, 0); opacity: 1; }
+}
+
+.secret-badge-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(46, 204, 113, 0.15);
+  border: 1px solid rgba(46, 204, 113, 0.4);
+  color: #2ecc71;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  animation: pulseSecretBadge 2s infinite ease-in-out;
+}
+
+@keyframes pulseSecretBadge {
+  0%, 100% { box-shadow: 0 0 4px rgba(46, 204, 113, 0.2); }
+  50% { box-shadow: 0 0 10px rgba(46, 204, 113, 0.5); }
+}
+
+.secret-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(4, 8, 15, 0.85);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: secretFadeIn 0.2s ease;
+}
+
+@keyframes secretFadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.secret-modal-card {
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+  background: linear-gradient(170deg, hsl(220, 24%, 13%) 0%, hsl(220, 28%, 9%) 100%);
+  border: 1.5px solid #2ecc71;
+  border-radius: 12px;
+  box-shadow: 0 0 35px rgba(46, 204, 113, 0.35), 0 20px 60px rgba(0, 0, 0, 0.9);
+  overflow: hidden;
+  animation: secretCardPop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes secretCardPop {
+  0% { transform: scale(0.85); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.secret-modal-scanner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #2ecc71, transparent);
+  box-shadow: 0 0 12px #2ecc71;
+  animation: secretScanline 2.5s infinite ease-in-out;
+  pointer-events: none;
+}
+
+@keyframes secretScanline {
+  0% { top: 0%; opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+
+.secret-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: rgba(0, 0, 0, 0.35);
+  border-bottom: 1px solid rgba(46, 204, 113, 0.25);
+}
+
+.secret-modal-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  font-weight: 800;
+  color: #2ecc71;
+  letter-spacing: 0.08em;
+}
+
+.secret-modal-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #2ecc71;
+  box-shadow: 0 0 8px #2ecc71;
+  animation: secretPulseDot 1.5s infinite ease-in-out;
+}
+
+@keyframes secretPulseDot {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.4); opacity: 0.6; }
+}
+
+.secret-modal-close {
+  background: transparent;
+  border: 1px solid hsl(220, 16%, 28%);
+  color: var(--text-dim);
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  transition: all 0.15s ease;
+}
+
+.secret-modal-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border-color: #2ecc71;
+}
+
+.secret-modal-body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 16px;
+}
+
+.secret-modal-icon-wrap {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.secret-modal-radar {
+  position: relative;
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(46, 204, 113, 0.4);
+  background: radial-gradient(circle, rgba(46, 204, 113, 0.15) 0%, transparent 70%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.secret-modal-radar-beam {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, rgba(46, 204, 113, 0.4) 0deg, transparent 60deg, transparent 360deg);
+  animation: radarSweep 2.5s linear infinite;
+}
+
+@keyframes radarSweep {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.secret-modal-lock-icon {
+  font-size: 30px;
+  position: relative;
+  z-index: 2;
+  filter: drop-shadow(0 0 8px rgba(46, 204, 113, 0.7));
+}
+
+.secret-modal-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.01em;
+  margin: 0;
+  text-shadow: 0 0 14px rgba(46, 204, 113, 0.35);
+}
+
+.secret-modal-desc {
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.5;
+  margin: 0;
+  max-width: 440px;
+}
+
+.secret-modal-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 4px;
+}
+
+.secret-modal-field {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  gap: 6px;
+}
+
+.secret-modal-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-bright);
+}
+
+.secret-modal-crypto-tag {
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(46, 204, 113, 0.15);
+  border: 1px solid rgba(46, 204, 113, 0.35);
+  color: #2ecc71;
+}
+
+.secret-modal-input {
+  padding: 10px 14px;
+  font-size: 14px;
+  background: hsl(220, 24%, 10%);
+  border: 1.5px solid hsl(220, 18%, 26%);
+  border-radius: 8px;
+  color: #fff;
+  font-family: var(--font-mono, monospace);
+  letter-spacing: 0.04em;
+  transition: all 0.15s ease;
+}
+
+.secret-modal-input:focus {
+  border-color: #2ecc71;
+  box-shadow: 0 0 12px rgba(46, 204, 113, 0.4);
+  outline: none;
+}
+
+.secret-modal-hint {
+  font-size: 11px;
+  color: var(--text-faint);
+  line-height: 1.4;
+}
+
+.secret-modal-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.secret-modal-btn-connect {
+  flex: 1.5;
+  padding: 10px 16px;
+  font-size: 13.5px;
+  font-weight: 750;
+  background: #2ecc71;
+  border-color: #2ecc71;
+  color: #0b1a10;
+  cursor: pointer;
+  box-shadow: 0 0 16px rgba(46, 204, 113, 0.4);
+  transition: all 0.15s ease;
+}
+
+.secret-modal-btn-connect:hover:not(:disabled) {
+  background: #27ae60;
+  border-color: #27ae60;
+  box-shadow: 0 0 24px rgba(46, 204, 113, 0.65);
+}
+
+.secret-modal-btn-connect:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.secret-modal-btn-offline {
+  flex: 1;
+  padding: 10px 14px;
+  font-size: 12px;
+  background: hsl(220, 18%, 15%);
+  border: 1px solid hsl(220, 16%, 26%);
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.secret-modal-btn-offline:hover {
+  background: hsl(220, 20%, 20%);
+  color: #fff;
+}
+
+
 
 
 

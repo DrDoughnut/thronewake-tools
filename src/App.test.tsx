@@ -17,6 +17,7 @@ let container: HTMLDivElement;
 let root: Root;
 
 beforeEach(() => {
+  window.localStorage.clear();
   window.location.hash = '';
   container = document.createElement('div');
   document.body.appendChild(container);
@@ -672,7 +673,24 @@ describe('the operation planner', () => {
       click(opTab);
     }
 
-    // Now unlocked!
+    // Modal pops up with classified animation & title
+    const secretModal = container.querySelector('.secret-modal-card');
+    expect(secretModal).toBeTruthy();
+    expect(secretModal?.textContent).toContain('Top Secret Planner v2 Unlocked');
+    expect(secretModal?.textContent).toContain('CLASSIFIED PROTOCOL');
+
+    // Enter room passcode in the modal and submit
+    const modalInput = container.querySelector('.secret-modal-input') as HTMLInputElement;
+    expect(modalInput).toBeTruthy();
+    act(() => {
+      modalInput.value = 'potatoes69';
+      modalInput.dispatchEvent(new Event('input', { bubbles: true }));
+      modalInput.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    const connectBtn = container.querySelector('.secret-modal-btn-connect') as HTMLButtonElement;
+    click(connectBtn);
+
+    // Now unlocked on page!
     const roomBar = container.querySelector('.op-team-room-bar');
     expect(roomBar).toBeTruthy();
     expect(roomBar?.textContent).toContain('Team Room');
@@ -680,7 +698,6 @@ describe('the operation planner', () => {
 
     const input = container.querySelector('.op-team-room-input') as HTMLInputElement;
     expect(input).toBeTruthy();
-    expect(input.placeholder).toContain('potatoes69');
     expect(container.textContent).toContain('v2 Secret');
   });
 

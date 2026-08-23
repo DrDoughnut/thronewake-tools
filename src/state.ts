@@ -3,6 +3,7 @@ import type { Divisor, NumeratorStat } from './engine/value';
 import type { Modifiers } from './engine/stats';
 import { factionBuildingList, rules, type FactionBuildingKey } from './data/rules';
 import { groupByKey } from './data/unitSets';
+import { loadStoredJson, saveStoredJson, StorageKeys } from './storage';
 
 export interface AppState extends Modifiers {
   /** Key of the roster group being ranked. */
@@ -144,15 +145,58 @@ function decode(hash: string): AppState {
   };
 }
 
+export function hasUnitsHashParams(hash: string): boolean {
+  const p = new URLSearchParams(hash.replace(/^#/, ''));
+  return [...p.keys()].filter((k) => k !== 'tool').length > 0;
+}
+
+export function sanitizeUnitsState(saved: Partial<AppState> | null | undefined): AppState {
+  if (!saved || typeof saved !== 'object') return initialState;
+  const num = (val: any, max: number) => clamp(Number(val ?? 0) || 0, 0, max);
+  const stats = Array.isArray(saved.stats)
+    ? (saved.stats.filter((s) => ['a', 'di', 'dc', 'c', 's', 'ds'].includes(s)) as NumeratorStat[])
+    : initialState.stats;
+  const divisors = Array.isArray(saved.divisors)
+    ? (saved.divisors.filter((d) => ['cu', 't', 'tc'].includes(d)) as Divisor[])
+    : initialState.divisors;
+
+  return {
+    group: groupByKey(saved.group ?? '').key,
+    mode: saved.mode === 'formula' ? 'formula' : 'preset',
+    stats,
+    divisors,
+    bySpeed: Boolean(saved.bySpeed),
+    expression: typeof saved.expression === 'string' && saved.expression ? saved.expression : initialState.expression,
+    smithy: num(saved.smithy, rules.smithy.researchMaxLevel),
+    buildings: Object.fromEntries(
+      factionBuildingList.map((b) => [
+        b.key,
+        num(saved.buildings?.[b.key as FactionBuildingKey], b.maxLevel),
+      ]),
+    ) as Record<FactionBuildingKey, number>,
+  };
+}
+
+export function loadInitialAppState(): AppState {
+  if (typeof window !== 'undefined' && hasUnitsHashParams(window.location.hash)) {
+    return decode(window.location.hash);
+  }
+  const saved = loadStoredJson<Partial<AppState> | null>(StorageKeys.UNITS_STATE, null);
+  if (saved) {
+    return sanitizeUnitsState(saved);
+  }
+  return initialState;
+}
+
 /**
- * App state, mirrored into the URL fragment so any configuration is a
- * shareable link. Nothing is sent anywhere — the fragment never leaves
- * the browser.
+ * App state, mirrored into the URL fragment and localStorage so any
+ * configuration is a shareable link and persistent across reloads.
  */
 export function useAppState() {
-  const [state, setState] = useState<AppState>(() => decode(window.location.hash));
+  const [state, setState] = useState<AppState>(() => loadInitialAppState());
 
   useEffect(() => {
+    saveStoredJson(StorageKeys.UNITS_STATE, state);
     const encoded = encode(state);
     const next = `${window.location.pathname}${window.location.search}#${encoded}`;
     // replaceState keeps the back button useful for leaving the page
@@ -161,9 +205,17 @@ export function useAppState() {
   }, [state]);
 
   useEffect(() => {
-    const onPop = () => setState(decode(window.location.hash));
+    const onPop = () => {
+      if (hasUnitsHashParams(window.location.hash)) {
+        setState(decode(window.location.hash));
+      }
+    };
     window.addEventListener('popstate', onPop);
-    return () => window.removeEventListener('popstate', onPop);
+    window.addEventListener('hashchange', onPop);
+    return () => {
+      window.removeEventListener('popstate', onPop);
+      window.removeEventListener('hashchange', onPop);
+    };
   }, []);
 
   const patch = useCallback((changes: Partial<AppState>) => {

@@ -8,6 +8,7 @@ import {
   describePrerequisites,
 } from '../data/buildingEffects';
 import { CITY_UPGRADEABLE_GIDS } from '../engine/cpOptimizer';
+import { loadStoredJson, saveStoredJson, StorageKeys } from '../storage';
 
 const SPEED_OPTIONS = [1, 2, 3, 5] as const;
 type ServerSpeed = (typeof SPEED_OPTIONS)[number];
@@ -35,13 +36,25 @@ export function BuildingStats() {
   const initialTh = useMemo(() => {
     const thParam = hashParams.get('th') || hashParams.get('mb');
     const parsed = thParam ? parseInt(thParam, 10) : NaN;
-    return !isNaN(parsed) && parsed >= 1 && parsed <= 22 ? parsed : 20;
+    if (!isNaN(parsed) && parsed >= 1 && parsed <= 22) return parsed;
+    const saved = loadStoredJson<{ thLevel?: number; serverSpeed?: ServerSpeed }>(
+      StorageKeys.BUILDINGS_STATE,
+      {},
+    );
+    if (saved.thLevel && saved.thLevel >= 1 && saved.thLevel <= 22) return saved.thLevel;
+    return 20;
   }, [hashParams]);
 
   const initialSpeed = useMemo(() => {
     const speedParam = hashParams.get('speed');
     const parsed = speedParam ? parseInt(speedParam, 10) : NaN;
-    return SPEED_OPTIONS.includes(parsed as ServerSpeed) ? (parsed as ServerSpeed) : 1;
+    if (SPEED_OPTIONS.includes(parsed as ServerSpeed)) return parsed as ServerSpeed;
+    const saved = loadStoredJson<{ thLevel?: number; serverSpeed?: ServerSpeed }>(
+      StorageKeys.BUILDINGS_STATE,
+      {},
+    );
+    if (saved.serverSpeed && SPEED_OPTIONS.includes(saved.serverSpeed)) return saved.serverSpeed;
+    return 1;
   }, [hashParams]);
 
   const [selectedGid, setSelectedGid] = useState<number | null>(initialGid);
@@ -87,6 +100,7 @@ export function BuildingStats() {
     } else {
       params.delete('speed');
     }
+    saveStoredJson(StorageKeys.BUILDINGS_STATE, { thLevel, serverSpeed });
     const newHash = `#${params.toString()}`;
     if (window.location.hash !== newHash) {
       window.history.replaceState(null, '', newHash);

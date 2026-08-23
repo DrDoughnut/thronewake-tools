@@ -3,6 +3,7 @@ import { maxLevel, queueGroups, queues, trainingCategory } from './data/building
 import { factionBuildingList, rules, type FactionBuildingKey } from './data/rules';
 import { factionByKey, playableFactions } from './data/factions';
 import type { Modifiers } from './engine/stats';
+import { loadStoredJson, saveStoredJson, StorageKeys } from './storage';
 
 /** Server speeds Thronewake runs at. */
 export const SERVER_SPEEDS = [1, 3, 10] as const;
@@ -170,14 +171,120 @@ function decode(hash: string): ArmyState {
   };
 }
 
-/** Army-calculator state, mirrored into the URL fragment so it is shareable. */
+export function hasArmyHashParams(hash: string): boolean {
+  const p = new URLSearchParams(hash.replace(/^#/, ''));
+  const armyKeys = [
+    'f',
+    'hv',
+    'hu',
+    'x',
+    'sb',
+    'sm',
+    ...factionBuildingList.map((b) => b.key),
+    ...queues.map((q) => q.key),
+    ...queueGroups.map((g) => `u_${g.key}`),
+  ];
+  return armyKeys.some((k) => p.has(k));
+}
+
+export function sanitizeArmyState(saved: Partial<ArmyState> | null | undefined): ArmyState {
+  if (!saved || typeof saved !== 'object') return initialArmyState;
+
+  const faction = playableFactions.some((f) => f.key === saved.faction)
+    ? saved.faction!
+    : initialArmyState.faction;
+
+  const roster = factionByKey(faction);
+
+  const speedRaw = Number(saved.speed);
+  const speed = (SERVER_SPEEDS as readonly number[]).includes(speedRaw)
+    ? speedRaw
+    : initialArmyState.speed;
+
+  const unitRaw = saved.durationUnit;
+  const durationUnit = (DURATION_UNITS as readonly string[]).includes(unitRaw ?? '')
+    ? (unitRaw as DurationUnit)
+    : initialArmyState.durationUnit;
+
+  const durationValue =
+    clamp(Number(saved.durationValue) || 0, 1, 100000) || initialArmyState.durationValue;
+  const speedBonusPercent = clamp(Number(saved.speedBonusPercent) || 0, 0, 1000);
+  const smithy = clamp(Number(saved.smithy) || 0, 0, rules.smithy.researchMaxLevel);
+
+  const buildings = Object.fromEntries(
+    factionBuildingList.map((b) => [
+      b.key,
+      clamp(Number(saved.buildings?.[b.key as FactionBuildingKey]) || 0, 0, b.maxLevel),
+    ]),
+  ) as Record<FactionBuildingKey, number>;
+
+  const levels = Object.fromEntries(
+    queues.map((q) => [
+      q.key,
+      clamp(Number(saved.levels?.[q.key]) || 0, 0, maxLevel(q)),
+    ]),
+  );
+
+  const selection = Object.fromEntries(
+    queueGroups.map((g) => {
+      const picked = saved.selection?.[g.key];
+      if (!Array.isArray(picked)) return [g.key, []];
+      const valid = picked.filter((key) =>
+        roster.units.some(
+          (u) => u.key === key && trainingCategory(u) === g.category,
+        ),
+      );
+      return [g.key, [...new Set(valid)]];
+    }),
+  );
+
+  return {
+    faction,
+    durationValue,
+    durationUnit,
+    speed,
+    speedBonusPercent,
+    smithy,
+    buildings,
+    levels,
+    selection,
+  };
+}
+
+export function loadInitialArmyState(): ArmyState {
+  if (typeof window !== 'undefined' && hasArmyHashParams(window.location.hash)) {
+    return decode(window.location.hash);
+  }
+  const saved = loadStoredJson<Partial<ArmyState> | null>(StorageKeys.ARMY_STATE, null);
+  if (saved) {
+    return sanitizeArmyState(saved);
+  }
+  return initialArmyState;
+}
+
+/** Army-calculator state, mirrored into the URL fragment and localStorage so it is shareable and persistent. */
 export function useArmyState() {
-  const [state, setState] = useState<ArmyState>(() => decode(window.location.hash));
+  const [state, setState] = useState<ArmyState>(() => loadInitialArmyState());
 
   useEffect(() => {
+    saveStoredJson(StorageKeys.ARMY_STATE, state);
     const next = `${window.location.pathname}${window.location.search}#${encode(state)}`;
     window.history.replaceState(null, '', next);
   }, [state]);
+
+  useEffect(() => {
+    const onPop = () => {
+      if (hasArmyHashParams(window.location.hash)) {
+        setState(decode(window.location.hash));
+      }
+    };
+    window.addEventListener('popstate', onPop);
+    window.addEventListener('hashchange', onPop);
+    return () => {
+      window.removeEventListener('popstate', onPop);
+      window.removeEventListener('hashchange', onPop);
+    };
+  }, []);
 
   const patch = useCallback((changes: Partial<ArmyState>) => {
     setState((prev) => ({ ...prev, ...changes }));

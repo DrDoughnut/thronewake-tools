@@ -87,7 +87,7 @@ describe('cryptoSync Zero-Knowledge Engine', () => {
       const res = await saveToCloud('test_room_id', '{"iv":"abc","ct":"xyz"}');
       expect(res.success).toBe(true);
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('/test_room_id'),
+        expect.stringContaining('/tw_test_room_id'),
         expect.objectContaining({
           method: 'POST',
           body: '{"iv":"abc","ct":"xyz"}',

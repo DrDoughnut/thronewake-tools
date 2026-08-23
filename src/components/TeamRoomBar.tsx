@@ -30,16 +30,6 @@ export function TeamRoomBar({
 
   const saveInProgressRef = useRef(false);
 
-  // Load saved room passcode on mount
-  useEffect(() => {
-    try {
-      const savedCode = localStorage.getItem(ROOM_STORAGE_KEY);
-      if (savedCode) {
-        setPasscode(savedCode);
-      }
-    } catch {}
-  }, []);
-
   const handleConnect = useCallback(
     async (codeToUse?: string) => {
       const code = (codeToUse || passcode).trim();
@@ -105,6 +95,17 @@ export function TeamRoomBar({
     },
     [passcode, onSaveRequested, onRoomDataLoaded]
   );
+
+  // Auto-connect if saved room passcode exists on mount
+  useEffect(() => {
+    try {
+      const savedCode = localStorage.getItem(ROOM_STORAGE_KEY);
+      if (savedCode && savedCode.trim().length >= 2) {
+        setPasscode(savedCode);
+        void handleConnect(savedCode);
+      }
+    } catch {}
+  }, [handleConnect]);
 
   const handleSave = useCallback(async () => {
     if (!session || saveInProgressRef.current) return;

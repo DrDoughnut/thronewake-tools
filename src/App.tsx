@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Changelog } from './components/Changelog';
+import { SecretUnlockModal } from './components/SecretUnlockModal';
 import { APP_VERSION } from './data/changelog';
 import { ArmyCalculator } from './pages/ArmyCalculator';
 import { BuildingStats } from './pages/BuildingStats';
 import { CpOptimizer } from './pages/CpOptimizer';
 import { OperationPlanner } from './pages/OperationPlanner';
 import { UnitAttributes } from './pages/UnitAttributes';
+import { loadStoredJson, saveStoredJson, StorageKeys } from './storage';
 
 interface Tool {
   key: string;
@@ -14,6 +16,27 @@ interface Tool {
   blurb: string;
   footer: string;
   render: (v2Unlocked?: boolean) => JSX.Element;
+}
+
+function playTapBlip(count: number) {
+  try {
+    const AudioContextClass =
+      window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextClass) return;
+    const ctx = new AudioContextClass();
+    if (ctx.state === 'suspended') ctx.resume();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(350 + count * 60, ctx.currentTime);
+    gain.gain.setValueAtTime(0, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.06);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.07);
+  } catch {}
 }
 
 const TOOLS: Tool[] = [
@@ -42,9 +65,9 @@ const TOOLS: Tool[] = [
     name: 'Operation Planner',
     icon: '🗺️',
     blurb:
-      'Coordinate attackers and targets around troop speed, distance, long-range bonuses, and both players’ protected hours.',
+      'Coordinate launch times across alliance members to land attacks simultaneously, respecting each player’s safe hours.',
     footer:
-      'Travel uses the slowest troop in each army. Bannerfield adds 20% speed per level to the part of a journey beyond 20 fields.',
+      'Safe hours are interpreted in 24-hour UTC; local times are displayed for convenience and are not stored.',
     render: (v2) => <OperationPlanner isV2Unlocked={v2} />,
   },
   {
@@ -73,7 +96,12 @@ const readTool = (): string => {
   const key = new URLSearchParams(window.location.hash.replace(/^#/, '')).get('tool');
   if (key === 'cp-optimizer') return 'optimizer';
   if (key === 'building-stats' || key === 'catalog') return 'buildings';
-  return TOOLS.some((t) => t.key === key) ? key! : TOOLS[0].key;
+  if (key && TOOLS.some((t) => t.key === key)) return key;
+
+  const savedTool = loadStoredJson<string>(StorageKeys.LAST_TOOL, '');
+  if (savedTool && TOOLS.some((t) => t.key === savedTool)) return savedTool;
+
+  return TOOLS[0].key;
 };
 
 export default function App() {
@@ -81,13 +109,14 @@ export default function App() {
   const [showChangelog, setShowChangelog] = useState(false);
   const [v2Unlocked, setV2Unlocked] = useState<boolean>(() => {
     try {
-      return localStorage.getItem('thronewake.v2.unlocked') === '1';
+      return localStorage.getItem(StorageKeys.V2_UNLOCKED) === '1';
     } catch {
       return false;
     }
   });
   const [opClickCount, setOpClickCount] = useState<number>(0);
   const [secretToast, setSecretToast] = useState<string | null>(null);
+  const [isSecretModalOpen, setIsSecretModalOpen] = useState(false);
 
   // Each tool owns its own slice of the fragment, so switching tools clears
   // the previous tool's parameters rather than leaving them to be misread.
@@ -100,18 +129,23 @@ export default function App() {
   const handleToolClick = (key: string) => {
     if (key === 'operations') {
       const nextCount = opClickCount + 1;
+      if (nextCount >= 3 && nextCount < 10) {
+        playTapBlip(nextCount);
+        setSecretToast(`🔓 Decrypting Protocol... [${nextCount}/10 clicks]`);
+      }
       if (nextCount >= 10) {
         setOpClickCount(0);
         setV2Unlocked((curr) => {
           const nextState = !curr;
           try {
-            localStorage.setItem('thronewake.v2.unlocked', nextState ? '1' : '0');
+            localStorage.setItem(StorageKeys.V2_UNLOCKED, nextState ? '1' : '0');
           } catch {}
-          setSecretToast(
-            nextState
-              ? '🕵️ Top Secret Unlocked: Operation Planner v2 (Team Rooms & Multi-Ops) Active!'
-              : '🔒 Operation Planner v2 Locked (Reverted to standard v1)'
-          );
+          if (nextState) {
+            setIsSecretModalOpen(true);
+            setSecretToast('🕵️ TOP SECRET V2 PROTOCOL ACTIVATED');
+          } else {
+            setSecretToast('🔒 Operation Planner v2 Locked (Standard Mode Active)');
+          }
           setTimeout(() => setSecretToast(null), 4000);
           return nextState;
         });
@@ -120,9 +154,21 @@ export default function App() {
       }
     } else {
       setOpClickCount(0);
+      setSecretToast(null);
     }
     select(key);
   };
+
+  const handleConnectSecretRoom = (passcode: string) => {
+    try {
+      localStorage.setItem('thronewake.teamroom.session', passcode);
+    } catch {}
+    select('operations');
+  };
+
+  useEffect(() => {
+    saveStoredJson(StorageKeys.LAST_TOOL, toolKey);
+  }, [toolKey]);
 
   useEffect(() => {
     const onHash = () => setToolKey(readTool());
@@ -211,6 +257,12 @@ export default function App() {
       </footer>
 
       {showChangelog && <Changelog onClose={() => setShowChangelog(false)} />}
+
+      <SecretUnlockModal
+        isOpen={isSecretModalOpen}
+        onClose={() => setIsSecretModalOpen(false)}
+        onConnectRoom={handleConnectSecretRoom}
+      />
     </div>
   );
 }
