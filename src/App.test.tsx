@@ -623,6 +623,39 @@ describe('the operation planner', () => {
     expect(ths).toContain('Launch In');
     expect(container.querySelector('.op-countdown-tag')).toBeTruthy();
   });
+
+  it('renders the Zero-Knowledge Team Room bar with passcode input', () => {
+    const roomBar = container.querySelector('.op-team-room-bar');
+    expect(roomBar).toBeTruthy();
+    expect(roomBar?.textContent).toContain('Team Room');
+    expect(roomBar?.textContent).toContain('Zero-Knowledge AES-256');
+
+    const input = container.querySelector('.op-team-room-input') as HTMLInputElement;
+    expect(input).toBeTruthy();
+    expect(input.placeholder).toContain('potatoes69');
+  });
+
+  it('toggles attackers and targets between active and benched states, updating route count', () => {
+    // Initially 1 attacker and 1 target -> 1 route
+    expect(container.querySelectorAll('.op-routes tbody .op-route-row')).toHaveLength(1);
+
+    // Bench the first attacker
+    const activePill = container.querySelector('.op-strip-card--attacker .op-active-pill') as HTMLElement;
+    expect(activePill).toBeTruthy();
+    expect(activePill.textContent).toContain('Active');
+
+    click(activePill);
+    expect(activePill.textContent).toContain('Benched');
+
+    // With 0 active attackers, 0 route rows are generated (empty state shows)
+    expect(container.querySelectorAll('.op-routes tbody .op-route-row')).toHaveLength(0);
+    expect(container.querySelector('.op-routes-empty')).toBeTruthy();
+
+    // Re-activate the attacker
+    click(activePill);
+    expect(activePill.textContent).toContain('Active');
+    expect(container.querySelectorAll('.op-routes tbody .op-route-row')).toHaveLength(1);
+  });
 });
 
 describe('the CP optimizer tool', () => {

@@ -337,4 +337,62 @@ describe('safe time', () => {
     expect(decoded?.targets[2].name).toBe('Petrgon');
     expect(decoded?.targets[3].name).toBe('Dangerdoom');
   });
+
+  it('encodes and decodes active/inactive participation flags on attackers and targets', () => {
+    const state = {
+      landing: '2026-08-20T12:00',
+      serverSpeed: 3,
+      players: [],
+      attackers: [
+        {
+          id: 'a1',
+          name: 'Active Army',
+          x: 0,
+          y: 0,
+          unitRef: 'embermark_dominion/emberblade',
+          artifactMultiplier: 1 as const,
+          bannerfieldLevel: 0,
+          safeEnabled: false,
+          safeStart: '22:00',
+          safeEnd: '04:00',
+          active: true,
+        },
+        {
+          id: 'a2',
+          name: 'Inactive Bench Army',
+          x: 10,
+          y: 10,
+          unitRef: 'embermark_dominion/emberblade',
+          artifactMultiplier: 1 as const,
+          bannerfieldLevel: 0,
+          safeEnabled: false,
+          safeStart: '22:00',
+          safeEnd: '04:00',
+          active: false,
+        },
+      ],
+      targets: [
+        {
+          id: 't1',
+          name: 'Target Village',
+          x: 20,
+          y: 20,
+          fake: false,
+          playerId: '',
+          safeEnabled: false,
+          safeStart: '22:00',
+          safeEnd: '04:00',
+          active: false,
+        },
+      ],
+    };
+
+    const encoded = encodeCompactPlan(state);
+    const decoded = decodeCompactPlan(encoded);
+
+    expect(decoded).toBeTruthy();
+    expect(decoded?.attackers[0].active).toBe(true);
+    expect(decoded?.attackers[1].active).toBe(false);
+    expect(decoded?.targets[0].active).toBe(false);
+  });
 });

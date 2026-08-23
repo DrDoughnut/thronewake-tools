@@ -293,6 +293,7 @@ export interface CompactAttacker extends CompactSafeTimeOwner {
   unitRef: string;
   artifactMultiplier: 1 | 1.5 | 2;
   bannerfieldLevel: number;
+  active?: boolean;
 }
 
 export interface CompactPlayer extends CompactSafeTimeOwner {
@@ -309,6 +310,7 @@ export interface CompactTarget extends CompactSafeTimeOwner {
   fake: boolean;
   /** Id of the owning player, or '' when the village carries its own window. */
   playerId: string;
+  active?: boolean;
 }
 
 export interface CompactPlannerState {
@@ -317,6 +319,26 @@ export interface CompactPlannerState {
   attackers: CompactAttacker[];
   targets: CompactTarget[];
   players: CompactPlayer[];
+}
+
+export interface TeamOperation {
+  id: string;
+  name: string;
+  landing: string;
+  serverSpeed: number;
+  attackers: CompactAttacker[];
+  targets: CompactTarget[];
+  players: CompactPlayer[];
+  createdAt?: number;
+  updatedAt?: number;
+}
+
+export interface TeamRoomData {
+  version: 2;
+  roomName: string;
+  activeOpId: string;
+  operations: TeamOperation[];
+  updatedAt: number;
 }
 
 export interface ResolvedSafeTime extends CompactSafeTimeOwner {
@@ -375,7 +397,8 @@ export function encodeCompactPlan(state: CompactPlannerState): string {
     const safeOn = atk.safeEnabled ? 1 : 0;
     const sStart = atk.safeStart || '22:00';
     const sEnd = atk.safeEnd || '04:00';
-    parts.push(`a:${cleanName},${x},${y},${unit},${art},${banner},${safeOn},${sStart}-${sEnd}`);
+    const active = atk.active === false ? 0 : 1;
+    parts.push(`a:${cleanName},${x},${y},${unit},${art},${banner},${safeOn},${sStart}-${sEnd},${active}`);
   }
 
   // Players are emitted before the villages that reference them, and a village
@@ -399,9 +422,10 @@ export function encodeCompactPlan(state: CompactPlannerState): string {
     const sEnd = tgt.safeEnd || '04:00';
     const fake = tgt.fake ? 1 : 0;
     const ownerIndex = tgt.playerId ? players.findIndex((p) => p.id === tgt.playerId) + 1 : 0;
-    // `fake` and the owner reference are appended last, so a link written
+    const active = tgt.active === false ? 0 : 1;
+    // `fake`, owner reference, and `active` are appended last, so a link written
     // before they existed still decodes — the fields simply read as absent.
-    parts.push(`t:${cleanName},${x},${y},${safeOn},${sStart}-${sEnd},${fake},${ownerIndex}`);
+    parts.push(`t:${cleanName},${x},${y},${safeOn},${sStart}-${sEnd},${fake},${ownerIndex},${active}`);
   }
 
   return parts.join('~');
@@ -453,7 +477,7 @@ export function decodeCompactPlan(compactStr: string): CompactPlannerState | nul
     if (seg.startsWith('a:')) {
       const body = seg.slice(2);
       const fields = body.split(',');
-      const [name, xStr, yStr, unitRef, artStr, bannerStr, safeOnStr, timesStr] = fields;
+      const [name, xStr, yStr, unitRef, artStr, bannerStr, safeOnStr, timesStr, activeStr] = fields;
       const safeEnabled = safeOnStr === '1' || safeOnStr === 'true';
       let safeStart = '22:00';
       let safeEnd = '04:00';
@@ -465,6 +489,7 @@ export function decodeCompactPlan(compactStr: string): CompactPlannerState | nul
       const safe = enforceMaxSafeWindow(safeStart, safeEnd, 'start');
       const artNum = Number(artStr);
       const artifactMultiplier = artNum === 1.5 || artNum === 2 ? artNum : 1;
+      const active = activeStr === undefined ? true : (activeStr === '1' || activeStr === 'true');
 
       attackers.push({
         id: `a${attackers.length + 1}`,
@@ -477,13 +502,15 @@ export function decodeCompactPlan(compactStr: string): CompactPlannerState | nul
         safeEnabled,
         safeStart: safe.safeStart,
         safeEnd: safe.safeEnd,
+        active,
       });
     } else if (seg.startsWith('t:')) {
       const body = seg.slice(2);
       const fields = body.split(',');
-      const [name, xStr, yStr, safeOnStr, timesStr, fakeStr, ownerStr] = fields;
+      const [name, xStr, yStr, safeOnStr, timesStr, fakeStr, ownerStr, activeStr] = fields;
       const safeEnabled = safeOnStr === '1' || safeOnStr === 'true';
       const safe = readWindow(timesStr);
+      const active = activeStr === undefined ? true : (activeStr === '1' || activeStr === 'true');
 
       ownerIndexByTarget.push(Number(ownerStr) || 0);
       targets.push({
@@ -496,6 +523,7 @@ export function decodeCompactPlan(compactStr: string): CompactPlannerState | nul
         safeEnabled,
         safeStart: safe.safeStart,
         safeEnd: safe.safeEnd,
+        active,
       });
     } else if (seg.startsWith('p:')) {
       const fields = seg.slice(2).split(',');
