@@ -118,7 +118,7 @@ export function SecretUnlockModal({ isOpen, onClose, onConnectRoom }: SecretUnlo
                 id="secret-room-passcode"
                 type="text"
                 className="text-input secret-modal-input"
-                placeholder="e.g. potatoes69 or TeamAlpha"
+                placeholder="e.g. password123"
                 value={passcode}
                 onChange={(e) => setPasscode(e.target.value)}
                 autoFocus

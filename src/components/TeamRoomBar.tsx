@@ -198,7 +198,7 @@ export function TeamRoomBar({
               <input
                 type="text"
                 className="text-input op-team-room-input"
-                placeholder="Enter secret code (e.g. potatoes69)..."
+                placeholder="Enter secret code (e.g. password123)..."
                 value={passcode}
                 onChange={(e) => setPasscode(e.target.value)}
                 onKeyDown={(e) => {

@@ -77,7 +77,7 @@ describe('cryptoSync Zero-Knowledge Engine', () => {
       vi.restoreAllMocks();
     });
 
-    it('saves encrypted payload to cloud KVdb endpoint', async () => {
+    it('saves encrypted payload to cloud Upstash endpoint', async () => {
       const mockFetch = vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
@@ -87,19 +87,19 @@ describe('cryptoSync Zero-Knowledge Engine', () => {
       const res = await saveToCloud('test_room_id', '{"iv":"abc","ct":"xyz"}');
       expect(res.success).toBe(true);
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('/tw_test_room_id'),
+        expect.stringContaining('upstash.io'),
         expect.objectContaining({
           method: 'POST',
-          body: '{"iv":"abc","ct":"xyz"}',
+          body: JSON.stringify(['SET', 'tw_test_room_id', '{"iv":"abc","ct":"xyz"}']),
         })
       );
     });
 
-    it('loads encrypted payload from cloud KVdb endpoint', async () => {
+    it('loads encrypted payload from cloud Upstash endpoint', async () => {
       const mockFetch = vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
-        text: async () => '{"iv":"abc","ct":"xyz"}',
+        json: async () => ({ result: '{"iv":"abc","ct":"xyz"}' }),
       });
       globalThis.fetch = mockFetch;
 
@@ -108,10 +108,11 @@ describe('cryptoSync Zero-Knowledge Engine', () => {
       expect(res.data).toBe('{"iv":"abc","ct":"xyz"}');
     });
 
-    it('returns null data on 404 (new uncreated room)', async () => {
+    it('returns null data when room is not found in cloud', async () => {
       const mockFetch = vi.fn().mockResolvedValue({
-        ok: false,
-        status: 404,
+        ok: true,
+        status: 200,
+        json: async () => ({ result: null }),
       });
       globalThis.fetch = mockFetch;
 

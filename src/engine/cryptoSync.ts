@@ -171,10 +171,11 @@ export async function decryptPayload<T = unknown>(
   }
 }
 
-const CLOUD_STORAGE_BASE = 'https://api.cl1p.net';
+const UPSTASH_REST_URL = 'https://awaited-macaw-144559.upstash.io';
+const UPSTASH_REST_TOKEN = 'gQAAAAAAAjSvAQIgcDIxMzZhZDY4NjkxMzM0YWU1YjI5ZDcwYjZjNDhkYzYxYg';
 
 /**
- * Saves encrypted ciphertext to the cloud KV store.
+ * Saves encrypted ciphertext to the cloud store.
  */
 export async function saveToCloud(
   roomId: string,
@@ -186,17 +187,17 @@ export async function saveToCloud(
   } catch {}
 
   try {
-    const key = `tw_${roomId.slice(0, 24)}`;
-    const url = `${CLOUD_STORAGE_BASE}/${key}`;
-    const res = await fetch(url, {
+    const key = `tw_${roomId.slice(0, 32)}`;
+    const res = await fetch(UPSTASH_REST_URL, {
       method: 'POST',
       headers: {
-        'Content-Type': 'text/plain',
+        Authorization: `Bearer ${UPSTASH_REST_TOKEN}`,
+        'Content-Type': 'application/json',
       },
-      body: encryptedCiphertext,
+      body: JSON.stringify(['SET', key, encryptedCiphertext]),
     });
 
-    if (!res.ok && res.status !== 201 && res.status !== 200) {
+    if (!res.ok) {
       return { success: false, error: `Cloud save failed (HTTP ${res.status})` };
     }
 
@@ -208,26 +209,21 @@ export async function saveToCloud(
 }
 
 /**
- * Fetches encrypted ciphertext from the cloud KV store.
+ * Fetches encrypted ciphertext from the cloud store.
  */
 export async function loadFromCloud(
   roomId: string
 ): Promise<{ success: boolean; data?: string | null; error?: string }> {
   try {
-    const key = `tw_${roomId.slice(0, 24)}`;
-    const url = `${CLOUD_STORAGE_BASE}/${key}`;
-    const res = await fetch(url, {
-      method: 'GET',
+    const key = `tw_${roomId.slice(0, 32)}`;
+    const res = await fetch(UPSTASH_REST_URL, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${UPSTASH_REST_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(['GET', key]),
     });
-
-    if (res.status === 404) {
-      // Check local cache if cloud room is not yet saved
-      try {
-        const localCached = localStorage.getItem(`thronewake.room_cache.${roomId}`);
-        if (localCached) return { success: true, data: localCached };
-      } catch {}
-      return { success: true, data: null };
-    }
 
     if (!res.ok) {
       // Fallback to local cache on cloud network error
@@ -238,12 +234,21 @@ export async function loadFromCloud(
       return { success: false, error: `Cloud load failed (HTTP ${res.status})` };
     }
 
-    const text = await res.text();
+    const payload = (await res.json()) as { result?: string | null; error?: string };
+    const text = payload.result ?? null;
+
     if (text) {
       try {
         localStorage.setItem(`thronewake.room_cache.${roomId}`, text);
       } catch {}
+    } else {
+      // If cloud is null, check if we have an offline cached version
+      try {
+        const localCached = localStorage.getItem(`thronewake.room_cache.${roomId}`);
+        if (localCached) return { success: true, data: localCached };
+      } catch {}
     }
+
     return { success: true, data: text };
   } catch (err: unknown) {
     try {
@@ -254,4 +259,5 @@ export async function loadFromCloud(
     return { success: false, error: message };
   }
 }
+
 
