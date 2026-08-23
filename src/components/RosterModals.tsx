@@ -183,6 +183,115 @@ export function SafeTimeFields({
 
 // ── Alliance Armies Modal ──────────────────────────────────────────────────
 
+export interface AttackerCardProps {
+  attacker: Attacker;
+  index: number;
+  onPatch: (patch: Partial<Attacker>) => void;
+  onRemove: () => void;
+}
+
+export function AttackerCard({ attacker, index, onPatch, onRemove }: AttackerCardProps) {
+  return (
+    <article className="op-strip-card op-strip-card--attacker op-roster-card" key={attacker.id}>
+      <div className="op-strip-card__top">
+        <div className="op-strip-card__identity">
+          <span className="op-card__idx">#{index + 1}</span>
+          <input
+            className="text-input op-card__name"
+            aria-label="Attacker name"
+            placeholder="Player / Village Name"
+            value={attacker.name}
+            onChange={(e) => onPatch({ name: e.target.value })}
+          />
+          <div className="coord-inline">
+            <label className="coord-field">
+              <span className="coord-field__tag">X</span>
+              <CoordInput
+                value={attacker.x}
+                onChange={(x) => onPatch({ x })}
+                ariaLabel="Attacker X coordinate"
+              />
+            </label>
+            <label className="coord-field">
+              <span className="coord-field__tag">Y</span>
+              <CoordInput
+                value={attacker.y}
+                onChange={(y) => onPatch({ y })}
+                ariaLabel="Attacker Y coordinate"
+              />
+            </label>
+          </div>
+        </div>
+
+        <div className="op-strip-card__military">
+          <div className="op-strip-card__unit">
+            <UnitGridPicker
+              unitRef={attacker.unitRef}
+              onChange={(unitRef) => onPatch({ unitRef })}
+            />
+          </div>
+
+          <div className="op-strip-card__modifiers">
+            <label className="op-modifier-inline" title="Speed Artifact">
+              <span className="op-modifier-inline__tag">Artifact</span>
+              <select
+                className="select op-select-solid-sm"
+                value={attacker.artifactMultiplier}
+                onChange={(e) =>
+                  onPatch({
+                    artifactMultiplier: Number(e.target.value) as Attacker['artifactMultiplier'],
+                  })
+                }
+              >
+                <option value={1}>1.0×</option>
+                <option value={1.5}>1.5×</option>
+                <option value={2}>2.0×</option>
+              </select>
+            </label>
+
+            <label className="op-modifier-inline" title="Bannerfield Level (+20% speed per level beyond 20 fields)">
+              <span className="op-modifier-inline__tag">Bannerfield</span>
+              <input
+                className="text-input op-input-solid-sm"
+                type="number"
+                min={0}
+                max={20}
+                value={attacker.bannerfieldLevel}
+                onChange={(e) =>
+                  onPatch({
+                    bannerfieldLevel: Math.min(20, Math.max(0, Number(e.target.value) || 0)),
+                  })
+                }
+              />
+              <span className="bannerfield-bonus-tag-sm">+{attacker.bannerfieldLevel * 20}%</span>
+            </label>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          className="op-remove-danger"
+          aria-label={`Remove ${attacker.name} from roster`}
+          onClick={onRemove}
+          title="Delete army"
+        >
+          🗑️ Delete
+        </button>
+      </div>
+
+      <div className="op-strip-card__bottom">
+        <SafeTimeFields
+          owner={attacker}
+          label="Attacker Safe Hours"
+          onChange={(patch) => onPatch(patch)}
+        />
+      </div>
+    </article>
+  );
+}
+
+// ── Alliance Armies Modal ──────────────────────────────────────────────────
+
 interface AllianceArmiesModalProps {
   attackers: Attacker[];
   isOpen: boolean;
@@ -231,104 +340,13 @@ export function AllianceArmiesModal({
           ) : (
             <div className="op-strip-list">
               {attackers.map((attacker, index) => (
-                <article className="op-strip-card op-strip-card--attacker op-roster-card" key={attacker.id}>
-                  {/* Top Strip */}
-                  <div className="op-strip-card__top">
-                    <div className="op-strip-card__identity">
-                      <span className="op-card__idx">#{index + 1}</span>
-                      <input
-                        className="text-input op-card__name"
-                        aria-label="Attacker name"
-                        placeholder="Player / Village Name"
-                        value={attacker.name}
-                        onChange={(e) => onPatchAttacker(attacker.id, { name: e.target.value })}
-                      />
-                      <div className="coord-inline">
-                        <label className="coord-field">
-                          <span className="coord-field__tag">X</span>
-                          <CoordInput
-                            value={attacker.x}
-                            onChange={(x) => onPatchAttacker(attacker.id, { x })}
-                            ariaLabel="Attacker X coordinate"
-                          />
-                        </label>
-                        <label className="coord-field">
-                          <span className="coord-field__tag">Y</span>
-                          <CoordInput
-                            value={attacker.y}
-                            onChange={(y) => onPatchAttacker(attacker.id, { y })}
-                            ariaLabel="Attacker Y coordinate"
-                          />
-                        </label>
-                      </div>
-                    </div>
-
-                    <div className="op-strip-card__military">
-                      <div className="op-strip-card__unit">
-                        <UnitGridPicker
-                          unitRef={attacker.unitRef}
-                          onChange={(unitRef) => onPatchAttacker(attacker.id, { unitRef })}
-                        />
-                      </div>
-
-                      <div className="op-strip-card__modifiers">
-                        <label className="op-modifier-inline" title="Speed Artifact">
-                          <span className="op-modifier-inline__tag">Artifact</span>
-                          <select
-                            className="select op-select-solid-sm"
-                            value={attacker.artifactMultiplier}
-                            onChange={(e) =>
-                              onPatchAttacker(attacker.id, {
-                                artifactMultiplier: Number(e.target.value) as Attacker['artifactMultiplier'],
-                              })
-                            }
-                          >
-                            <option value={1}>1.0×</option>
-                            <option value={1.5}>1.5×</option>
-                            <option value={2}>2.0×</option>
-                          </select>
-                        </label>
-
-                        <label className="op-modifier-inline" title="Bannerfield Level (+20% speed per level beyond 20 fields)">
-                          <span className="op-modifier-inline__tag">Bannerfield</span>
-                          <input
-                            className="text-input op-input-solid-sm"
-                            type="number"
-                            min={0}
-                            max={20}
-                            value={attacker.bannerfieldLevel}
-                            onChange={(e) =>
-                              onPatchAttacker(attacker.id, {
-                                bannerfieldLevel: Math.min(20, Math.max(0, Number(e.target.value) || 0)),
-                              })
-                            }
-                          />
-                          <span className="bannerfield-bonus-tag-sm">+{attacker.bannerfieldLevel * 20}%</span>
-                        </label>
-                      </div>
-                    </div>
-
-                    {/* High-Contrast Red Remove Button */}
-                    <button
-                      type="button"
-                      className="op-remove-danger"
-                      aria-label={`Remove ${attacker.name} from roster`}
-                      onClick={() => onRemoveAttacker(attacker.id)}
-                      title="Delete army from master roster"
-                    >
-                      🗑️ Delete
-                    </button>
-                  </div>
-
-                  {/* Bottom Strip: Safe Hours */}
-                  <div className="op-strip-card__bottom">
-                    <SafeTimeFields
-                      owner={attacker}
-                      label="Attacker Safe Hours"
-                      onChange={(patch) => onPatchAttacker(attacker.id, patch)}
-                    />
-                  </div>
-                </article>
+                <AttackerCard
+                  key={attacker.id}
+                  attacker={attacker}
+                  index={index}
+                  onPatch={(patch) => onPatchAttacker(attacker.id, patch)}
+                  onRemove={() => onRemoveAttacker(attacker.id)}
+                />
               ))}
             </div>
           )}
@@ -339,6 +357,149 @@ export function AllianceArmiesModal({
             Done / Save Roster
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Defender Player Group Card ─────────────────────────────────────────────
+
+export interface PlayerGroupCardProps {
+  player: Player;
+  pIdx: number;
+  targets: Target[];
+  onPatchPlayer: (patch: Partial<Player>) => void;
+  onRemovePlayer: () => void;
+  onAddVillage: () => void;
+  onPatchTarget: (targetId: string, patch: Partial<Target>) => void;
+  onRemoveTarget: (targetId: string) => void;
+}
+
+export function PlayerGroupCard({
+  player,
+  pIdx,
+  targets,
+  onPatchPlayer,
+  onRemovePlayer,
+  onAddVillage,
+  onPatchTarget,
+  onRemoveTarget,
+}: PlayerGroupCardProps) {
+  const playerVillages = targets.filter((t) => t.playerId === player.id);
+
+  return (
+    <div className="op-target-group is-player op-roster-target-group" key={player.id}>
+      <div className="op-target-group__head">
+        <div className="op-target-group__player-title">
+          <span className="op-target-group__icon">👤</span>
+          <span className="op-card__idx">#{pIdx + 1}</span>
+          <input
+            className="text-input op-player__name"
+            aria-label="Defender account name"
+            value={player.name}
+            onChange={(e) => onPatchPlayer({ name: e.target.value })}
+            placeholder="Defender Account Name"
+          />
+          <span className="op-target-group__meta">
+            {playerVillages.length} {playerVillages.length === 1 ? 'village' : 'villages'}
+          </span>
+        </div>
+
+        <div className="op-target-group__player-safetime">
+          <SafeTimeFields
+            owner={player}
+            label={`${player.name || 'Defender'} Safe Hours`}
+            onChange={(patch) => onPatchPlayer(patch)}
+          />
+        </div>
+
+        <div className="op-target-group__actions">
+          <button
+            type="button"
+            className="pill pill--tiny pill--primary"
+            onClick={onAddVillage}
+          >
+            + Add Village
+          </button>
+          <button
+            type="button"
+            className="op-remove-danger op-remove-danger--sm"
+            aria-label={`Delete ${player.name} and all attached villages`}
+            onClick={onRemovePlayer}
+            title="Delete entire defender account"
+          >
+            🗑️ Delete Account
+          </button>
+        </div>
+      </div>
+
+      <div className="op-strip-list">
+        {playerVillages.map((target, vIdx) => (
+          <article
+            className={`op-strip-card op-strip-card--target ${target.fake ? 'is-fake' : 'is-real'}`}
+            key={target.id}
+          >
+            <div className="op-strip-card__identity">
+              <span className="op-card__idx">#{vIdx + 1}</span>
+              <input
+                className="text-input op-card__name"
+                aria-label="Village name"
+                placeholder="Village name"
+                value={target.name}
+                onChange={(e) => onPatchTarget(target.id, { name: e.target.value })}
+              />
+              <div className="coord-inline">
+                <label className="coord-field">
+                  <span className="coord-field__tag">X</span>
+                  <CoordInput
+                    value={target.x}
+                    onChange={(x) => onPatchTarget(target.id, { x })}
+                    ariaLabel="Village X coordinate"
+                  />
+                </label>
+                <label className="coord-field">
+                  <span className="coord-field__tag">Y</span>
+                  <CoordInput
+                    value={target.y}
+                    onChange={(y) => onPatchTarget(target.id, { y })}
+                    ariaLabel="Village Y coordinate"
+                  />
+                </label>
+              </div>
+            </div>
+
+            <div className="op-strip-card__target-meta">
+              <div className="op-fake-group" role="group" aria-label="Attack type">
+                <button
+                  type="button"
+                  className={`pill pill--tiny op-fake-pill ${target.fake ? '' : 'is-real'}`}
+                  aria-pressed={!target.fake}
+                  onClick={() => onPatchTarget(target.id, { fake: false })}
+                >
+                  Real
+                </button>
+                <button
+                  type="button"
+                  className={`pill pill--tiny op-fake-pill ${target.fake ? 'is-fake' : ''}`}
+                  aria-pressed={target.fake}
+                  onClick={() => onPatchTarget(target.id, { fake: true })}
+                >
+                  Fake
+                </button>
+              </div>
+
+              <button
+                type="button"
+                className="op-remove-danger op-remove-danger--sm"
+                aria-label={`Remove ${target.name}`}
+                onClick={() => onRemoveTarget(target.id)}
+                title="Delete village"
+              >
+                🗑️
+              </button>
+            </div>
+          </article>
+        ))}
       </div>
     </div>
   );
@@ -403,128 +564,19 @@ export function TargetDatabaseModal({
             <div className="op-modal__empty">No defender accounts. Click "+ Add Defender Account" above.</div>
           ) : (
             <div className="op-defenders-list">
-              {players.map((player, pIdx) => {
-                const playerVillages = targets.filter((t) => t.playerId === player.id);
-
-                return (
-                  <div className="op-target-group is-player op-roster-target-group" key={player.id}>
-                    {/* Defender Account Header */}
-                    <div className="op-target-group__head">
-                      <div className="op-target-group__player-title">
-                        <span className="op-target-group__icon">👤</span>
-                        <span className="op-card__idx">#{pIdx + 1}</span>
-                        <input
-                          className="text-input op-player__name"
-                          aria-label="Defender account name"
-                          value={player.name}
-                          onChange={(e) => onPatchPlayer(player.id, { name: e.target.value })}
-                          placeholder="Defender Account Name"
-                        />
-                        <span className="op-target-group__meta">
-                          {playerVillages.length} {playerVillages.length === 1 ? 'village' : 'villages'}
-                        </span>
-                      </div>
-
-                      <div className="op-target-group__player-safetime">
-                        <SafeTimeFields
-                          owner={player}
-                          label={`${player.name || 'Defender'} Safe Hours`}
-                          onChange={(patch) => onPatchPlayer(player.id, patch)}
-                        />
-                      </div>
-
-                      <div className="op-target-group__actions">
-                        <button
-                          type="button"
-                          className="pill pill--tiny pill--primary"
-                          onClick={() => onAddVillage(player.id)}
-                        >
-                          + Add Village
-                        </button>
-                        <button
-                          type="button"
-                          className="op-remove-danger op-remove-danger--sm"
-                          aria-label={`Delete ${player.name} and all attached villages`}
-                          onClick={() => onRemovePlayer(player.id)}
-                          title="Delete entire defender account"
-                        >
-                          🗑️ Delete Account
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Defender Villages */}
-                    <div className="op-strip-list">
-                      {playerVillages.map((target, vIdx) => (
-                        <article
-                          className={`op-strip-card op-strip-card--target ${target.fake ? 'is-fake' : 'is-real'}`}
-                          key={target.id}
-                        >
-                          <div className="op-strip-card__identity">
-                            <span className="op-card__idx">#{vIdx + 1}</span>
-                            <input
-                              className="text-input op-card__name"
-                              aria-label="Village name"
-                              placeholder="Village name"
-                              value={target.name}
-                              onChange={(e) => onPatchTarget(target.id, { name: e.target.value })}
-                            />
-                            <div className="coord-inline">
-                              <label className="coord-field">
-                                <span className="coord-field__tag">X</span>
-                                <CoordInput
-                                  value={target.x}
-                                  onChange={(x) => onPatchTarget(target.id, { x })}
-                                  ariaLabel="Village X coordinate"
-                                />
-                              </label>
-                              <label className="coord-field">
-                                <span className="coord-field__tag">Y</span>
-                                <CoordInput
-                                  value={target.y}
-                                  onChange={(y) => onPatchTarget(target.id, { y })}
-                                  ariaLabel="Village Y coordinate"
-                                />
-                              </label>
-                            </div>
-                          </div>
-
-                          <div className="op-strip-card__target-meta">
-                            <div className="op-fake-group" role="group" aria-label="Attack type">
-                              <button
-                                type="button"
-                                className={`pill pill--tiny op-fake-pill ${target.fake ? '' : 'is-real'}`}
-                                aria-pressed={!target.fake}
-                                onClick={() => onPatchTarget(target.id, { fake: false })}
-                              >
-                                Real
-                              </button>
-                              <button
-                                type="button"
-                                className={`pill pill--tiny op-fake-pill ${target.fake ? 'is-fake' : ''}`}
-                                aria-pressed={target.fake}
-                                onClick={() => onPatchTarget(target.id, { fake: true })}
-                              >
-                                Fake
-                              </button>
-                            </div>
-
-                            <button
-                              type="button"
-                              className="op-remove-danger op-remove-danger--sm"
-                              aria-label={`Remove ${target.name}`}
-                              onClick={() => onRemoveTarget(target.id)}
-                              title="Delete village"
-                            >
-                              🗑️
-                            </button>
-                          </div>
-                        </article>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
+              {players.map((player, pIdx) => (
+                <PlayerGroupCard
+                  key={player.id}
+                  player={player}
+                  pIdx={pIdx}
+                  targets={targets}
+                  onPatchPlayer={(patch) => onPatchPlayer(player.id, patch)}
+                  onRemovePlayer={() => onRemovePlayer(player.id)}
+                  onAddVillage={() => onAddVillage(player.id)}
+                  onPatchTarget={onPatchTarget}
+                  onRemoveTarget={onRemoveTarget}
+                />
+              ))}
             </div>
           )}
         </div>
@@ -538,3 +590,4 @@ export function TargetDatabaseModal({
     </div>
   );
 }
+

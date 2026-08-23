@@ -38,6 +38,8 @@ import { OperationTabs } from '../components/OperationTabs';
 import {
   AllianceArmiesModal,
   TargetDatabaseModal,
+  AttackerCard,
+  PlayerGroupCard,
   Time24Input,
 } from '../components/RosterModals';
 import { OperationParticipantPicker } from '../components/OperationParticipantPicker';
@@ -1542,75 +1544,77 @@ export function OperationPlanner({ isV2Unlocked }: { isV2Unlocked?: boolean } = 
 
   return (
     <div className="operations">
-      {/* Top-Secret v2 Mode: Team Room Zero-Knowledge Cloud Sync */}
+      {/* Top-Secret v2 Mode: Team Room Zero-Knowledge Cloud Sync, Master Roster Bar, and Multi-Ops */}
       {isV2Active && (
-        <TeamRoomBar
-          onRoomDataLoaded={handleRoomDataLoaded}
-          onRoomDisconnected={handleRoomDisconnected}
-          onSaveRequested={handleSaveRequested}
-        />
-      )}
+        <>
+          <TeamRoomBar
+            onRoomDataLoaded={handleRoomDataLoaded}
+            onRoomDisconnected={handleRoomDisconnected}
+            onSaveRequested={handleSaveRequested}
+          />
 
-      {/* Master Roster Summary & Manager Strip (Top Level) */}
-      <section className="panel op-roster-summary-bar">
-        <div className="op-roster-summary-bar__content">
-          <div className="op-roster-summary-card">
-            <div className="op-roster-summary-card__info">
-              <span className="op-roster-summary-card__icon">🛡️</span>
-              <div>
-                <strong className="op-roster-summary-card__title">
-                  Alliance Armies ({roster.attackers.length})
-                </strong>
-                <span className="op-roster-summary-card__sub">
-                  {marchingAttackers.length} marching in active op
-                </span>
+          {/* Master Roster Summary & Manager Strip (Top Level) */}
+          <section className="panel op-roster-summary-bar">
+            <div className="op-roster-summary-bar__content">
+              <div className="op-roster-summary-card">
+                <div className="op-roster-summary-card__info">
+                  <span className="op-roster-summary-card__icon">🛡️</span>
+                  <div>
+                    <strong className="op-roster-summary-card__title">
+                      Alliance Armies ({roster.attackers.length})
+                    </strong>
+                    <span className="op-roster-summary-card__sub">
+                      {marchingAttackers.length} marching in active op
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="pill pill--primary"
+                  onClick={() => setIsArmiesModalOpen(true)}
+                  title="Open full army editor modal to manage coords, troops, artifacts, and safe times"
+                >
+                  👥 Manage Armies
+                </button>
+              </div>
+
+              <div className="op-roster-summary-card">
+                <div className="op-roster-summary-card__info">
+                  <span className="op-roster-summary-card__icon">🎯</span>
+                  <div>
+                    <strong className="op-roster-summary-card__title">
+                      Target Database ({roster.targets.length} Villages · {roster.players.length} Accounts)
+                    </strong>
+                    <span className="op-roster-summary-card__sub">
+                      {activeTargets.length} targeted in active op
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="pill pill--primary"
+                  onClick={() => setIsTargetsModalOpen(true)}
+                  title="Open target database modal to manage defender accounts and villages"
+                >
+                  🎯 Manage Targets
+                </button>
               </div>
             </div>
-            <button
-              type="button"
-              className="pill pill--primary"
-              onClick={() => setIsArmiesModalOpen(true)}
-              title="Open full army editor modal to manage coords, troops, artifacts, and safe times"
-            >
-              👥 Manage Armies
-            </button>
-          </div>
+          </section>
 
-          <div className="op-roster-summary-card">
-            <div className="op-roster-summary-card__info">
-              <span className="op-roster-summary-card__icon">🎯</span>
-              <div>
-                <strong className="op-roster-summary-card__title">
-                  Target Database ({roster.targets.length} Villages · {roster.players.length} Accounts)
-                </strong>
-                <span className="op-roster-summary-card__sub">
-                  {activeTargets.length} targeted in active op
-                </span>
-              </div>
-            </div>
-            <button
-              type="button"
-              className="pill pill--primary"
-              onClick={() => setIsTargetsModalOpen(true)}
-              title="Open target database modal to manage defender accounts and villages"
-            >
-              🎯 Manage Targets
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* Multi-Operation Tabs (Available in v2 mode or when multiple ops exist) */}
-      {isV2Active && operations.length > 0 && (
-        <OperationTabs
-          operations={operations}
-          activeOpId={activeOpId}
-          onSelectOp={handleSelectOp}
-          onCreateOp={handleCreateOp}
-          onDuplicateOp={handleDuplicateOp}
-          onRenameOp={handleRenameOp}
-          onDeleteOp={handleDeleteOp}
-        />
+          {/* Multi-Operation Tabs */}
+          {operations.length > 0 && (
+            <OperationTabs
+              operations={operations}
+              activeOpId={activeOpId}
+              onSelectOp={handleSelectOp}
+              onCreateOp={handleCreateOp}
+              onDuplicateOp={handleDuplicateOp}
+              onRenameOp={handleRenameOp}
+              onDeleteOp={handleDeleteOp}
+            />
+          )}
+        </>
       )}
 
       {/* Active Operation Wave Command Center */}
@@ -1699,22 +1703,86 @@ export function OperationPlanner({ isV2Unlocked }: { isV2Unlocked?: boolean } = 
         </p>
       </section>
 
-      {/* Operation March Participant Selector (Who is marching in this wave?) */}
-      <OperationParticipantPicker
-        attackers={roster.attackers}
-        players={roster.players}
-        targets={roster.targets}
-        assignedAttackerIds={activeOp.assignedAttackerIds || []}
-        assignedTargetIds={activeOp.assignedTargetIds || []}
-        onToggleAttacker={handleToggleAttacker}
-        onToggleTarget={handleToggleTarget}
-        onSelectAllAttackers={handleSelectAllAttackers}
-        onDeselectAllAttackers={handleDeselectAllAttackers}
-        onSelectAllTargets={handleSelectAllTargets}
-        onDeselectAllTargets={handleDeselectAllTargets}
-        onOpenAttackerModal={() => setIsArmiesModalOpen(true)}
-        onOpenTargetModal={() => setIsTargetsModalOpen(true)}
-      />
+      {/* Mode-Specific Participant Configuration */}
+      {isV2Active ? (
+        /* Top-Secret v2: Operation March Participant Selector Checklist */
+        <OperationParticipantPicker
+          attackers={roster.attackers}
+          players={roster.players}
+          targets={roster.targets}
+          assignedAttackerIds={activeOp.assignedAttackerIds || []}
+          assignedTargetIds={activeOp.assignedTargetIds || []}
+          onToggleAttacker={handleToggleAttacker}
+          onToggleTarget={handleToggleTarget}
+          onSelectAllAttackers={handleSelectAllAttackers}
+          onDeselectAllAttackers={handleDeselectAllAttackers}
+          onSelectAllTargets={handleSelectAllTargets}
+          onDeselectAllTargets={handleDeselectAllTargets}
+          onOpenAttackerModal={() => setIsArmiesModalOpen(true)}
+          onOpenTargetModal={() => setIsTargetsModalOpen(true)}
+        />
+      ) : (
+        /* Standard v1: Direct Inline Attacking Armies and Target Defenders Panels */
+        <>
+          <section className="panel op-section">
+            <div className="op-section-head">
+              <div className="op-section-head__title-group">
+                <span className="op-section-tag op-section-tag--attacker">Attackers</span>
+                <h2 className="panel__title">Attacking Armies ({roster.attackers.length})</h2>
+                <p className="op-section-copy">Configure slowest troop, speed modifiers, coordinates, and safe hours.</p>
+              </div>
+              <button type="button" className="pill pill--tiny pill--primary" onClick={handleAddAttacker}>
+                + Add Attacker
+              </button>
+            </div>
+
+            <div className="op-strip-list">
+              {roster.attackers.map((attacker, index) => (
+                <AttackerCard
+                  key={attacker.id}
+                  attacker={attacker}
+                  index={index}
+                  onPatch={(patch) => handlePatchAttacker(attacker.id, patch)}
+                  onRemove={() => handleRemoveAttacker(attacker.id)}
+                />
+              ))}
+            </div>
+          </section>
+
+          <section className="panel op-section">
+            <div className="op-section-head">
+              <div className="op-section-head__title-group">
+                <span className="op-section-tag op-section-tag--target">Defenders</span>
+                <h2 className="panel__title">
+                  Target Defenders ({roster.players.length} {roster.players.length === 1 ? 'account' : 'accounts'} · {roster.targets.length} {roster.targets.length === 1 ? 'village' : 'villages'})
+                </h2>
+                <p className="op-section-copy">
+                  Each defender account defines its safe hours once. All villages under an account inherit its safe hours.
+                </p>
+              </div>
+              <button type="button" className="pill pill--tiny pill--primary" onClick={handleAddPlayer}>
+                + Add Defender
+              </button>
+            </div>
+
+            <div className="op-defenders-list">
+              {roster.players.map((player, pIdx) => (
+                <PlayerGroupCard
+                  key={player.id}
+                  player={player}
+                  pIdx={pIdx}
+                  targets={roster.targets}
+                  onPatchPlayer={(patch) => handlePatchPlayer(player.id, patch)}
+                  onRemovePlayer={() => handleRemovePlayer(player.id)}
+                  onAddVillage={() => handleAddVillage(player.id)}
+                  onPatchTarget={handlePatchTarget}
+                  onRemoveTarget={handleRemoveTarget}
+                />
+              ))}
+            </div>
+          </section>
+        </>
+      )}
 
       {/* Results Section */}
       <section className="panel op-results">
