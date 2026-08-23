@@ -783,15 +783,17 @@ describe('the operation planner', () => {
 
 
     const routesTab = [...container.querySelectorAll('.op-workspace-nav button')].find(
-      (button) => button.textContent?.startsWith('Routes'),
+      (button) => button.textContent?.includes('Routes'),
     ) as HTMLButtonElement;
+    expect(routesTab).toBeTruthy();
     click(routesTab);
     expect(container.querySelectorAll('.op-routes tbody .op-route-row')).toHaveLength(0);
     expect(container.querySelector('.op-routes-empty')).toBeTruthy();
 
     const setupTab = [...container.querySelectorAll('.op-workspace-nav button')].find(
-      (button) => button.textContent === 'Setup',
+      (button) => button.textContent?.includes('Setup'),
     ) as HTMLButtonElement;
+    expect(setupTab).toBeTruthy();
     click(setupTab);
     const reopenParticipants = [...container.querySelectorAll('.op-participant-picker button')].find(
       (button) => button.textContent?.includes('Edit Participants'),
@@ -799,9 +801,10 @@ describe('the operation planner', () => {
     click(reopenParticipants);
     const benchedAttacker = container.querySelector('.op-participant-chip--attacker input[type="checkbox"]') as HTMLInputElement;
     act(() => benchedAttacker.click());
-    click([...container.querySelectorAll('.op-workspace-nav button')].find(
-      (button) => button.textContent?.startsWith('Routes'),
-    ) as HTMLButtonElement);
+    const routesTabReopened = [...container.querySelectorAll('.op-workspace-nav button')].find(
+      (button) => button.textContent?.includes('Routes'),
+    ) as HTMLButtonElement;
+    click(routesTabReopened);
     expect(container.querySelectorAll('.op-routes tbody .op-route-row')).toHaveLength(1);
     expect(container.querySelector(".op-hit-tag")?.textContent).toContain("Fake");
   });

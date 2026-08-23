@@ -837,33 +837,24 @@ function ScheduleTimeline({
             <span className="op-schedule__journey-label">Selected Route:</span>
             <strong className="op-route-attacker">{route.attacker.name}</strong>
             <span className="op-route-arrow" aria-hidden="true">➔</span>
-            <strong className="op-route-target">{route.target.name}</strong>
+            <strong className="op-route-target">
+              {route.targetSafe.sourceName && route.targetSafe.sourceName !== route.target.name
+                ? `${route.targetSafe.sourceName}: ${route.target.name}`
+                : route.target.name}
+            </strong>
             <a
               href={`https://www.thronewake.com/map/tile/${route.target.x}/${route.target.y}?center=true`}
               target="_blank"
               rel="noopener noreferrer"
-              className="op-route-coords op-map-link"
+              className="op-map-pin-link"
               title={`Open in-game map centered on (${route.target.x}|${route.target.y})`}
               onClick={(e) => e.stopPropagation()}
             >
               📍 ({route.target.x}|{route.target.y})
             </a>
-            {route.targetSafe.sourceName && (
-              <span className="op-schedule__player-tag">{route.targetSafe.sourceName}</span>
-            )}
             <span className={`op-hit-tag ${route.target.fake ? 'is-fake' : 'is-real'}`}>
               {route.target.fake ? 'Fake' : 'Real'}
             </span>
-            <a
-              href={`https://www.thronewake.com/map/tile/${route.target.x}/${route.target.y}?center=true`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="op-route-map-btn"
-              title={`Open in-game map centered on target (${route.target.x}|${route.target.y})`}
-              onClick={(e) => e.stopPropagation()}
-            >
-              🗺️ Open Map
-            </a>
           </div>
           <div className="op-schedule__times-row">
             <span>
@@ -1070,7 +1061,7 @@ export function OperationPlanner({
 
   const [showLocal, setShowLocal] = useState<boolean>(readShowLocal);
   const [selectedKey, setSelectedKey] = useState('');
-  const [workspaceView, setWorkspaceView] = useState<'setup' | 'routes' | 'schedule'>('setup');
+  const [workspaceView, setWorkspaceView] = useState<'setup' | 'routes'>('setup');
   const [filterAttacker, setFilterAttacker] = useState<string>('all');
   const [filterTarget, setFilterTarget] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<'all' | 'possible' | 'blocked'>('all');
@@ -1662,7 +1653,6 @@ export function OperationPlanner({
   const selectedRoute = routes.find((route) => route.key === selectedKey) ?? routes[0];
   const handleInspectRoute = (routeKey: string) => {
     setSelectedKey(routeKey);
-    if (isV2Active) setWorkspaceView('schedule');
   };
 
   const visibleRoutes = useMemo(() => {
@@ -1818,17 +1808,20 @@ export function OperationPlanner({
                 <span>{marchingAttackers.length} armies · {activeTargets.length} targets · {routes.length} routes</span>
               </div>
               <nav className="op-workspace-nav" aria-label="Planner workspace">
-                {(['setup', 'routes', 'schedule'] as const).map((view) => (
-                  <button
-                    key={view}
-                    type="button"
-                    className={workspaceView === view ? 'is-active' : ''}
-                    onClick={() => setWorkspaceView(view)}
-                    disabled={view === 'schedule' && !selectedRoute}
-                  >
-                    {view === 'setup' ? 'Setup' : view === 'routes' ? `Routes (${routes.length})` : 'Schedule'}
-                  </button>
-                ))}
+                <button
+                  type="button"
+                  className={workspaceView === 'setup' ? 'is-active' : ''}
+                  onClick={() => setWorkspaceView('setup')}
+                >
+                  ⚙️ Setup
+                </button>
+                <button
+                  type="button"
+                  className={workspaceView === 'routes' ? 'is-active' : ''}
+                  onClick={() => setWorkspaceView('routes')}
+                >
+                  🗺️ Routes & Schedule ({routes.length})
+                </button>
               </nav>
               <button
                 type="button"
@@ -2183,7 +2176,7 @@ export function OperationPlanner({
                 <thead>
                   <tr>
                     <th>Route</th>
-                    <th>Distance</th>
+                    <th>Distance / Map Pin</th>
                     <th>Travel Duration</th>
                     <th>Launch In</th>
                     <th>Send Time (UTC)</th>
@@ -2203,6 +2196,11 @@ export function OperationPlanner({
                   ) : (
                     visibleRoutes.map((route) => {
                       const countdown = getCountdownInfo(route.send, now);
+                      const defenderDisplayName =
+                        route.targetSafe.sourceName && route.targetSafe.sourceName !== route.target.name
+                          ? `${route.targetSafe.sourceName}: ${route.target.name}`
+                          : route.target.name;
+
                       return (
                         <tr
                           key={route.key}
@@ -2222,39 +2220,27 @@ export function OperationPlanner({
                               <div className="op-route-button__names">
                                 <strong className="op-route-attacker">{route.attacker.name}</strong>
                                 <span className="op-route-arrow" aria-hidden="true">➔</span>
-                                <strong className="op-route-target">{route.target.name}</strong>
-                                <a
-                                  href={`https://www.thronewake.com/map/tile/${route.target.x}/${route.target.y}?center=true`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="op-route-coords op-map-link"
-                                  title={`Open in-game map centered on (${route.target.x}|${route.target.y})`}
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  📍 ({route.target.x}|{route.target.y})
-                                </a>
+                                <strong className="op-route-target">{defenderDisplayName}</strong>
                                 <span className={`op-hit-tag ${route.target.fake ? 'is-fake' : 'is-real'}`}>
                                   {route.target.fake ? 'Fake' : 'Real'}
                                 </span>
-                                <a
-                                  href={`https://www.thronewake.com/map/tile/${route.target.x}/${route.target.y}?center=true`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="op-route-map-btn"
-                                  title={`Open Thronewake map centered on target (${route.target.x}|${route.target.y})`}
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  🗺️ Map
-                                </a>
                               </div>
-                              <span className="op-route-unit-hint">
-                                {lookup(route.attacker.unitRef).unit.name} ({lookup(route.attacker.unitRef).unit.speed} f/h)
-                                {route.targetSafe.sourceName ? ` · ${route.targetSafe.sourceName}` : ''}
-                              </span>
                             </div>
                           </td>
-                          <td data-label="Distance">
-                            <span className="tabular-stat">{route.distance.toFixed(1)}</span> fields
+                          <td data-label="Distance / Map Pin">
+                            <div className="op-distance-cell">
+                              <span className="tabular-stat">{route.distance.toFixed(1)} fields</span>
+                              <a
+                                href={`https://www.thronewake.com/map/tile/${route.target.x}/${route.target.y}?center=true`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="op-map-pin-link"
+                                title={`Open in-game map centered on (${route.target.x}|${route.target.y})`}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                📍 ({route.target.x}|{route.target.y})
+                              </a>
+                            </div>
                           </td>
                           <td data-label="Travel Duration">
                             <span className="travel-stat">{formatDuration(route.travel)}</span>
@@ -2282,16 +2268,16 @@ export function OperationPlanner({
             </div>
           </section>
 
-            </>
-          )}
-          {/* Schedule Timeline */}
-          {(!isV2Active || workspaceView === 'schedule') && selectedRoute && (
+          {/* Schedule Timeline: Rendered directly below the Route Table on the same view */}
+          {(!isV2Active || workspaceView === 'routes') && selectedRoute && (
             <ScheduleTimeline
               routes={routes}
               route={selectedRoute}
               onSelectRoute={setSelectedKey}
               showLocal={showLocal}
             />
+          )}
+            </>
           )}
         </>
       )}

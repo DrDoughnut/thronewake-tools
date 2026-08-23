@@ -2228,11 +2228,18 @@ select:focus, .select:focus, .text-input:focus {
   transform: translateY(-1px);
 }
 
+.op-distance-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .tabular-stat { font-weight: 700; color: #fff; }
-.travel-stat { font-weight: 700; color: #f0f3f8; background: hsl(220, 16%, 20%); padding: 3px 6px; border-radius: 4px; }
-.op-timestamp { font-weight: 600; }
-.op-timestamp--send { color: var(--accent); font-weight: 700; }
-.op-timestamp--land { color: #72a6dd; }
+.travel-stat { font-weight: 600; color: #f0f3f8; background: hsl(220, 16%, 20%); padding: 3px 6px; border-radius: 4px; }
+.op-timestamp { font-weight: 600; color: #f0f3f8; font-variant-numeric: tabular-nums; }
+.op-timestamp--send { color: #f0f3f8; font-weight: 600; }
+.op-timestamp--land { color: #f0f3f8; font-weight: 600; }
 
 .op-stamp { display: inline-flex; flex-direction: column; gap: 1px; }
 .op-stamp__local {
