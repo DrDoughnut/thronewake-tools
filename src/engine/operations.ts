@@ -540,6 +540,239 @@ export function migrateToMasterRoster(raw: any, fallbackState?: CompactPlannerSt
   };
 }
 
+export type ImportMode = 'new_wave' | 'merge_only' | 'replace';
+
+export interface ImportResult {
+  roster: MasterRoster;
+  operations: OperationPlan[];
+  activeOpId: string | null;
+  summary: {
+    attackersAdded: number;
+    attackersReused: number;
+    playersAdded: number;
+    playersReused: number;
+    targetsAdded: number;
+    targetsReused: number;
+    createdWaveName?: string;
+  };
+}
+
+/**
+ * Imports a local or shared plan into the Master Roster and operations list.
+ * Supports creating a new wave, merging into master roster, or full overwrite.
+ */
+export function importPlanIntoMasterRoster(
+  currentRoster: MasterRoster,
+  currentOperations: OperationPlan[],
+  importedPlan: PlannerState,
+  mode: ImportMode,
+  customWaveName?: string,
+): ImportResult {
+  if (mode === 'replace') {
+    const newWaveId = 'op_' + Date.now();
+    const newWaveName = customWaveName?.trim() || 'Operation 1 (Imported)';
+    const newOperations: OperationPlan[] = [
+      {
+        id: newWaveId,
+        name: newWaveName,
+        landing: importedPlan.landing,
+        serverSpeed: importedPlan.serverSpeed,
+        assignedAttackerIds: importedPlan.attackers.map((a) => a.id),
+        assignedTargetIds: importedPlan.targets.map((t) => t.id),
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      },
+    ];
+
+    return {
+      roster: {
+        attackers: [...importedPlan.attackers],
+        players: [...importedPlan.players],
+        targets: [...importedPlan.targets],
+      },
+      operations: newOperations,
+      activeOpId: newWaveId,
+      summary: {
+        attackersAdded: importedPlan.attackers.length,
+        attackersReused: 0,
+        playersAdded: importedPlan.players.length,
+        playersReused: 0,
+        targetsAdded: importedPlan.targets.length,
+        targetsReused: 0,
+        createdWaveName: newWaveName,
+      },
+    };
+  }
+
+  // Merge or New Wave
+  const attackers: CompactAttacker[] = [...currentRoster.attackers];
+  const players: CompactPlayer[] = [...currentRoster.players];
+  const targets: CompactTarget[] = [...currentRoster.targets];
+
+  let attackersAdded = 0;
+  let attackersReused = 0;
+  let playersAdded = 0;
+  let playersReused = 0;
+  let targetsAdded = 0;
+  let targetsReused = 0;
+
+  const attackerIdMap = new Map<string, string>();
+  const playerIdMap = new Map<string, string>();
+  const targetIdMap = new Map<string, string>();
+
+  // 1. Process Attacking Armies
+  importedPlan.attackers.forEach((impAtk, idx) => {
+    const existing = attackers.find(
+      (a) =>
+        a.x === impAtk.x &&
+        a.y === impAtk.y &&
+        (a.name || '').trim().toLowerCase() === (impAtk.name || '').trim().toLowerCase(),
+    );
+
+    if (existing) {
+      attackerIdMap.set(impAtk.id, existing.id);
+      attackersReused++;
+    } else {
+      let uniqueId = impAtk.id || `a_${Date.now()}_${idx + 1}`;
+      if (attackers.some((a) => a.id === uniqueId)) {
+        uniqueId = `a_${Date.now()}_${idx + 1}`;
+      }
+      const newAtk: CompactAttacker = {
+        ...impAtk,
+        id: uniqueId,
+      };
+      attackers.push(newAtk);
+      attackerIdMap.set(impAtk.id, uniqueId);
+      attackersAdded++;
+    }
+  });
+
+  // 2. Process Defender Player Accounts
+  importedPlan.players.forEach((impPlayer, idx) => {
+    const existing = players.find(
+      (p) => (p.name || '').trim().toLowerCase() === (impPlayer.name || '').trim().toLowerCase(),
+    );
+
+    if (existing) {
+      playerIdMap.set(impPlayer.id, existing.id);
+      playersReused++;
+    } else {
+      let uniqueId = impPlayer.id || `p_${Date.now()}_${idx + 1}`;
+      if (players.some((p) => p.id === uniqueId)) {
+        uniqueId = `p_${Date.now()}_${idx + 1}`;
+      }
+      const newPlayer: CompactPlayer = {
+        ...impPlayer,
+        id: uniqueId,
+      };
+      players.push(newPlayer);
+      playerIdMap.set(impPlayer.id, uniqueId);
+      playersAdded++;
+    }
+  });
+
+  // Fallback default player if none exist
+  if (players.length === 0) {
+    players.push({
+      id: 'p1',
+      name: 'Defender 1',
+      safeEnabled: true,
+      safeStart: '22:00',
+      safeEnd: '04:00',
+    });
+  }
+
+  // 3. Process Target Villages
+  importedPlan.targets.forEach((impTgt, idx) => {
+    const mappedPlayerId = impTgt.playerId
+      ? (playerIdMap.get(impTgt.playerId) || players[0]?.id || 'p1')
+      : (players[0]?.id || 'p1');
+
+    const existing = targets.find(
+      (t) =>
+        t.x === impTgt.x &&
+        t.y === impTgt.y &&
+        (t.name || '').trim().toLowerCase() === (impTgt.name || '').trim().toLowerCase(),
+    );
+
+    if (existing) {
+      targetIdMap.set(impTgt.id, existing.id);
+      targetsReused++;
+    } else {
+      let uniqueId = impTgt.id || `t_${Date.now()}_${idx + 1}`;
+      if (targets.some((t) => t.id === uniqueId)) {
+        uniqueId = `t_${Date.now()}_${idx + 1}`;
+      }
+      const newTgt: CompactTarget = {
+        ...impTgt,
+        id: uniqueId,
+        playerId: mappedPlayerId,
+      };
+      targets.push(newTgt);
+      targetIdMap.set(impTgt.id, uniqueId);
+      targetsAdded++;
+    }
+  });
+
+  const updatedRoster: MasterRoster = {
+    attackers,
+    players,
+    targets,
+  };
+
+  if (mode === 'new_wave') {
+    const newWaveId = 'op_' + Date.now();
+    const newWaveName = customWaveName?.trim() || `Operation ${currentOperations.length + 1} (Imported)`;
+    const assignedAttackerIds = importedPlan.attackers
+      .map((a) => attackerIdMap.get(a.id))
+      .filter((id): id is string => Boolean(id));
+    const assignedTargetIds = importedPlan.targets
+      .map((t) => targetIdMap.get(t.id))
+      .filter((id): id is string => Boolean(id));
+
+    const newWave: OperationPlan = {
+      id: newWaveId,
+      name: newWaveName,
+      landing: importedPlan.landing,
+      serverSpeed: importedPlan.serverSpeed,
+      assignedAttackerIds,
+      assignedTargetIds,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+
+    return {
+      roster: updatedRoster,
+      operations: [...currentOperations, newWave],
+      activeOpId: newWaveId,
+      summary: {
+        attackersAdded,
+        attackersReused,
+        playersAdded,
+        playersReused,
+        targetsAdded,
+        targetsReused,
+        createdWaveName: newWaveName,
+      },
+    };
+  }
+
+  // mode === 'merge_only'
+  return {
+    roster: updatedRoster,
+    operations: currentOperations,
+    activeOpId: null,
+    summary: {
+      attackersAdded,
+      attackersReused,
+      playersAdded,
+      playersReused,
+      targetsAdded,
+      targetsReused,
+    },
+  };
+}
+
 export interface ResolvedSafeTime extends CompactSafeTimeOwner {
   /** Player the window was inherited from, or undefined if it is the village's own. */
   sourceName?: string;

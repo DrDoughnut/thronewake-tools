@@ -105,9 +105,27 @@ export function TeamRoomBar({
             return;
           }
         } else {
-          // New Room initialized with current local plan
-          const currentPlan = await onSaveRequestedRef.current();
-          loadedData = currentPlan;
+          // New Room initialized clean without stale local state
+          const cleanPlan: TeamRoomData = {
+            version: 2,
+            roomName: sess.roomName,
+            activeOpId: null,
+            roster: { attackers: [], players: [], targets: [] },
+            operations: [
+              {
+                id: 'op1',
+                name: 'Operation 1',
+                landing: '2026-08-16T19:00',
+                serverSpeed: 3,
+                assignedAttackerIds: [],
+                assignedTargetIds: [],
+                createdAt: Date.now(),
+                updatedAt: Date.now(),
+              },
+            ],
+            updatedAt: Date.now(),
+          };
+          loadedData = cleanPlan;
           // Save initial encrypted payload to cloud
           const encrypted = await encryptPayload(loadedData, sess.cryptoKey);
           await saveToCloud(sess.roomId, encrypted);
@@ -237,6 +255,8 @@ export function TeamRoomBar({
       ).padStart(2, '0')}:${String(lastSyncedAt.getUTCSeconds()).padStart(2, '0')} UTC`
     : null;
 
+  const showTransientStatus = Boolean(session && statusMsg && status !== 'connected');
+
   return (
     <>
       <section className="op-team-room-bar panel" aria-label="Team Room Cloud Sync">
@@ -327,7 +347,11 @@ export function TeamRoomBar({
           </div>
 
           <div className="op-team-room-bar__right">
-            {session && (
+            {showTransientStatus ? (
+              <span className={`op-team-room-status op-team-room-status--${status}`} role="status">
+                {statusMsg}
+              </span>
+            ) : session && (
               hasUnsavedChanges ? (
                 <span className="op-team-room-status op-team-room-status--dirty">
                   ● Unsaved Local Changes
@@ -337,12 +361,6 @@ export function TeamRoomBar({
                   ✓ Up to Date
                 </span>
               )
-            )}
-
-            {statusMsg && status !== 'connected' && (
-              <span className={`op-team-room-status op-team-room-status--${status}`} role="status">
-                {statusMsg}
-              </span>
             )}
 
             {syncTimeStr && session && !hasUnsavedChanges && (
@@ -427,4 +445,3 @@ export function TeamRoomBar({
     </>
   );
 }
-

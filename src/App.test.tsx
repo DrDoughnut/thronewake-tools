@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
 import { APP_VERSION } from './data/changelog';
 import { decodeState } from './pages/OperationPlanner';
+import { encodeCompactPlan } from './engine/operations';
 import { presets } from './state';
 
 /**
@@ -38,9 +39,10 @@ const click = (el: Element) =>
     el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
   });
 
-const setInputValue = (input: HTMLInputElement, value: string) =>
+const setInputValue = (input: HTMLInputElement | HTMLTextAreaElement, value: string) =>
   act(() => {
-    const descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+    const proto = input instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+    const descriptor = Object.getOwnPropertyDescriptor(proto, 'value');
     descriptor?.set?.call(input, value);
     input.dispatchEvent(new Event('input', { bubbles: true }));
     input.dispatchEvent(new Event('change', { bubbles: true }));
@@ -861,6 +863,123 @@ describe('the operation planner', () => {
       expect(safetyModal).toBeTruthy();
       expect(safetyModal?.textContent).toContain('Unsaved Local Changes');
       expect(safetyModal?.textContent).toContain('Pulling from the cloud will overwrite your local changes');
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('supports importing and seeding plans from shared links via the Import Plan modal', async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ result: null }),
+    });
+
+    try {
+      const opTab = [...container.querySelectorAll('.pill--tool')].find(
+        (b) => b.getAttribute('aria-label') === 'Operation Planner',
+      )!;
+      for (let i = 0; i < 10; i++) {
+        click(opTab);
+      }
+
+      const modalInput = container.querySelector('.secret-modal-input') as HTMLInputElement;
+      if (modalInput) {
+        setInputValue(modalInput, 'password123');
+        const connectBtn = container.querySelector('.secret-modal-btn-connect') as HTMLButtonElement;
+        click(connectBtn);
+      }
+
+      const roomInput = container.querySelector('.op-team-room-input') as HTMLInputElement;
+      if (roomInput) {
+        setInputValue(roomInput, 'import_test_room');
+        const roomConnectBtn = container.querySelector('.op-team-room-form button') as HTMLButtonElement;
+        if (roomConnectBtn) click(roomConnectBtn);
+      }
+
+      const start = Date.now();
+      while (!container.querySelector('.op-roster-summary-card--import')) {
+        if (Date.now() - start > 1500) break;
+        await act(async () => {
+          await new Promise((r) => setTimeout(r, 20));
+        });
+      }
+
+      // Open Import Plan modal
+      const importBtn = container.querySelector('.pill--import-btn') as HTMLButtonElement;
+      expect(importBtn).toBeTruthy();
+      click(importBtn);
+
+      const importModal = container.querySelector('.op-modal--import');
+      expect(importModal).toBeTruthy();
+      expect(importModal?.textContent).toContain('Import Plan from Link');
+
+      const textarea = importModal?.querySelector('.op-import-textarea') as HTMLTextAreaElement;
+      expect(textarea).toBeTruthy();
+
+      // Paste invalid text
+      setInputValue(textarea, 'invalid_gibberish');
+      expect(importModal?.textContent).toContain('Could not decode plan');
+
+      // Paste a valid plan URL with 1 attacker and 1 target
+      const sampleEncoded = encodeCompactPlan({
+        landing: '2026-08-20T18:00',
+        serverSpeed: 3,
+        attackers: [
+          {
+            id: 'atk_seed_1',
+            name: 'Alpha Strike',
+            x: 50,
+            y: 50,
+            unitRef: 'embermark_dominion/emberblade',
+            artifactMultiplier: 1,
+            bannerfieldLevel: 0,
+            safeEnabled: true,
+            safeStart: '22:00',
+            safeEnd: '04:00',
+          },
+        ],
+        players: [
+          {
+            id: 'ply_seed_1',
+            name: 'Defender King',
+            safeEnabled: true,
+            safeStart: '22:00',
+            safeEnd: '04:00',
+          },
+        ],
+        targets: [
+          {
+            id: 'tgt_seed_1',
+            name: 'Capital City',
+            x: 100,
+            y: 100,
+            fake: false,
+            playerId: 'ply_seed_1',
+            safeEnabled: true,
+            safeStart: '22:00',
+            safeEnd: '04:00',
+          },
+        ],
+      });
+      const samplePlan = `https://thronewake-tools.app/#tool=operations&p=${sampleEncoded}`;
+      setInputValue(textarea, samplePlan);
+
+      // Verify validation passes — preview shows badge and attacker name
+      expect(importModal?.textContent).toContain('Valid Plan');
+      expect(importModal?.textContent).toContain('Alpha Strike');
+
+      // Submit the import as New Operation Wave
+      const submitBtn = importModal?.querySelector('.op-import-submit-btn') as HTMLButtonElement;
+      expect(submitBtn.disabled).toBe(false);
+      click(submitBtn);
+
+      // Verify modal closes and new operation is created and open
+      expect(container.querySelector('.op-modal--import')).toBeNull();
+      expect(container.textContent).toContain('ACTIVE WAVE');
+      expect(container.textContent).toContain('Alpha Strike');
+      expect(container.textContent).toContain('Capital City');
     } finally {
       globalThis.fetch = originalFetch;
     }

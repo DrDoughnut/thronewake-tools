@@ -25,6 +25,8 @@ import {
   toUtcDatetimeInput,
   travelHours,
   migrateToMasterRoster,
+  importPlanIntoMasterRoster,
+  type ImportMode,
   type MasterRoster,
   type OperationPlan,
   type ResolvedSafeTime,
@@ -35,6 +37,7 @@ import {
 import { type RoomCryptoSession } from '../engine/cryptoSync';
 import { TeamRoomBar } from '../components/TeamRoomBar';
 import { OperationTabs } from '../components/OperationTabs';
+import { ImportPlanModal } from '../components/ImportPlanModal';
 import {
   AllianceArmiesModal,
   TargetDatabaseModal,
@@ -749,12 +752,22 @@ function TimelineLane({
       }
       title={isInteractive ? `Click to inspect routes for ${label}` : undefined}
     >
-      <span className="schedule__label" title={label}>{label}</span>
+      <span className="schedule__label" title={label}>
+        {isSelected && (
+          <span
+            className={`schedule__active-indicator schedule__active-indicator--${type}`}
+            aria-hidden="true"
+          >
+            ●
+          </span>
+        )}
+        {label}
+      </span>
       <div className="schedule__track">
         {segments.map((seg) => (
           <span
             key={`${seg.start}-${seg.end}`}
-            className="schedule__block"
+            className={`schedule__safe schedule__safe--${type}`}
             style={{
               '--left': (seg.start / 14.4) + '%',
               '--width': ((seg.end - seg.start) / 14.4) + '%',
@@ -1033,6 +1046,7 @@ export function OperationPlanner({
   // Modals state
   const [isArmiesModalOpen, setIsArmiesModalOpen] = useState(false);
   const [isTargetsModalOpen, setIsTargetsModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   const [showLocal, setShowLocal] = useState<boolean>(readShowLocal);
   const [selectedKey, setSelectedKey] = useState('');
@@ -1256,7 +1270,20 @@ export function OperationPlanner({
     const remaining = operations.filter((o) => o.id !== opId);
     setOperations(remaining);
     if (activeOpId === opId) {
-      setActiveOpId(remaining[0].id);
+      setActiveOpId(null);
+    }
+  };
+
+  const handleImportPlan = (
+    imported: PlannerState,
+    mode: ImportMode,
+    customWaveName?: string,
+  ) => {
+    const result = importPlanIntoMasterRoster(roster, operations, imported, mode, customWaveName);
+    setRoster(result.roster);
+    setOperations(result.operations);
+    if (result.activeOpId !== null) {
+      setActiveOpId(result.activeOpId);
     }
   };
 
@@ -1693,21 +1720,39 @@ export function OperationPlanner({
                       🎯 Manage Targets
                     </button>
                   </div>
+
+                  <div className="op-roster-summary-card op-roster-summary-card--import">
+                    <div className="op-roster-summary-card__info">
+                      <span className="op-roster-summary-card__icon">📥</span>
+                      <div>
+                        <strong className="op-roster-summary-card__title">Import Plan Link</strong>
+                        <span className="op-roster-summary-card__sub">
+                          Seed or merge from URL/code
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="pill pill--primary pill--import-btn"
+                      onClick={() => setIsImportModalOpen(true)}
+                      title="Paste a shared planner URL or code to import armies, targets, and operations"
+                    >
+                      📥 Import Plan
+                    </button>
+                  </div>
                 </div>
               </section>
 
               {/* Multi-Operation Tabs */}
-              {operations.length > 0 && (
-                <OperationTabs
-                  operations={operations}
-                  activeOpId={activeOpId}
-                  onSelectOp={handleSelectOp}
-                  onCreateOp={handleCreateOp}
-                  onDuplicateOp={handleDuplicateOp}
-                  onRenameOp={handleRenameOp}
-                  onDeleteOp={handleDeleteOp}
-                />
-              )}
+              <OperationTabs
+                operations={operations}
+                activeOpId={activeOpId}
+                onSelectOp={handleSelectOp}
+                onCreateOp={handleCreateOp}
+                onDuplicateOp={handleDuplicateOp}
+                onRenameOp={handleRenameOp}
+                onDeleteOp={handleDeleteOp}
+              />
             </>
           )}
         </>
@@ -1722,6 +1767,30 @@ export function OperationPlanner({
             <p className="op-standby-panel__desc">
               Select an operation wave from the list above or click <strong>+ New Operation</strong> to plan launch timings, assign armies, and view route plans.
             </p>
+            <div className="op-standby-panel__actions">
+              <button
+                type="button"
+                className="pill pill--primary"
+                onClick={() => setIsImportModalOpen(true)}
+                title="Import or seed a plan from a shared URL or code"
+              >
+                📥 Import / Seed Plan Link
+              </button>
+              <button
+                type="button"
+                className="pill pill--secondary"
+                onClick={() => setIsArmiesModalOpen(true)}
+              >
+                👥 Manage Armies
+              </button>
+              <button
+                type="button"
+                className="pill pill--secondary"
+                onClick={() => setIsTargetsModalOpen(true)}
+              >
+                🎯 Manage Targets
+              </button>
+            </div>
             <p className="op-standby-panel__hint">
               Tip: You can manage your Alliance Armies and Defender Targets anytime using the Master Roster cards above without selecting an operation.
             </p>
@@ -2192,6 +2261,12 @@ export function OperationPlanner({
         onAddVillage={handleAddVillage}
         onPatchTarget={handlePatchTarget}
         onRemoveTarget={handleRemoveTarget}
+      />
+
+      <ImportPlanModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onImport={handleImportPlan}
       />
     </div>
   );

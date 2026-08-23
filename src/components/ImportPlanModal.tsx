@@ -1,0 +1,309 @@
+import { useState, useEffect, useMemo } from 'react';
+import type { PlannerState } from '../engine/operations';
+import { decodeCompactPlan, type ImportMode } from '../engine/operations';
+import { decodeState } from '../pages/OperationPlanner';
+
+interface ImportPlanModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onImport: (plan: PlannerState, mode: ImportMode, customWaveName?: string) => void;
+}
+
+export function ImportPlanModal({ isOpen, onClose, onImport }: ImportPlanModalProps) {
+  const [inputText, setInputText] = useState('');
+  const [importMode, setImportMode] = useState<ImportMode>('new_wave');
+  const [customWaveName, setCustomWaveName] = useState('');
+
+  // Reset state when opening modal
+  useEffect(() => {
+    if (isOpen) {
+      setInputText('');
+      setImportMode('new_wave');
+      setCustomWaveName('');
+    }
+  }, [isOpen]);
+
+  // Close on Escape
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
+  // Live decoding & validation
+  const parsedResult = useMemo<{
+    isValid: boolean;
+    error?: string;
+    plan?: PlannerState;
+  }>(() => {
+    const trimmed = inputText.trim();
+    if (!trimmed) {
+      return { isValid: false };
+    }
+
+    try {
+      // Extract hash if full URL or raw hash is pasted
+      let hash = trimmed;
+      if (hash.includes('#')) {
+        hash = hash.substring(hash.indexOf('#') + 1);
+      } else if (hash.includes('?')) {
+        hash = hash.substring(hash.indexOf('?') + 1);
+      }
+
+      const queryString = hash.includes('p=') || hash.includes('plan=') ? hash : `p=${hash}`;
+      const params = new URLSearchParams(queryString);
+      const compactParam = params.get('p');
+      const rawPlanParam = params.get('plan');
+
+      let plan: PlannerState | null = null;
+
+      if (compactParam) {
+        const compactParsed = decodeCompactPlan(compactParam);
+        if (compactParsed) {
+          plan = decodeState(`p=${encodeURIComponent(compactParam)}`);
+        }
+      } else if (rawPlanParam) {
+        plan = decodeState(`plan=${encodeURIComponent(rawPlanParam)}`);
+      }
+
+      if (!plan) {
+        return {
+          isValid: false,
+          error: 'Could not decode plan from the provided link or code. Please check the format.',
+        };
+      }
+
+      // Check if it actually contains real parsed armies or targets
+      const hasAttackers = plan.attackers && plan.attackers.length > 0;
+      const hasTargets = plan.targets && plan.targets.length > 0;
+
+      if (!hasAttackers && !hasTargets) {
+        return {
+          isValid: false,
+          error: 'No armies or target villages found in the provided link/code.',
+        };
+      }
+
+      return {
+        isValid: true,
+        plan,
+      };
+    } catch (err: unknown) {
+      return {
+        isValid: false,
+        error: err instanceof Error ? err.message : 'Invalid plan format.',
+      };
+    }
+  }, [inputText]);
+
+  const handlePasteClipboard = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text) {
+        setInputText(text.trim());
+      }
+    } catch {}
+  };
+
+  const handleGrabCurrentUrl = () => {
+    const currentHash = window.location.hash;
+    if (currentHash && currentHash.length > 2) {
+      setInputText(currentHash);
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!parsedResult.isValid || !parsedResult.plan) return;
+    onImport(parsedResult.plan, importMode, customWaveName.trim() || undefined);
+    onClose();
+  };
+
+  if (!isOpen) return null;
+
+  const plan = parsedResult.plan;
+
+  return (
+    <div className="op-modal-backdrop" onClick={onClose} role="presentation">
+      <div
+        className="op-modal op-modal--import"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="import-plan-title"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="op-modal__header">
+          <div>
+            <h2 id="import-plan-title" className="op-modal__title">
+              📥 Import Plan from Link
+            </h2>
+            <p className="op-modal__desc">
+              Paste a shared planner URL or compact code to bring armies, targets, and timing into this room.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="op-modal__close"
+            onClick={onClose}
+            aria-label="Close modal"
+          >
+            ✕
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="op-import-form">
+
+          {/* URL / Code Input */}
+          <div className="op-import-input-group">
+            <div className="op-import-input-header">
+              <label htmlFor="import-plan-text" className="op-import-label">
+                Shared URL or Plan Code
+              </label>
+              <div className="op-import-quick-actions">
+                <button
+                  type="button"
+                  className="pill pill--tiny pill--secondary"
+                  onClick={handlePasteClipboard}
+                  title="Paste link from your clipboard"
+                >
+                  📋 Paste Clipboard
+                </button>
+                {window.location.hash.length > 2 && (
+                  <button
+                    type="button"
+                    className="pill pill--tiny pill--secondary"
+                    onClick={handleGrabCurrentUrl}
+                    title="Use plan hash currently in browser URL"
+                  >
+                    📍 Use Current Page
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <textarea
+              id="import-plan-text"
+              className="text-input op-import-textarea"
+              rows={3}
+              placeholder="https://thronewake-tools.app/#p=... or paste raw plan code"
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              autoFocus
+            />
+          </div>
+
+          {/* Live Validation Preview */}
+          {inputText.trim().length > 0 && (
+            <div className={`op-import-preview ${parsedResult.isValid ? 'is-valid' : 'is-invalid'}`}>
+              {parsedResult.isValid && plan ? (
+                <>
+                  <div className="op-import-preview__head">
+                    <span className="op-import-preview__badge is-success">✓ Valid Plan</span>
+                    <span className="op-import-preview__meta">
+                      🕐 {plan.landing.replace('T', ' ')} UTC &nbsp;·&nbsp; {plan.serverSpeed}× Speed
+                    </span>
+                  </div>
+                  <div className="op-import-preview__grid">
+                    <div className="op-import-preview__stat">
+                      <div className="op-import-preview__stat-title">🛡️ {plan.attackers.length} {plan.attackers.length === 1 ? 'Army' : 'Armies'}</div>
+                      <span className="op-import-preview__sub">
+                        {plan.attackers.map((a) => a.name || 'Army').slice(0, 4).join(', ')}
+                        {plan.attackers.length > 4 ? ` +${plan.attackers.length - 4} more` : ''}
+                      </span>
+                    </div>
+                    <div className="op-import-preview__stat">
+                      <div className="op-import-preview__stat-title">🎯 {plan.targets.length} {plan.targets.length === 1 ? 'Village' : 'Villages'}</div>
+                      <span className="op-import-preview__sub">
+                        {plan.players.length} {plan.players.length === 1 ? 'account' : 'accounts'} · {plan.targets.filter((t) => !t.fake).length} real, {plan.targets.filter((t) => t.fake).length} fake
+                      </span>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="op-import-preview__error">
+                  ⚠️ {parsedResult.error || 'Invalid or unrecognized plan format.'}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Import Mode */}
+          <div className="op-import-mode-section">
+            <span className="op-import-mode-label">Import Action</span>
+            <div className="op-import-mode-options">
+              <label className={`op-import-mode-card ${importMode === 'new_wave' ? 'is-selected' : ''}`}>
+                <input
+                  type="radio"
+                  name="importMode"
+                  value="new_wave"
+                  checked={importMode === 'new_wave'}
+                  onChange={() => setImportMode('new_wave')}
+                />
+                <div className="op-import-mode-card__body">
+                  <strong className="op-import-mode-card__title">
+                    🌊 Add as New Operation Wave
+                    <span className="pill pill--tiny pill--primary">Recommended</span>
+                  </strong>
+                  <p className="op-import-mode-card__desc">
+                    Merges armies & targets into the Master Roster and creates a new wave with this plan's timing and assignments.
+                  </p>
+                </div>
+              </label>
+
+              <label className={`op-import-mode-card ${importMode === 'merge_only' ? 'is-selected' : ''}`}>
+                <input
+                  type="radio"
+                  name="importMode"
+                  value="merge_only"
+                  checked={importMode === 'merge_only'}
+                  onChange={() => setImportMode('merge_only')}
+                />
+                <div className="op-import-mode-card__body">
+                  <strong className="op-import-mode-card__title">
+                    👥 Merge into Master Roster Only
+                  </strong>
+                  <p className="op-import-mode-card__desc">
+                    Adds armies and targets to your room's database without creating a new operation wave.
+                  </p>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          {/* Optional Wave Name */}
+          {importMode === 'new_wave' && (
+            <div className="op-import-name-group">
+              <label htmlFor="import-wave-name" className="op-import-label">
+                Wave Name <span style={{ fontWeight: 400, opacity: 0.6 }}>(optional)</span>
+              </label>
+              <input
+                id="import-wave-name"
+                type="text"
+                className="text-input"
+                placeholder="e.g. Wave 2 – Flank Attack"
+                value={customWaveName}
+                onChange={(e) => setCustomWaveName(e.target.value)}
+              />
+            </div>
+          )}
+
+          <div className="op-modal__actions">
+            <button type="button" className="pill pill--secondary" onClick={onClose}>
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="pill pill--primary op-import-submit-btn"
+              disabled={!parsedResult.isValid}
+            >
+              📥 Import Plan
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
