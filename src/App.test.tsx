@@ -624,7 +624,21 @@ describe('the operation planner', () => {
     expect(container.querySelector('.op-countdown-tag')).toBeTruthy();
   });
 
-  it('renders the Zero-Knowledge Team Room bar with passcode input', () => {
+  it('keeps Team Room bar hidden in v1, and unlocks Top Secret v2 mode after clicking Operation Planner tab 10 times', () => {
+    const opTab = [...container.querySelectorAll('.pill--tool')].find(
+      (b) => b.getAttribute('aria-label') === 'Operation Planner',
+    )!;
+    expect(opTab).toBeTruthy();
+
+    // Initially hidden in v1
+    expect(container.querySelector('.op-team-room-bar')).toBeNull();
+
+    // Click 10 times on the Operation Planner tab
+    for (let i = 0; i < 10; i++) {
+      click(opTab);
+    }
+
+    // Now unlocked!
     const roomBar = container.querySelector('.op-team-room-bar');
     expect(roomBar).toBeTruthy();
     expect(roomBar?.textContent).toContain('Team Room');
@@ -633,6 +647,7 @@ describe('the operation planner', () => {
     const input = container.querySelector('.op-team-room-input') as HTMLInputElement;
     expect(input).toBeTruthy();
     expect(input.placeholder).toContain('potatoes69');
+    expect(container.textContent).toContain('v2 Secret');
   });
 
   it('toggles attackers and targets between active and benched states, updating route count', () => {

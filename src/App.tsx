@@ -13,7 +13,7 @@ interface Tool {
   icon: string;
   blurb: string;
   footer: string;
-  render: () => JSX.Element;
+  render: (v2Unlocked?: boolean) => JSX.Element;
 }
 
 const TOOLS: Tool[] = [
@@ -45,7 +45,7 @@ const TOOLS: Tool[] = [
       'Coordinate attackers and targets around troop speed, distance, long-range bonuses, and both players’ protected hours.',
     footer:
       'Travel uses the slowest troop in each army. Bannerfield adds 20% speed per level to the part of a journey beyond 20 fields.',
-    render: () => <OperationPlanner />,
+    render: (v2) => <OperationPlanner isV2Unlocked={v2} />,
   },
   {
     key: 'optimizer',
@@ -79,6 +79,15 @@ const readTool = (): string => {
 export default function App() {
   const [toolKey, setToolKey] = useState(readTool);
   const [showChangelog, setShowChangelog] = useState(false);
+  const [v2Unlocked, setV2Unlocked] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('thronewake.v2.unlocked') === '1';
+    } catch {
+      return false;
+    }
+  });
+  const [opClickCount, setOpClickCount] = useState<number>(0);
+  const [secretToast, setSecretToast] = useState<string | null>(null);
 
   // Each tool owns its own slice of the fragment, so switching tools clears
   // the previous tool's parameters rather than leaving them to be misread.
@@ -86,6 +95,33 @@ export default function App() {
     if (key === toolKey) return;
     window.history.replaceState(null, '', `${window.location.pathname}#tool=${key}`);
     setToolKey(key);
+  };
+
+  const handleToolClick = (key: string) => {
+    if (key === 'operations') {
+      const nextCount = opClickCount + 1;
+      if (nextCount >= 10) {
+        setOpClickCount(0);
+        setV2Unlocked((curr) => {
+          const nextState = !curr;
+          try {
+            localStorage.setItem('thronewake.v2.unlocked', nextState ? '1' : '0');
+          } catch {}
+          setSecretToast(
+            nextState
+              ? '🕵️ Top Secret Unlocked: Operation Planner v2 (Team Rooms & Multi-Ops) Active!'
+              : '🔒 Operation Planner v2 Locked (Reverted to standard v1)'
+          );
+          setTimeout(() => setSecretToast(null), 4000);
+          return nextState;
+        });
+      } else {
+        setOpClickCount(nextCount);
+      }
+    } else {
+      setOpClickCount(0);
+    }
+    select(key);
   };
 
   useEffect(() => {
@@ -101,11 +137,17 @@ export default function App() {
   const tool = TOOLS.find((t) => t.key === toolKey) ?? TOOLS[0];
 
   useEffect(() => {
-    document.title = `Thronewake Tools — ${tool.name}`;
-  }, [tool.name]);
+    document.title = `Thronewake Tools — ${tool.name}${tool.key === 'operations' && v2Unlocked ? ' (v2 Secret)' : ''}`;
+  }, [tool.name, tool.key, v2Unlocked]);
 
   return (
     <div className="app">
+      {secretToast && (
+        <div className="secret-toast" role="status" aria-live="polite">
+          {secretToast}
+        </div>
+      )}
+
       <header className="app__header">
         <div className="app__header-top">
           <div className="brand">
@@ -122,7 +164,14 @@ export default function App() {
                   v{APP_VERSION}
                 </button>
               </span>
-              <span className="brand__tool">{tool.name}</span>
+              <span className="brand__tool">
+                {tool.name}
+                {tool.key === 'operations' && v2Unlocked && (
+                  <span className="secret-badge-tag" title="Top Secret Mode is Active. Click 10x on tab to re-lock.">
+                    🕵️ v2 Secret
+                  </span>
+                )}
+              </span>
             </div>
           </div>
 
@@ -134,7 +183,7 @@ export default function App() {
                 className={`pill pill--tool ${t.key === toolKey ? 'is-active' : ''}`}
                 aria-current={t.key === toolKey ? 'page' : undefined}
                 aria-label={t.name}
-                onClick={() => select(t.key)}
+                onClick={() => handleToolClick(t.key)}
               >
                 <span className="pill__emoji" aria-hidden="true">{t.icon}</span>
                 {t.name}
@@ -150,7 +199,9 @@ export default function App() {
       </header>
 
       {/* Remounting on tool change keeps each tool's URL state hook isolated. */}
-      <div key={tool.key}>{tool.render()}</div>
+      <div key={`${tool.key}-${tool.key === 'operations' ? String(v2Unlocked) : 'static'}`}>
+        {tool.render(v2Unlocked)}
+      </div>
 
       <footer className="app__footer">
         <p>

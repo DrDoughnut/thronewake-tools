@@ -1227,7 +1227,15 @@ function DailySchedule({
   );
 }
 
-export function OperationPlanner() {
+export function OperationPlanner({ isV2Unlocked }: { isV2Unlocked?: boolean } = {}) {
+  const isV2Active = isV2Unlocked ?? (() => {
+    try {
+      return localStorage.getItem('thronewake.v2.unlocked') === '1';
+    } catch {
+      return false;
+    }
+  })();
+
   const [state, setState] = useState<PlannerState>(() => decodeState());
   const [showLocal, setShowLocal] = useState<boolean>(readShowLocal);
   const [selectedKey, setSelectedKey] = useState('');
@@ -1758,24 +1766,27 @@ export function OperationPlanner() {
 
   return (
     <div className="operations">
-      {/* Team Room Zero-Knowledge Cloud Sync Bar */}
-      <TeamRoomBar
-        onRoomDataLoaded={handleRoomDataLoaded}
-        onRoomDisconnected={handleRoomDisconnected}
-        onSaveRequested={handleSaveRequested}
-      />
+      {/* Top-Secret v2 Mode: Team Room Zero-Knowledge Cloud Sync & Multi-Ops */}
+      {isV2Active && (
+        <>
+          <TeamRoomBar
+            onRoomDataLoaded={handleRoomDataLoaded}
+            onRoomDisconnected={handleRoomDisconnected}
+            onSaveRequested={handleSaveRequested}
+          />
 
-      {/* Multi-Operation Tabs (Available in Team Rooms or Multi-Op mode) */}
-      {roomData && roomData.operations.length > 0 && (
-        <OperationTabs
-          operations={roomData.operations}
-          activeOpId={roomData.activeOpId}
-          onSelectOp={handleSelectOp}
-          onCreateOp={handleCreateOp}
-          onDuplicateOp={handleDuplicateOp}
-          onRenameOp={handleRenameOp}
-          onDeleteOp={handleDeleteOp}
-        />
+          {roomData && roomData.operations.length > 0 && (
+            <OperationTabs
+              operations={roomData.operations}
+              activeOpId={roomData.activeOpId}
+              onSelectOp={handleSelectOp}
+              onCreateOp={handleCreateOp}
+              onDuplicateOp={handleDuplicateOp}
+              onRenameOp={handleRenameOp}
+              onDeleteOp={handleDeleteOp}
+            />
+          )}
+        </>
       )}
 
       <section className="panel op-command">
