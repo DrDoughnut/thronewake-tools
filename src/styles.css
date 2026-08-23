@@ -6044,8 +6044,9 @@ select:focus, .select:focus, .text-input:focus {
 }
 
 .op-workspace-nav {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(72px, 1fr));
+  display: inline-grid;
+  grid-template-columns: repeat(2, minmax(80px, 1fr));
+  gap: 2px;
   padding: 3px;
   border: 1px solid hsl(220, 16%, 23%);
   border-radius: 8px;
