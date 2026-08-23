@@ -818,7 +818,35 @@ function ScheduleTimeline({
   return (
     <section className="panel op-schedule">
       <div className="op-section-head op-schedule__header-wrap">
-        <h2 className="panel__title">Daily safe-time schedule · UTC</h2>
+        <div className="op-schedule__header-left">
+          <h2 className="panel__title">Daily safe-time schedule · UTC</h2>
+          <div className="op-schedule__journey-readout">
+            <span className="op-schedule__journey-label">Selected Route:</span>
+            <strong className="op-route-attacker">{route.attacker.name}</strong>
+            <span className="op-route-arrow" aria-hidden="true">➔</span>
+            <strong className="op-route-target">{route.target.name}</strong>
+            <span className="op-route-coords">({route.target.x}|{route.target.y})</span>
+            {route.targetSafe.sourceName && (
+              <span className="op-schedule__player-tag">{route.targetSafe.sourceName}</span>
+            )}
+            <span className={`op-hit-tag ${route.target.fake ? 'is-fake' : 'is-real'}`}>
+              {route.target.fake ? 'Fake' : 'Real'}
+            </span>
+          </div>
+          <div className="op-schedule__times-row">
+            <span>
+              Send: <strong>{formatClock(minuteOfDay(route.send), true)} UTC</strong>
+              {showLocal && ` (${formatLocalClock(route.send, true)} local)`}
+            </span>
+            <span className="op-schedule__sep">·</span>
+            <span>
+              Land: <strong>{formatClock(minuteOfDay(route.land))} UTC</strong>
+              {showLocal && ` (${formatLocalClock(route.land)} local)`}
+            </span>
+            <span className="op-schedule__sep">·</span>
+            <span>Travel: <strong>{formatDuration(route.travel)}</strong></span>
+          </div>
+        </div>
         <div className="op-schedule__status-group">
           <span className={'op-status ' + (route.possible ? 'is-possible' : 'is-blocked')}>
             {route.possible ? 'All Checks Clear ✓' : 'Route Blocked ✕'}
@@ -1080,14 +1108,16 @@ export function OperationPlanner({
 
   // Active marching armies & target villages for current operation
   const marchingAttackers = useMemo(() => {
+    if (!isV2Active) return roster.attackers;
     const assigned = activeOp.assignedAttackerIds || [];
     return roster.attackers.filter((a) => assigned.includes(a.id));
-  }, [roster.attackers, activeOp.assignedAttackerIds]);
+  }, [isV2Active, roster.attackers, activeOp.assignedAttackerIds]);
 
   const activeTargets = useMemo(() => {
+    if (!isV2Active) return roster.targets;
     const assigned = activeOp.assignedTargetIds || [];
     return roster.targets.filter((t) => assigned.includes(t.id));
-  }, [roster.targets, activeOp.assignedTargetIds]);
+  }, [isV2Active, roster.targets, activeOp.assignedTargetIds]);
 
   const copyShareLink = async () => {
     const currentPlannerState: PlannerState = {
