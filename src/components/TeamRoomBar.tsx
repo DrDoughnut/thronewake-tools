@@ -119,6 +119,7 @@ export function TeamRoomBar({
                 serverSpeed: 3,
                 assignedAttackerIds: [],
                 assignedTargetIds: [],
+                fakeTargetIds: [],
                 createdAt: Date.now(),
                 updatedAt: Date.now(),
               },
@@ -315,32 +316,35 @@ export function TeamRoomBar({
                     {status === 'saving' ? '💾 Saving...' : '💾 Save Room'}
                   </button>
 
-                  <button
-                    type="button"
-                    className={`pill pill--tiny ${autoSave ? 'pill--primary op-autosave-active' : 'pill--secondary'}`}
-                    onClick={toggleAutoSave}
-                    title="Automatically save changes to the cloud in background"
-                  >
-                    {autoSave ? '⚡ Auto-Save: ON' : '⚡ Auto-Save: OFF'}
-                  </button>
-
-                  <button
-                    type="button"
-                    className="pill pill--tiny pill--secondary"
-                    onClick={handleSyncClick}
-                    title="Pull latest changes from other members"
-                  >
-                    🔄 Sync
-                  </button>
-
-                  <button
-                    type="button"
-                    className="pill pill--tiny pill--secondary op-team-room-leave"
-                    onClick={handleDisconnect}
-                    title="Disconnect from this room"
-                  >
-                    Leave Room
-                  </button>
+                  <details className="op-room-menu">
+                    <summary>Room options</summary>
+                    <div className="op-room-menu__panel">
+                      <button
+                        type="button"
+                        className={`pill pill--tiny ${autoSave ? 'pill--primary op-autosave-active' : 'pill--secondary'}`}
+                        onClick={toggleAutoSave}
+                        title="Automatically save changes to the cloud in background"
+                      >
+                        {autoSave ? '⚡ Auto-Save: ON' : '⚡ Auto-Save: OFF'}
+                      </button>
+                      <button
+                        type="button"
+                        className="pill pill--tiny pill--secondary"
+                        onClick={handleSyncClick}
+                        title="Pull latest changes from other members"
+                      >
+                        🔄 Sync
+                      </button>
+                      <button
+                        type="button"
+                        className="pill pill--tiny pill--secondary op-team-room-leave"
+                        onClick={handleDisconnect}
+                        title="Disconnect from this room"
+                      >
+                        Leave Room
+                      </button>
+                    </div>
+                  </details>
                 </div>
               </div>
             )}

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { Attacker, Player, Target } from '../engine/operations';
 
 interface OperationParticipantPickerProps {
@@ -6,8 +7,10 @@ interface OperationParticipantPickerProps {
   targets: Target[];
   assignedAttackerIds: string[];
   assignedTargetIds: string[];
+  fakeTargetIds: string[];
   onToggleAttacker: (attackerId: string) => void;
   onToggleTarget: (targetId: string) => void;
+  onToggleTargetFake: (targetId: string) => void;
   onSelectAllAttackers: () => void;
   onDeselectAllAttackers: () => void;
   onSelectAllTargets: () => void;
@@ -22,8 +25,10 @@ export function OperationParticipantPicker({
   targets,
   assignedAttackerIds,
   assignedTargetIds,
+  fakeTargetIds,
   onToggleAttacker,
   onToggleTarget,
+  onToggleTargetFake,
   onSelectAllAttackers,
   onDeselectAllAttackers,
   onSelectAllTargets,
@@ -31,6 +36,7 @@ export function OperationParticipantPicker({
   onOpenAttackerModal,
   onOpenTargetModal,
 }: OperationParticipantPickerProps) {
+  const [isEditing, setIsEditing] = useState(false);
   const activeAttackerCount = assignedAttackerIds.length;
   const totalAttackerCount = attackers.length;
 
@@ -39,7 +45,24 @@ export function OperationParticipantPicker({
 
   return (
     <section className="panel op-participant-picker">
-      <div className="op-participant-picker__grid">
+      <div className="op-participant-picker__summary">
+        <div className="op-participant-picker__summary-copy">
+          <span className="op-participant-picker__eyebrow">Participants</span>
+          <strong>{activeAttackerCount} of {totalAttackerCount} armies · {activeTargetCount} of {totalTargetCount} targets</strong>
+          <span>Choose who marches and mark real or fake hits for this operation.</span>
+        </div>
+        <button
+          type="button"
+          className="pill pill--primary"
+          onClick={() => setIsEditing((current) => !current)}
+          aria-expanded={isEditing}
+        >
+          {isEditing ? "Done" : "Edit Participants"}
+        </button>
+      </div>
+
+      {isEditing && (
+        <div className="op-participant-picker__grid">
         {/* Left Column: Marching Armies */}
         <div className="op-participant-col op-participant-col--attackers">
           <div className="op-participant-col__header">
@@ -162,33 +185,45 @@ export function OperationParticipantPicker({
             ) : (
               targets.map((tgt) => {
                 const isSelected = assignedTargetIds.includes(tgt.id);
+                const isFake = fakeTargetIds.includes(tgt.id);
                 const owner = players.find((p) => p.id === tgt.playerId);
 
                 return (
-                  <label
-                    key={tgt.id}
-                    className={`op-participant-chip op-participant-chip--target ${isSelected ? 'is-selected' : ''} ${tgt.fake ? 'is-fake' : ''}`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => onToggleTarget(tgt.id)}
-                    />
-                    <span className="op-participant-chip__check" aria-hidden="true">
-                      {isSelected ? '✓' : ''}
-                    </span>
-                    <span className="op-participant-chip__name">{tgt.name || 'Target'}</span>
-                    {owner && <span className="op-participant-chip__owner">[{owner.name}]</span>}
-                    <span className="op-participant-chip__meta">
-                      ({tgt.x}|{tgt.y}){tgt.fake ? ' [Fake]' : ''}
-                    </span>
-                  </label>
+                  <div key={tgt.id} className="op-target-assignment">
+                    <label
+                      className={`op-participant-chip op-participant-chip--target ${isSelected ? 'is-selected' : ''} ${isFake ? 'is-fake' : ''}`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => onToggleTarget(tgt.id)}
+                      />
+                      <span className="op-participant-chip__check" aria-hidden="true">
+                        {isSelected ? '✓' : ''}
+                      </span>
+                      <span className="op-participant-chip__name">{tgt.name || 'Target'}</span>
+                      {owner && <span className="op-participant-chip__owner">[{owner.name}]</span>}
+                      <span className="op-participant-chip__meta">({tgt.x}|{tgt.y})</span>
+                    </label>
+                    {isSelected && (
+                      <button
+                        type="button"
+                        className={`pill pill--tiny op-target-mode ${isFake ? 'is-fake' : 'is-real'}`}
+                        onClick={() => onToggleTargetFake(tgt.id)}
+                        aria-pressed={isFake}
+                        title="Attack type for this operation only"
+                      >
+                        {isFake ? 'Fake' : 'Real'}
+                      </button>
+                    )}
+                  </div>
                 );
               })
             )}
           </div>
         </div>
-      </div>
+        </div>
+      )}
     </section>
   );
 }

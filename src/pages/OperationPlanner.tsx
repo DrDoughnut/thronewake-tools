@@ -838,13 +838,32 @@ function ScheduleTimeline({
             <strong className="op-route-attacker">{route.attacker.name}</strong>
             <span className="op-route-arrow" aria-hidden="true">➔</span>
             <strong className="op-route-target">{route.target.name}</strong>
-            <span className="op-route-coords">({route.target.x}|{route.target.y})</span>
+            <a
+              href={`https://www.thronewake.com/map/tile/${route.target.x}/${route.target.y}?center=true`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="op-route-coords op-map-link"
+              title={`Open in-game map centered on (${route.target.x}|${route.target.y})`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              📍 ({route.target.x}|{route.target.y})
+            </a>
             {route.targetSafe.sourceName && (
               <span className="op-schedule__player-tag">{route.targetSafe.sourceName}</span>
             )}
             <span className={`op-hit-tag ${route.target.fake ? 'is-fake' : 'is-real'}`}>
               {route.target.fake ? 'Fake' : 'Real'}
             </span>
+            <a
+              href={`https://www.thronewake.com/map/tile/${route.target.x}/${route.target.y}?center=true`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="op-route-map-btn"
+              title={`Open in-game map centered on target (${route.target.x}|${route.target.y})`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              🗺️ Open Map
+            </a>
           </div>
           <div className="op-schedule__times-row">
             <span>
@@ -1029,6 +1048,7 @@ export function OperationPlanner({
       serverSpeed: initialDecoded.serverSpeed,
       assignedAttackerIds: initialDecoded.attackers.map((a) => a.id),
       assignedTargetIds: initialDecoded.targets.map((t) => t.id),
+      fakeTargetIds: initialDecoded.targets.filter((t) => t.fake).map((t) => t.id),
       createdAt: Date.now(),
       updatedAt: Date.now(),
     },
@@ -1050,6 +1070,7 @@ export function OperationPlanner({
 
   const [showLocal, setShowLocal] = useState<boolean>(readShowLocal);
   const [selectedKey, setSelectedKey] = useState('');
+  const [workspaceView, setWorkspaceView] = useState<'setup' | 'routes' | 'schedule'>('setup');
   const [filterAttacker, setFilterAttacker] = useState<string>('all');
   const [filterTarget, setFilterTarget] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<'all' | 'possible' | 'blocked'>('all');
@@ -1074,6 +1095,7 @@ export function OperationPlanner({
       serverSpeed: 3,
       assignedAttackerIds: roster.attackers.map((a) => a.id),
       assignedTargetIds: roster.targets.map((t) => t.id),
+      fakeTargetIds: [],
     };
   }, [operations, activeOpId, roster]);
 
@@ -1104,6 +1126,7 @@ export function OperationPlanner({
                   serverSpeed: decoded.serverSpeed,
                   assignedAttackerIds: decoded.attackers.map((a) => a.id),
                   assignedTargetIds: decoded.targets.map((t) => t.id),
+                  fakeTargetIds: decoded.targets.filter((t) => t.fake).map((t) => t.id),
                 }
               : o,
           ),
@@ -1130,8 +1153,11 @@ export function OperationPlanner({
   const activeTargets = useMemo(() => {
     if (!isV2Active) return roster.targets;
     const assigned = activeOp.assignedTargetIds || [];
-    return roster.targets.filter((t) => assigned.includes(t.id));
-  }, [isV2Active, roster.targets, activeOp.assignedTargetIds]);
+    const fakeTargetIds = activeOp.fakeTargetIds || [];
+    return roster.targets
+      .filter((target) => assigned.includes(target.id))
+      .map((target) => ({ ...target, fake: fakeTargetIds.includes(target.id) }));
+  }, [isV2Active, roster.targets, activeOp.assignedTargetIds, activeOp.fakeTargetIds]);
 
   const copyShareLink = async () => {
     const currentPlannerState: PlannerState = {
@@ -1224,7 +1250,8 @@ export function OperationPlanner({
 
   // Operation Tab Handlers
   const handleSelectOp = (opId: string) => {
-    setActiveOpId(opId);
+    setActiveOpId(opId || null);
+    if (opId) setWorkspaceView('setup');
   };
 
   const handleCreateOp = (name: string) => {
@@ -1236,11 +1263,13 @@ export function OperationPlanner({
       serverSpeed: activeOp.serverSpeed,
       assignedAttackerIds: roster.attackers.map((a) => a.id),
       assignedTargetIds: roster.targets.map((t) => t.id),
+      fakeTargetIds: [],
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
     setOperations((prev) => [...prev, newOp]);
     setActiveOpId(newId);
+    setWorkspaceView('setup');
   };
 
   const handleDuplicateOp = (opId: string) => {
@@ -1252,11 +1281,13 @@ export function OperationPlanner({
       name: `${source.name} (Copy)`,
       assignedAttackerIds: [...source.assignedAttackerIds],
       assignedTargetIds: [...source.assignedTargetIds],
+      fakeTargetIds: [...(source.fakeTargetIds || [])],
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
     setOperations((prev) => [...prev, newOp]);
     setActiveOpId(newId);
+    setWorkspaceView('setup');
   };
 
   const handleRenameOp = (opId: string, newName: string) => {
@@ -1284,6 +1315,7 @@ export function OperationPlanner({
     setOperations(result.operations);
     if (result.activeOpId !== null) {
       setActiveOpId(result.activeOpId);
+      setWorkspaceView('setup');
     }
   };
 
@@ -1303,13 +1335,34 @@ export function OperationPlanner({
 
   const handleToggleTarget = (targetId: string) => {
     setOperations((prev) =>
-      prev.map((o) => {
-        if (o.id !== activeOpId) return o;
-        const current = o.assignedTargetIds || [];
-        const next = current.includes(targetId)
+      prev.map((operation) => {
+        if (operation.id !== activeOpId) return operation;
+        const assignedTargetIds = operation.assignedTargetIds || [];
+        const fakeTargetIds = operation.fakeTargetIds || [];
+        const nextAssigned = assignedTargetIds.includes(targetId)
+          ? assignedTargetIds.filter((id) => id !== targetId)
+          : [...assignedTargetIds, targetId];
+        return {
+          ...operation,
+          assignedTargetIds: nextAssigned,
+          fakeTargetIds: nextAssigned.includes(targetId)
+            ? fakeTargetIds
+            : fakeTargetIds.filter((id) => id !== targetId),
+          updatedAt: Date.now(),
+        };
+      }),
+    );
+  };
+
+  const handleToggleTargetFake = (targetId: string) => {
+    setOperations((prev) =>
+      prev.map((operation) => {
+        if (operation.id !== activeOpId) return operation;
+        const current = operation.fakeTargetIds || [];
+        const fakeTargetIds = current.includes(targetId)
           ? current.filter((id) => id !== targetId)
           : [...current, targetId];
-        return { ...o, assignedTargetIds: next, updatedAt: Date.now() };
+        return { ...operation, fakeTargetIds, updatedAt: Date.now() };
       }),
     );
   };
@@ -1345,7 +1398,7 @@ export function OperationPlanner({
   const handleDeselectAllTargets = () => {
     setOperations((prev) =>
       prev.map((o) =>
-        o.id === activeOpId ? { ...o, assignedTargetIds: [], updatedAt: Date.now() } : o,
+        o.id === activeOpId ? { ...o, assignedTargetIds: [], fakeTargetIds: [], updatedAt: Date.now() } : o,
       ),
     );
   };
@@ -1465,6 +1518,7 @@ export function OperationPlanner({
       prev.map((o) => ({
         ...o,
         assignedTargetIds: (o.assignedTargetIds || []).filter((id) => !removedVillageIds.has(id)),
+        fakeTargetIds: (o.fakeTargetIds || []).filter((id) => !removedVillageIds.has(id)),
       })),
     );
   };
@@ -1514,6 +1568,7 @@ export function OperationPlanner({
       prev.map((o) => ({
         ...o,
         assignedTargetIds: (o.assignedTargetIds || []).filter((id) => id !== targetId),
+        fakeTargetIds: (o.fakeTargetIds || []).filter((id) => id !== targetId),
       })),
     );
   };
@@ -1605,6 +1660,10 @@ export function OperationPlanner({
   }, [marchingAttackers, activeTargets, roster.players, activeOp.serverSpeed, parsedLanding]);
 
   const selectedRoute = routes.find((route) => route.key === selectedKey) ?? routes[0];
+  const handleInspectRoute = (routeKey: string) => {
+    setSelectedKey(routeKey);
+    if (isV2Active) setWorkspaceView('schedule');
+  };
 
   const visibleRoutes = useMemo(() => {
     return routes.filter((route) => {
@@ -1674,72 +1733,22 @@ export function OperationPlanner({
 
           {roomSession && (
             <>
-              {/* Master Roster Summary & Manager Strip (Top Level) */}
-              <section className="panel op-roster-summary-bar">
-                <div className="op-roster-summary-bar__content">
-                  <div className="op-roster-summary-card">
-                    <div className="op-roster-summary-card__info">
-                      <span className="op-roster-summary-card__icon">🛡️</span>
-                      <div>
-                        <strong className="op-roster-summary-card__title">
-                          Alliance Armies ({roster.attackers.length})
-                        </strong>
-                        <span className="op-roster-summary-card__sub">
-                          {marchingAttackers.length} marching in active op
-                        </span>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      className="pill pill--primary"
-                      onClick={() => setIsArmiesModalOpen(true)}
-                      title="Open full army editor modal to manage coords, troops, artifacts, and safe times"
-                    >
-                      👥 Manage Armies
-                    </button>
-                  </div>
-
-                  <div className="op-roster-summary-card">
-                    <div className="op-roster-summary-card__info">
-                      <span className="op-roster-summary-card__icon">🎯</span>
-                      <div>
-                        <strong className="op-roster-summary-card__title">
-                          Target Database ({roster.targets.length} Villages · {roster.players.length} Accounts)
-                        </strong>
-                        <span className="op-roster-summary-card__sub">
-                          {activeTargets.length} targeted in active op
-                        </span>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      className="pill pill--primary"
-                      onClick={() => setIsTargetsModalOpen(true)}
-                      title="Open target database modal to manage defender accounts and villages"
-                    >
-                      🎯 Manage Targets
-                    </button>
-                  </div>
-
-                  <div className="op-roster-summary-card op-roster-summary-card--import">
-                    <div className="op-roster-summary-card__info">
-                      <span className="op-roster-summary-card__icon">📥</span>
-                      <div>
-                        <strong className="op-roster-summary-card__title">Import Plan Link</strong>
-                        <span className="op-roster-summary-card__sub">
-                          Seed or merge from URL/code
-                        </span>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      className="pill pill--primary pill--import-btn"
-                      onClick={() => setIsImportModalOpen(true)}
-                      title="Paste a shared planner URL or code to import armies, targets, and operations"
-                    >
-                      📥 Import Plan
-                    </button>
-                  </div>
+              <section className="panel op-v2-roster" aria-label="Alliance roster">
+                <div className="op-v2-roster__head">
+                  <div><span className="op-v2-quickbar__badge">Encrypted room roster</span><p>Manage the people and villages shared by every operation.</p></div>
+                  <button type="button" className="pill pill--tiny pill--import-btn" onClick={() => setIsImportModalOpen(true)}>📥 Import</button>
+                </div>
+                <div className="op-v2-roster__cards">
+                  <button type="button" className="op-v2-roster-card op-v2-roster-card--hammers" onClick={() => setIsArmiesModalOpen(true)}>
+                    <span className="op-v2-roster-card__icon" aria-hidden="true">⚔️</span>
+                    <span className="op-v2-roster-card__copy"><strong>Alliance Hammers</strong><span>{roster.attackers.length} armies · {marchingAttackers.length} in this operation</span></span>
+                    <span className="op-v2-roster-card__action">Manage <span aria-hidden="true">→</span></span>
+                  </button>
+                  <button type="button" className="op-v2-roster-card op-v2-roster-card--targets" onClick={() => setIsTargetsModalOpen(true)}>
+                    <span className="op-v2-roster-card__icon" aria-hidden="true">🎯</span>
+                    <span className="op-v2-roster-card__copy"><strong>Targets</strong><span>{roster.targets.length} villages · {roster.players.length} defender accounts</span></span>
+                    <span className="op-v2-roster-card__action">Manage <span aria-hidden="true">→</span></span>
+                  </button>
                 </div>
               </section>
 
@@ -1801,27 +1810,39 @@ export function OperationPlanner({
       {/* Operation Wave Content: Rendered when an operation is open or in standard v1 mode */}
       {isOperationOpen && (
         <>
-          {/* Active Operation Wave Header Strip (v2) */}
           {isV2Active && roomSession && activeOpId && (
-            <div className="op-active-wave-bar">
-              <div className="op-active-wave-bar__info">
-                <span className="op-active-wave-bar__tag">ACTIVE WAVE</span>
-                <strong className="op-active-wave-bar__title">{activeOp.name}</strong>
-                <span className="op-active-wave-bar__meta">
-                  {marchingAttackers.length} armies · {activeTargets.length} targets · {routes.length} routes
-                </span>
+            <div className="op-workspace-bar">
+              <div className="op-workspace-bar__operation">
+                <span className="op-workspace-bar__eyebrow">Operation</span>
+                <strong>{activeOp.name}</strong>
+                <span>{marchingAttackers.length} armies · {activeTargets.length} targets · {routes.length} routes</span>
               </div>
+              <nav className="op-workspace-nav" aria-label="Planner workspace">
+                {(['setup', 'routes', 'schedule'] as const).map((view) => (
+                  <button
+                    key={view}
+                    type="button"
+                    className={workspaceView === view ? 'is-active' : ''}
+                    onClick={() => setWorkspaceView(view)}
+                    disabled={view === 'schedule' && !selectedRoute}
+                  >
+                    {view === 'setup' ? 'Setup' : view === 'routes' ? `Routes (${routes.length})` : 'Schedule'}
+                  </button>
+                ))}
+              </nav>
               <button
                 type="button"
-                className="pill pill--tiny pill--secondary"
+                className="pill pill--tiny pill--secondary op-workspace-close"
                 onClick={() => setActiveOpId(null)}
-                title="Close this operation wave to view roster"
+                title="Close operation"
               >
-                ✕ Close Operation
+                ✕
               </button>
             </div>
           )}
 
+          {(!isV2Active || workspaceView === 'setup') && (
+            <>
           {/* Active Operation Wave Command Center */}
           <section className="panel op-command">
             <div className="op-command__main">
@@ -1859,15 +1880,17 @@ export function OperationPlanner({
                     = {formatLocalDateTime(parsedLanding)} · {zoneLabel}
                   </span>
                 )}
-                <div className="op-landing-shortcuts">
-                  <span className="op-landing-shortcuts__label">Shift:</span>
-                  <button type="button" className="pill pill--tiny" onClick={() => shiftLandingHours(1)}>+1h</button>
-                  <button type="button" className="pill pill--tiny" onClick={() => shiftLandingHours(4)}>+4h</button>
-                  <button type="button" className="pill pill--tiny" onClick={() => shiftLandingHours(8)}>+8h</button>
-                  <button type="button" className="pill pill--tiny" onClick={() => shiftLandingHours(12)}>+12h</button>
-                  <button type="button" className="pill pill--tiny" onClick={() => shiftLandingHours(24)}>+24h</button>
-                  <button type="button" className="pill pill--tiny" onClick={setLandingNow}>Now</button>
-                </div>
+                <details className="op-time-adjust">
+                  <summary>Adjust time</summary>
+                  <div className="op-landing-shortcuts">
+                    <button type="button" className="pill pill--tiny" onClick={() => shiftLandingHours(1)}>+1h</button>
+                    <button type="button" className="pill pill--tiny" onClick={() => shiftLandingHours(4)}>+4h</button>
+                    <button type="button" className="pill pill--tiny" onClick={() => shiftLandingHours(8)}>+8h</button>
+                    <button type="button" className="pill pill--tiny" onClick={() => shiftLandingHours(12)}>+12h</button>
+                    <button type="button" className="pill pill--tiny" onClick={() => shiftLandingHours(24)}>+24h</button>
+                    <button type="button" className="pill pill--tiny" onClick={setLandingNow}>Now</button>
+                  </div>
+                </details>
               </div>
 
               <div className="op-speed-control">
@@ -1917,8 +1940,10 @@ export function OperationPlanner({
               targets={roster.targets}
               assignedAttackerIds={activeOp.assignedAttackerIds || []}
               assignedTargetIds={activeOp.assignedTargetIds || []}
+              fakeTargetIds={activeOp.fakeTargetIds || []}
               onToggleAttacker={handleToggleAttacker}
               onToggleTarget={handleToggleTarget}
+              onToggleTargetFake={handleToggleTargetFake}
               onSelectAllAttackers={handleSelectAllAttackers}
               onDeselectAllAttackers={handleDeselectAllAttackers}
               onSelectAllTargets={handleSelectAllTargets}
@@ -1989,7 +2014,11 @@ export function OperationPlanner({
               </section>
             </>
           )}
+            </>
+          )}
 
+          {(!isV2Active || workspaceView === 'routes') && (
+            <>
           {/* Results Section */}
           <section className="panel op-results">
             <div className="op-section-head op-results__head-wrap">
@@ -2002,7 +2031,9 @@ export function OperationPlanner({
               </div>
 
               {/* Alarm Control Button Toolbar */}
-              <div className="op-alarm-toolbar">
+              <details className="op-alarm-settings">
+                <summary>{alarmEnabled ? '🔔 Alarm on' : '🔕 Alarm muted'}</summary>
+                <div className="op-alarm-toolbar">
                 <button
                   type="button"
                   className={`pill pill--alarm ${alarmEnabled ? 'is-enabled' : 'is-muted'}`}
@@ -2045,11 +2076,14 @@ export function OperationPlanner({
                     🎵 Test 1m Chime
                   </button>
                 </div>
-              </div>
+                </div>
+              </details>
             </div>
 
             {/* Route Filters Toolbar */}
-            <div className="op-filters-bar">
+            <details className="op-filter-disclosure">
+              <summary>Filters · {visibleRoutes.length}/{routes.length} shown</summary>
+              <div className="op-filters-bar">
               <div className="op-filter-selects">
                 <label className="op-filter-label">
                   <span>Attacker:</span>
@@ -2142,6 +2176,7 @@ export function OperationPlanner({
                 </div>
               </div>
             </div>
+            </details>
 
             <div className="op-routes">
               <table>
@@ -2172,13 +2207,13 @@ export function OperationPlanner({
                         <tr
                           key={route.key}
                           className={`op-route-row ${(selectedRoute?.key === route.key ? 'is-selected ' : '') + (route.possible ? 'is-possible' : 'is-blocked')}`}
-                          onClick={() => setSelectedKey(route.key)}
+                          onClick={() => handleInspectRoute(route.key)}
                           role="button"
                           tabIndex={0}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter' || e.key === ' ') {
                               e.preventDefault();
-                              setSelectedKey(route.key);
+                              handleInspectRoute(route.key);
                             }
                           }}
                         >
@@ -2188,10 +2223,29 @@ export function OperationPlanner({
                                 <strong className="op-route-attacker">{route.attacker.name}</strong>
                                 <span className="op-route-arrow" aria-hidden="true">➔</span>
                                 <strong className="op-route-target">{route.target.name}</strong>
-                                <span className="op-route-coords">({route.target.x}|{route.target.y})</span>
+                                <a
+                                  href={`https://www.thronewake.com/map/tile/${route.target.x}/${route.target.y}?center=true`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="op-route-coords op-map-link"
+                                  title={`Open in-game map centered on (${route.target.x}|${route.target.y})`}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  📍 ({route.target.x}|{route.target.y})
+                                </a>
                                 <span className={`op-hit-tag ${route.target.fake ? 'is-fake' : 'is-real'}`}>
                                   {route.target.fake ? 'Fake' : 'Real'}
                                 </span>
+                                <a
+                                  href={`https://www.thronewake.com/map/tile/${route.target.x}/${route.target.y}?center=true`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="op-route-map-btn"
+                                  title={`Open Thronewake map centered on target (${route.target.x}|${route.target.y})`}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  🗺️ Map
+                                </a>
                               </div>
                               <span className="op-route-unit-hint">
                                 {lookup(route.attacker.unitRef).unit.name} ({lookup(route.attacker.unitRef).unit.speed} f/h)
@@ -2228,8 +2282,10 @@ export function OperationPlanner({
             </div>
           </section>
 
+            </>
+          )}
           {/* Schedule Timeline */}
-          {selectedRoute && (
+          {(!isV2Active || workspaceView === 'schedule') && selectedRoute && (
             <ScheduleTimeline
               routes={routes}
               route={selectedRoute}

@@ -9,6 +9,8 @@ import {
   formatLocalClock,
   formatLocalDateTime,
   isInSafeWindow,
+  importPlanIntoMasterRoster,
+  migrateToMasterRoster,
   resolveSafeTime,
   routeIsPossible,
   safeChecks,
@@ -394,5 +396,54 @@ describe('safe time', () => {
     expect(decoded?.attackers[0].active).toBe(true);
     expect(decoded?.attackers[1].active).toBe(false);
     expect(decoded?.targets[0].active).toBe(false);
+  });
+});
+
+describe('operation-level target modes', () => {
+  it('migrates legacy roster fake flags into each relevant operation and neutralizes the database target', () => {
+    const migrated = migrateToMasterRoster({
+      version: 2,
+      roomName: 'legacy-room',
+      activeOpId: 'op1',
+      roster: {
+        attackers: [],
+        players: [],
+        targets: [
+          { id: 't1', name: 'Capital', x: 1, y: 2, fake: true, playerId: '', safeEnabled: false, safeStart: '22:00', safeEnd: '04:00' },
+        ],
+      },
+      operations: [
+        { id: 'op1', name: 'Real wave', landing: '2026-08-20T12:00', serverSpeed: 3, assignedAttackerIds: [], assignedTargetIds: ['t1'] },
+        { id: 'op2', name: 'Other wave', landing: '2026-08-21T12:00', serverSpeed: 3, assignedAttackerIds: [], assignedTargetIds: [] },
+      ],
+      updatedAt: 1,
+    });
+
+    expect(migrated.roster.targets[0].fake).toBe(false);
+    expect(migrated.operations[0].fakeTargetIds).toEqual(['t1']);
+    expect(migrated.operations[1].fakeTargetIds).toEqual([]);
+  });
+
+  it('keeps imported fake modes on the new operation when reusing a master target', () => {
+    const target = { id: 'existing', name: 'Capital', x: 1, y: 2, fake: false, playerId: 'p1', safeEnabled: false, safeStart: '22:00', safeEnd: '04:00' };
+    const result = importPlanIntoMasterRoster(
+      {
+        attackers: [],
+        players: [{ id: 'p1', name: 'Defender', safeEnabled: false, safeStart: '22:00', safeEnd: '04:00' }],
+        targets: [target],
+      },
+      [],
+      {
+        landing: '2026-08-20T12:00',
+        serverSpeed: 3,
+        attackers: [],
+        players: [{ id: 'import-p1', name: 'Defender', safeEnabled: false, safeStart: '22:00', safeEnd: '04:00' }],
+        targets: [{ ...target, id: 'import-t1', fake: true, playerId: 'import-p1' }],
+      },
+      'new_wave',
+    );
+
+    expect(result.roster.targets[0].fake).toBe(false);
+    expect(result.operations[0].fakeTargetIds).toEqual(['existing']);
   });
 });

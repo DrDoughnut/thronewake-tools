@@ -766,27 +766,44 @@ describe('the operation planner', () => {
     expect(firstOpTab).toBeTruthy();
     click(firstOpTab);
 
-    // Initially 1 attacker and 1 target -> 1 route
-    expect(container.querySelectorAll('.op-routes tbody .op-route-row')).toHaveLength(1);
+    // Participant selection is intentionally collapsed in the focused Setup workspace.
+    const editParticipants = [...container.querySelectorAll('.op-participant-picker button')].find(
+      (button) => button.textContent?.includes('Edit Participants'),
+    ) as HTMLButtonElement;
+    expect(editParticipants).toBeTruthy();
+    click(editParticipants);
 
-    // Bench the first attacker using the participant chip checkbox
     const attackerChip = container.querySelector('.op-participant-chip--attacker input[type="checkbox"]') as HTMLInputElement;
-    expect(attackerChip).toBeTruthy();
     expect(attackerChip.checked).toBe(true);
+    act(() => attackerChip.click());
+    const targetMode = container.querySelector(".op-target-mode") as HTMLButtonElement;
+    expect(targetMode.textContent).toContain("Real");
+    click(targetMode);
+    expect(targetMode.textContent).toContain("Fake");
 
-    act(() => {
-      attackerChip.click();
-    });
 
-    // With 0 active attackers, 0 route rows are generated (empty state shows)
+    const routesTab = [...container.querySelectorAll('.op-workspace-nav button')].find(
+      (button) => button.textContent?.startsWith('Routes'),
+    ) as HTMLButtonElement;
+    click(routesTab);
     expect(container.querySelectorAll('.op-routes tbody .op-route-row')).toHaveLength(0);
     expect(container.querySelector('.op-routes-empty')).toBeTruthy();
 
-    // Re-activate the attacker
-    act(() => {
-      attackerChip.click();
-    });
+    const setupTab = [...container.querySelectorAll('.op-workspace-nav button')].find(
+      (button) => button.textContent === 'Setup',
+    ) as HTMLButtonElement;
+    click(setupTab);
+    const reopenParticipants = [...container.querySelectorAll('.op-participant-picker button')].find(
+      (button) => button.textContent?.includes('Edit Participants'),
+    ) as HTMLButtonElement;
+    click(reopenParticipants);
+    const benchedAttacker = container.querySelector('.op-participant-chip--attacker input[type="checkbox"]') as HTMLInputElement;
+    act(() => benchedAttacker.click());
+    click([...container.querySelectorAll('.op-workspace-nav button')].find(
+      (button) => button.textContent?.startsWith('Routes'),
+    ) as HTMLButtonElement);
     expect(container.querySelectorAll('.op-routes tbody .op-route-row')).toHaveLength(1);
+    expect(container.querySelector(".op-hit-tag")?.textContent).toContain("Fake");
   });
 
   it('supports toggling auto-save and warns on sync when unsaved changes exist in v2 mode', async () => {
@@ -899,7 +916,7 @@ describe('the operation planner', () => {
       }
 
       const start = Date.now();
-      while (!container.querySelector('.op-roster-summary-card--import')) {
+      while (!container.querySelector('.op-v2-quickbar')) {
         if (Date.now() - start > 1500) break;
         await act(async () => {
           await new Promise((r) => setTimeout(r, 20));
@@ -977,7 +994,11 @@ describe('the operation planner', () => {
 
       // Verify modal closes and new operation is created and open
       expect(container.querySelector('.op-modal--import')).toBeNull();
-      expect(container.textContent).toContain('ACTIVE WAVE');
+      expect(container.querySelector('.op-workspace-bar')).toBeTruthy();
+      const editImportedParticipants = [...container.querySelectorAll('.op-participant-picker button')].find(
+        (button) => button.textContent?.includes('Edit Participants'),
+      ) as HTMLButtonElement;
+      click(editImportedParticipants);
       expect(container.textContent).toContain('Alpha Strike');
       expect(container.textContent).toContain('Capital City');
     } finally {

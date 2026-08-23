@@ -466,7 +466,7 @@ export function PlayerGroupCard({
         <div className="op-strip-list">
           {playerVillages.map((target, vIdx) => (
             <article
-              className={`op-strip-card op-strip-card--target ${target.fake ? 'is-fake' : 'is-real'}`}
+              className="op-strip-card op-strip-card--target"
               key={target.id}
             >
               <div className="op-strip-card__identity">
@@ -499,25 +499,6 @@ export function PlayerGroupCard({
               </div>
 
               <div className="op-strip-card__target-meta">
-                <div className="op-fake-group" role="group" aria-label="Attack type">
-                  <button
-                    type="button"
-                    className={`pill pill--tiny op-fake-pill ${target.fake ? '' : 'is-real'}`}
-                    aria-pressed={!target.fake}
-                    onClick={() => onPatchTarget(target.id, { fake: false })}
-                  >
-                    Real
-                  </button>
-                  <button
-                    type="button"
-                    className={`pill pill--tiny op-fake-pill ${target.fake ? 'is-fake' : ''}`}
-                    aria-pressed={target.fake}
-                    onClick={() => onPatchTarget(target.id, { fake: true })}
-                  >
-                    Fake
-                  </button>
-                </div>
-
                 <button
                   type="button"
                   className="op-remove-danger op-remove-danger--sm"

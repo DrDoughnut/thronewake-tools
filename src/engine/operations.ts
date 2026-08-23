@@ -306,7 +306,7 @@ export interface CompactTarget extends CompactSafeTimeOwner {
   name: string;
   x: number;
   y: number;
-  /** Marks a diversion rather than a real hit. Display only. */
+  /** Legacy/share-plan attack type. V2 stores this per operation in fakeTargetIds. */
   fake: boolean;
   /** Id of the owning player, or '' when the village carries its own window. */
   playerId: string;
@@ -340,6 +340,8 @@ export interface OperationPlan {
   serverSpeed: number;
   assignedAttackerIds: string[];
   assignedTargetIds: string[];
+  /** Target villages marked as fake for this operation only. */
+  fakeTargetIds: string[];
   createdAt?: number;
   updatedAt?: number;
 }
@@ -431,6 +433,7 @@ export function migrateToMasterRoster(raw: any, fallbackState?: CompactPlannerSt
           serverSpeed: fallback.serverSpeed,
           assignedAttackerIds: fallback.attackers.map((a) => a.id),
           assignedTargetIds: fallback.targets.map((t) => t.id),
+          fakeTargetIds: fallback.targets.filter((t) => t.fake).map((t) => t.id),
           createdAt: Date.now(),
           updatedAt: Date.now(),
         },
@@ -448,7 +451,9 @@ export function migrateToMasterRoster(raw: any, fallbackState?: CompactPlannerSt
       roster: {
         attackers: Array.isArray(raw.roster.attackers) ? raw.roster.attackers : [],
         players: Array.isArray(raw.roster.players) ? raw.roster.players : [],
-        targets: Array.isArray(raw.roster.targets) ? raw.roster.targets : [],
+        targets: Array.isArray(raw.roster.targets)
+          ? raw.roster.targets.map((target: CompactTarget) => ({ ...target, fake: false }))
+          : [],
       },
       operations: raw.operations.map((op: any, index: number) => ({
         id: op.id || `op_${index + 1}`,
@@ -461,6 +466,12 @@ export function migrateToMasterRoster(raw: any, fallbackState?: CompactPlannerSt
         assignedTargetIds: Array.isArray(op.assignedTargetIds)
           ? op.assignedTargetIds
           : raw.roster.targets.map((t: any) => t.id),
+        fakeTargetIds: Array.isArray(op.fakeTargetIds)
+          ? op.fakeTargetIds
+          : raw.roster.targets
+              .filter((target: CompactTarget) => target.fake)
+              .map((target: CompactTarget) => target.id)
+              .filter((id: string) => !Array.isArray(op.assignedTargetIds) || op.assignedTargetIds.includes(id)),
         createdAt: op.createdAt || Date.now(),
         updatedAt: op.updatedAt || Date.now(),
       })),
@@ -497,7 +508,7 @@ export function migrateToMasterRoster(raw: any, fallbackState?: CompactPlannerSt
 
     opTargets.forEach((t) => {
       if (!masterTargetsMap.has(t.id)) {
-        masterTargetsMap.set(t.id, t);
+        masterTargetsMap.set(t.id, { ...t, fake: false });
       }
     });
 
@@ -508,6 +519,7 @@ export function migrateToMasterRoster(raw: any, fallbackState?: CompactPlannerSt
       serverSpeed: op.serverSpeed || 3,
       assignedAttackerIds: opAttackers.filter((a) => a.active !== false).map((a) => a.id),
       assignedTargetIds: opTargets.filter((t) => t.active !== false).map((t) => t.id),
+      fakeTargetIds: opTargets.filter((t) => t.active !== false && t.fake).map((t) => t.id),
       createdAt: op.createdAt || Date.now(),
       updatedAt: op.updatedAt || Date.now(),
     });
@@ -521,6 +533,7 @@ export function migrateToMasterRoster(raw: any, fallbackState?: CompactPlannerSt
       serverSpeed: 3,
       assignedAttackerIds: Array.from(masterAttackersMap.keys()),
       assignedTargetIds: Array.from(masterTargetsMap.keys()),
+      fakeTargetIds: [],
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
@@ -579,6 +592,7 @@ export function importPlanIntoMasterRoster(
         serverSpeed: importedPlan.serverSpeed,
         assignedAttackerIds: importedPlan.attackers.map((a) => a.id),
         assignedTargetIds: importedPlan.targets.map((t) => t.id),
+        fakeTargetIds: importedPlan.targets.filter((t) => t.fake).map((t) => t.id),
         createdAt: Date.now(),
         updatedAt: Date.now(),
       },
@@ -588,7 +602,7 @@ export function importPlanIntoMasterRoster(
       roster: {
         attackers: [...importedPlan.attackers],
         players: [...importedPlan.players],
-        targets: [...importedPlan.targets],
+        targets: importedPlan.targets.map((target) => ({ ...target, fake: false })),
       },
       operations: newOperations,
       activeOpId: newWaveId,
@@ -707,6 +721,7 @@ export function importPlanIntoMasterRoster(
         ...impTgt,
         id: uniqueId,
         playerId: mappedPlayerId,
+        fake: false,
       };
       targets.push(newTgt);
       targetIdMap.set(impTgt.id, uniqueId);
@@ -737,6 +752,10 @@ export function importPlanIntoMasterRoster(
       serverSpeed: importedPlan.serverSpeed,
       assignedAttackerIds,
       assignedTargetIds,
+      fakeTargetIds: importedPlan.targets
+        .filter((target) => target.fake)
+        .map((target) => targetIdMap.get(target.id))
+        .filter((id): id is string => Boolean(id)),
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
