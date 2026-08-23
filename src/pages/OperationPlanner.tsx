@@ -440,6 +440,18 @@ function playCountdownBeep(secondRemaining: number) {
   } catch {}
 }
 
+function test5sCountdownSequence() {
+  let count = 5;
+  playCountdownBeep(count);
+  const timer = setInterval(() => {
+    count -= 1;
+    playCountdownBeep(count);
+    if (count <= 0) {
+      clearInterval(timer);
+    }
+  }, 1000);
+}
+
 function getCountdownInfo(sendDate: Date, now: Date) {
   const diffSec = Math.floor((sendDate.getTime() - now.getTime()) / 1000);
   if (diffSec < 0) {
@@ -1741,6 +1753,24 @@ export function OperationPlanner({ isV2Unlocked }: { isV2Unlocked?: boolean } = 
                 ))}
               </select>
             </label>
+            <div className="op-alarm-test-group">
+              <button
+                type="button"
+                className="pill pill--tiny op-alarm-test-btn"
+                onClick={test5sCountdownSequence}
+                title="Preview 5-second countdown beeps"
+              >
+                🔊 Test 5s Countdown
+              </button>
+              <button
+                type="button"
+                className="pill pill--tiny op-alarm-test-btn"
+                onClick={play1MinChime}
+                title="Preview 1-minute warning chime"
+              >
+                🎵 Test 1m Chime
+              </button>
+            </div>
           </div>
         </div>
 
@@ -1826,14 +1856,14 @@ export function OperationPlanner({ isV2Unlocked }: { isV2Unlocked?: boolean } = 
                 className={`pill pill--tiny ${filterType === 'real' ? 'is-active' : ''}`}
                 onClick={() => setFilterType('real')}
               >
-                Real Only ({routes.filter((r) => !r.target.fake).length})
+                Real ({routes.filter((r) => !r.target.fake).length})
               </button>
               <button
                 type="button"
                 className={`pill pill--tiny ${filterType === 'fake' ? 'is-active' : ''}`}
                 onClick={() => setFilterType('fake')}
               >
-                Fake Only ({routes.filter((r) => r.target.fake).length})
+                Fake ({routes.filter((r) => r.target.fake).length})
               </button>
             </div>
           </div>
@@ -1869,32 +1899,50 @@ export function OperationPlanner({ isV2Unlocked }: { isV2Unlocked?: boolean } = 
                       key={route.key}
                       className={`op-route-row ${(selectedRoute?.key === route.key ? 'is-selected ' : '') + (route.possible ? 'is-possible' : 'is-blocked')}`}
                       onClick={() => setSelectedKey(route.key)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          setSelectedKey(route.key);
+                        }
+                      }}
                     >
-                      <td className="op-route-col-name">
-                        <span className="op-route-attacker">{route.attacker.name}</span>
-                        <span className="op-route-arrow" aria-hidden="true">➔</span>
-                        <span className="op-route-target">
-                          {route.target.name}
-                          {route.targetSafe.sourceName && route.targetSafe.sourceName !== route.target.name && (
-                            <span className="op-route-owner"> ({route.targetSafe.sourceName})</span>
-                          )}
-                          {route.target.fake && <span className="op-fake-badge">FAKE</span>}
-                        </span>
+                      <td data-label="Route">
+                        <div className="op-route-summary">
+                          <div className="op-route-button__names">
+                            <strong className="op-route-attacker">{route.attacker.name}</strong>
+                            <span className="op-route-arrow" aria-hidden="true">➔</span>
+                            <strong className="op-route-target">{route.target.name}</strong>
+                            <span className="op-route-coords">({route.target.x}|{route.target.y})</span>
+                            <span className={`op-hit-tag ${route.target.fake ? 'is-fake' : 'is-real'}`}>
+                              {route.target.fake ? 'Fake' : 'Real'}
+                            </span>
+                          </div>
+                          <span className="op-route-unit-hint">
+                            {lookup(route.attacker.unitRef).unit.name} ({lookup(route.attacker.unitRef).unit.speed} f/h)
+                            {route.targetSafe.sourceName ? ` · ${route.targetSafe.sourceName}` : ''}
+                          </span>
+                        </div>
                       </td>
-                      <td className="op-mono">{route.distance.toFixed(1)}f</td>
-                      <td className="op-mono">{formatDuration(route.travel)}</td>
-                      <td>
+                      <td data-label="Distance">
+                        <span className="tabular-stat">{route.distance.toFixed(1)}</span> fields
+                      </td>
+                      <td data-label="Travel Duration">
+                        <span className="travel-stat">{formatDuration(route.travel)}</span>
+                      </td>
+                      <td data-label="Launch In">
                         <span className={`op-countdown-tag op-countdown-tag--${countdown.tier}`}>
                           {countdown.label}
                         </span>
                       </td>
-                      <td className="op-mono">
-                        <Stamp date={route.send} showLocal={showLocal} seconds />
+                      <td data-label="Send Time (UTC)">
+                        <Stamp date={route.send} showLocal={showLocal} seconds className="op-timestamp op-timestamp--send" />
                       </td>
-                      <td className="op-mono">
-                        <Stamp date={route.land} showLocal={showLocal} />
+                      <td data-label="Land Time (UTC)">
+                        <Stamp date={route.land} showLocal={showLocal} className="op-timestamp op-timestamp--land" />
                       </td>
-                      <td>
+                      <td data-label="Safetime Checks">
                         <SafetimeCheckCell route={route} showLocal={showLocal} />
                       </td>
                     </tr>

@@ -5037,6 +5037,153 @@ select:focus, .select:focus, .text-input:focus {
   justify-content: flex-end;
 }
 
+/* ==========================================================================
+   Alarm Toolbar & Sound Testers
+   ========================================================================== */
+
+.op-results__head-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.op-alarm-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.op-alarm-select-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+.op-alarm-select-tag {
+  color: var(--text-faint);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.op-alarm-select {
+  padding: 3px 8px;
+  font-size: 12px;
+  background: hsl(220, 18%, 14%);
+  border: 1px solid hsl(220, 16%, 24%);
+  border-radius: 6px;
+  color: var(--text);
+}
+
+.op-alarm-test-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.op-alarm-test-btn {
+  background: hsl(220, 18%, 13%);
+  border: 1px solid hsl(220, 16%, 24%);
+  color: var(--text-dim);
+  font-size: 11px;
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.op-alarm-test-btn:hover {
+  background: hsl(220, 22%, 20%);
+  border-color: #54a0ff;
+  color: #54a0ff;
+}
+
+/* ==========================================================================
+   Route Plan Filters Toolbar
+   ========================================================================== */
+
+.op-filters-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  background: hsl(220, 22%, 9%);
+  border: 1px solid hsl(220, 16%, 20%);
+  border-radius: 8px;
+  flex-wrap: wrap;
+}
+
+.op-filter-selects {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.op-filter-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+.op-filter-label span {
+  color: var(--text-faint);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.op-select-filter {
+  padding: 4px 8px;
+  font-size: 12px;
+  min-width: 140px;
+  background: hsl(220, 18%, 14%);
+  border: 1px solid hsl(220, 16%, 24%);
+  border-radius: 6px;
+  color: var(--text);
+}
+
+.op-filter-pills-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.op-filter-pills {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: hsl(220, 18%, 12%);
+  padding: 2px 4px;
+  border-radius: 6px;
+  border: 1px solid hsl(220, 16%, 18%);
+}
+
+.pill--clear-filter.is-active {
+  background: rgba(46, 204, 113, 0.2);
+  border-color: #2ecc71;
+  color: #2ecc71;
+}
+
+.pill--blocked-filter.is-active {
+  background: rgba(231, 76, 60, 0.2);
+  border-color: #e74c3c;
+  color: #ff6b6b;
+}
+
+
 
 
 

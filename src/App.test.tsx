@@ -452,10 +452,10 @@ describe('the operation planner', () => {
 
     const rows = [...container.querySelectorAll('.op-routes tbody tr')];
     expect(rows.length).toBe(2);
-    const sendTimestamps = rows.map((r) => r.querySelectorAll('.op-mono')[2]?.textContent || '');
+    const sendTimestamps = rows.map((r) => r.querySelector('.op-timestamp--send')?.textContent || '');
     expect(sendTimestamps.every((t) => /\d{2}:\d{2}:\d{2} UTC/.test(t))).toBe(true);
 
-    const landTimestamps = rows.map((r) => r.querySelectorAll('.op-mono')[3]?.textContent || '');
+    const landTimestamps = rows.map((r) => r.querySelector('.op-timestamp--land')?.textContent || '');
     expect(landTimestamps.every((t) => /\d{2}:\d{2} UTC/.test(t) && !/\d{2}:\d{2}:\d{2} UTC/.test(t))).toBe(true);
   });
 
