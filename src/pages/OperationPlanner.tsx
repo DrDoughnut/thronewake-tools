@@ -100,7 +100,9 @@ interface PlannedRoute {
   possible: boolean;
 }
 
-const defaultUnitRef = playableFactions[0].key + '/' + playableFactions[0].units[0].key;
+const defaultCatapultUnit =
+  playableFactions[0].units.find((u) => u.role === 'siege') || playableFactions[0].units[0];
+const defaultUnitRef = `${playableFactions[0].key}/${defaultCatapultUnit.key}`;
 
 const initialSafeTime = (): SafeTimeOwner => ({
   safeEnabled: false,
@@ -379,17 +381,17 @@ function play1MinChime() {
       ctx.resume();
     }
     const notes = [
-      { freq: 1046.5, time: 0, dur: 0.16 }, // C6
-      { freq: 1318.5, time: 0.14, dur: 0.16 }, // E6
-      { freq: 1568.0, time: 0.28, dur: 0.35 }, // G6
+      { freq: 1046.5, time: 0, dur: 0.18 }, // C6
+      { freq: 1318.5, time: 0.15, dur: 0.18 }, // E6
+      { freq: 1568.0, time: 0.30, dur: 0.40 }, // G6
     ];
     notes.forEach(({ freq, time, dur }) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      osc.type = 'sine';
+      osc.type = 'triangle';
       osc.frequency.setValueAtTime(freq, ctx.currentTime + time);
       gain.gain.setValueAtTime(0, ctx.currentTime + time);
-      gain.gain.linearRampToValueAtTime(0.25, ctx.currentTime + time + 0.02);
+      gain.gain.linearRampToValueAtTime(0.85, ctx.currentTime + time + 0.015);
       gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + time + dur);
       osc.connect(gain);
       gain.connect(ctx.destination);
@@ -411,27 +413,27 @@ function playCountdownBeep(secondRemaining: number) {
     if (secondRemaining > 0) {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(987.77, ctx.currentTime);
       gain.gain.setValueAtTime(0, ctx.currentTime);
-      gain.gain.linearRampToValueAtTime(0.3, ctx.currentTime + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.08);
+      gain.gain.linearRampToValueAtTime(0.85, ctx.currentTime + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.10);
       osc.connect(gain);
       gain.connect(ctx.destination);
       osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + 0.09);
+      osc.stop(ctx.currentTime + 0.11);
     } else {
       const tones = [
-        { freq: 1318.5, time: 0, dur: 0.12 }, // E6
-        { freq: 1760.0, time: 0.08, dur: 0.25 }, // A6
+        { freq: 1318.5, time: 0, dur: 0.14 }, // E6
+        { freq: 1760.0, time: 0.09, dur: 0.32 }, // A6
       ];
       tones.forEach(({ freq, time, dur }) => {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
-        osc.type = 'sine';
+        osc.type = 'triangle';
         osc.frequency.setValueAtTime(freq, ctx.currentTime + time);
         gain.gain.setValueAtTime(0, ctx.currentTime + time);
-        gain.gain.linearRampToValueAtTime(0.35, ctx.currentTime + time + 0.02);
+        gain.gain.linearRampToValueAtTime(0.90, ctx.currentTime + time + 0.015);
         gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + time + dur);
         osc.connect(gain);
         gain.connect(ctx.destination);
@@ -991,7 +993,14 @@ export function OperationPlanner({
     },
   ]);
 
-  const [activeOpId, setActiveOpId] = useState<string>('op1');
+  const [activeOpId, setActiveOpId] = useState<string | null>(() => {
+    try {
+      if (localStorage.getItem('thronewake.v2.unlocked') === '1') {
+        return null;
+      }
+    } catch {}
+    return 'op1';
+  });
 
   // Modals state
   const [isArmiesModalOpen, setIsArmiesModalOpen] = useState(false);
@@ -1012,7 +1021,11 @@ export function OperationPlanner({
 
   // Active operation resolution
   const activeOp = useMemo(() => {
-    return operations.find((o) => o.id === activeOpId) || operations[0] || {
+    if (activeOpId) {
+      const found = operations.find((o) => o.id === activeOpId);
+      if (found) return found;
+    }
+    return operations[0] || {
       id: 'op1',
       name: 'Operation 1',
       landing: '2026-08-16T19:00',
@@ -1098,15 +1111,17 @@ export function OperationPlanner({
   };
 
   useEffect(() => {
-    const currentPlannerState: PlannerState = {
-      landing: activeOp.landing,
-      serverSpeed: activeOp.serverSpeed,
-      attackers: marchingAttackers,
-      targets: activeTargets,
-      players: roster.players,
-    };
-    window.history.replaceState(null, '', `${window.location.pathname}#${plannerHash(currentPlannerState)}`);
-  }, [activeOp, marchingAttackers, activeTargets, roster.players]);
+    if (!isV2Active || (roomSession && activeOpId)) {
+      const currentPlannerState: PlannerState = {
+        landing: activeOp.landing,
+        serverSpeed: activeOp.serverSpeed,
+        attackers: marchingAttackers,
+        targets: activeTargets,
+        players: roster.players,
+      };
+      window.history.replaceState(null, '', `${window.location.pathname}#${plannerHash(currentPlannerState)}`);
+    }
+  }, [isV2Active, roomSession, activeOpId, activeOp, marchingAttackers, activeTargets, roster.players]);
 
   useEffect(() => {
     writeShowLocal(showLocal);
@@ -1129,18 +1144,19 @@ export function OperationPlanner({
     setRoomSession(session);
     setRoster(migrated.roster);
     setOperations(migrated.operations);
-    setActiveOpId(migrated.activeOpId);
+    setActiveOpId(null); // No operation open when first entering secret mode
     setLastSavedSnapshot(
       JSON.stringify({
         roster: migrated.roster,
         operations: migrated.operations,
-        activeOpId: migrated.activeOpId,
+        activeOpId: null,
       })
     );
   };
 
   const handleRoomDisconnected = () => {
     setRoomSession(null);
+    setActiveOpId(null);
     setLastSavedSnapshot('');
     try {
       localStorage.removeItem('thronewake.v2.unlocked');
@@ -1573,8 +1589,22 @@ export function OperationPlanner({
     }
   }, [now, routes, alarmEnabled, alarmAttackerId]);
 
+  const isOperationOpen = !isV2Active || Boolean(roomSession && activeOpId);
+
   return (
-    <div className="operations">
+    <div className={`operations ${isV2Active ? 'operations--v2-classified' : ''}`}>
+      {/* Top-Secret v2 Classified Banner */}
+      {isV2Active && (
+        <div className="op-v2-classified-banner">
+          <div className="op-v2-classified-banner__left">
+            <span className="op-v2-classified-banner__pulse" />
+            <span>🕵️ TOP SECRET CLASSIFIED MODE</span>
+            <span className="op-v2-classified-banner__tag">v2 Live Collaboration</span>
+          </div>
+          <span>Zero-Knowledge AES-256</span>
+        </div>
+      )}
+
       {/* Top-Secret v2 Mode: Team Room Zero-Knowledge Cloud Sync, Master Roster Bar, and Multi-Ops */}
       {isV2Active && (
         <>
@@ -1653,419 +1683,462 @@ export function OperationPlanner({
         </>
       )}
 
-      {/* Active Operation Wave Command Center */}
-      <section className="panel op-command">
-        <div className="op-command__main">
-          <div className="op-landing-control">
-            <div className="op-landing-control__label-row">
-              <span className="op-command__label">Coordinated Landing Time</span>
-              <span className="op-utc-badge">24h UTC</span>
-              <label
-                className="op-local-toggle"
-                title={`Also show every time in ${zoneLabel}. Stays on this device — shared links carry only the plan.`}
-              >
-                <input
-                  type="checkbox"
-                  checked={showLocal}
-                  onChange={(event) => setShowLocal(event.target.checked)}
-                />
-                <span>Show local time</span>
-              </label>
-            </div>
-            <div className="op-landing-control__inputs">
-              <input
-                className="text-input text-input--date"
-                type="date"
-                value={landingDate}
-                onChange={(event) => updateLanding(event.target.value, landingTime)}
-              />
-              <Time24Input
-                value={landingTime}
-                onChange={(newTime) => updateLanding(landingDate, newTime)}
-                placeholder="14:00"
-              />
-            </div>
-            {showLocal && (
-              <span className="op-landing-local">
-                = {formatLocalDateTime(parsedLanding)} · {zoneLabel}
-              </span>
-            )}
-            <div className="op-landing-shortcuts">
-              <span className="op-landing-shortcuts__label">Shift:</span>
-              <button type="button" className="pill pill--tiny" onClick={() => shiftLandingHours(1)}>+1h</button>
-              <button type="button" className="pill pill--tiny" onClick={() => shiftLandingHours(4)}>+4h</button>
-              <button type="button" className="pill pill--tiny" onClick={() => shiftLandingHours(8)}>+8h</button>
-              <button type="button" className="pill pill--tiny" onClick={() => shiftLandingHours(12)}>+12h</button>
-              <button type="button" className="pill pill--tiny" onClick={() => shiftLandingHours(24)}>+24h</button>
-              <button type="button" className="pill pill--tiny" onClick={setLandingNow}>Now</button>
-            </div>
-          </div>
-
-          <div className="op-speed-control">
-            <span className="op-command__label">Server Speed</span>
-            <div className="speed-group" role="group" aria-label="Server speed">
-              {[1, 3, 10].map((speed) => (
-                <button
-                  key={speed}
-                  type="button"
-                  className={'pill pill--speed ' + (activeOp.serverSpeed === speed ? 'is-active' : '')}
-                  aria-pressed={activeOp.serverSpeed === speed}
-                  onClick={() => updateServerSpeed(speed)}
-                >
-                  {speed}×
-                </button>
-              ))}
-            </div>
-            <span className="op-speed-note">
-              {activeOp.serverSpeed === 1 ? '1× troop speed' : activeOp.serverSpeed === 3 ? '2× troop speed' : '4× troop speed'}
-            </span>
-          </div>
-
-          <div className="op-share-control">
-            <span className="op-command__label">Share Plan</span>
-            <button
-              type="button"
-              className={`pill pill--share ${copied ? 'is-copied' : ''}`}
-              onClick={copyShareLink}
-              title="Copy short shareable link with current plan settings"
-            >
-              {copied ? '✓ Link Copied!' : '🔗 Copy Share Link'}
-            </button>
-          </div>
-        </div>
-
-        <p className="hint">
-          All times and safe windows use 24-hour UTC. Coordinate distances are calculated Euclidean.
-        </p>
-      </section>
-
-      {/* Mode-Specific Participant Configuration */}
-      {isV2Active && roomSession ? (
-        /* Top-Secret v2: Operation March Participant Selector Checklist */
-        <OperationParticipantPicker
-          attackers={roster.attackers}
-          players={roster.players}
-          targets={roster.targets}
-          assignedAttackerIds={activeOp.assignedAttackerIds || []}
-          assignedTargetIds={activeOp.assignedTargetIds || []}
-          onToggleAttacker={handleToggleAttacker}
-          onToggleTarget={handleToggleTarget}
-          onSelectAllAttackers={handleSelectAllAttackers}
-          onDeselectAllAttackers={handleDeselectAllAttackers}
-          onSelectAllTargets={handleSelectAllTargets}
-          onDeselectAllTargets={handleDeselectAllTargets}
-          onOpenAttackerModal={() => setIsArmiesModalOpen(true)}
-          onOpenTargetModal={() => setIsTargetsModalOpen(true)}
-        />
-      ) : (
-        /* Standard v1: Direct Inline Attacking Armies and Target Defenders Panels */
-        <>
-          <section className="panel op-section">
-            <div className="op-section-head">
-              <div className="op-section-head__title-group">
-                <span className="op-section-tag op-section-tag--attacker">Attackers</span>
-                <h2 className="panel__title">Attacking Armies ({roster.attackers.length})</h2>
-                <p className="op-section-copy">Configure slowest troop, speed modifiers, coordinates, and safe hours.</p>
-              </div>
-              <button type="button" className="pill pill--tiny pill--primary" onClick={handleAddAttacker}>
-                + Add Attacker
-              </button>
-            </div>
-
-            <div className="op-strip-list">
-              {roster.attackers.map((attacker, index) => (
-                <AttackerCard
-                  key={attacker.id}
-                  attacker={attacker}
-                  index={index}
-                  onPatch={(patch) => handlePatchAttacker(attacker.id, patch)}
-                  onRemove={() => handleRemoveAttacker(attacker.id)}
-                />
-              ))}
-            </div>
-          </section>
-
-          <section className="panel op-section">
-            <div className="op-section-head">
-              <div className="op-section-head__title-group">
-                <span className="op-section-tag op-section-tag--target">Defenders</span>
-                <h2 className="panel__title">
-                  Target Defenders ({roster.players.length} {roster.players.length === 1 ? 'account' : 'accounts'} · {roster.targets.length} {roster.targets.length === 1 ? 'village' : 'villages'})
-                </h2>
-                <p className="op-section-copy">
-                  Each defender account defines its safe hours once. All villages under an account inherit its safe hours.
-                </p>
-              </div>
-              <button type="button" className="pill pill--tiny pill--primary" onClick={handleAddPlayer}>
-                + Add Defender
-              </button>
-            </div>
-
-            <div className="op-defenders-list">
-              {roster.players.map((player, pIdx) => (
-                <PlayerGroupCard
-                  key={player.id}
-                  player={player}
-                  pIdx={pIdx}
-                  targets={roster.targets}
-                  onPatchPlayer={(patch) => handlePatchPlayer(player.id, patch)}
-                  onRemovePlayer={() => handleRemovePlayer(player.id)}
-                  onAddVillage={() => handleAddVillage(player.id)}
-                  onPatchTarget={handlePatchTarget}
-                  onRemoveTarget={handleRemoveTarget}
-                />
-              ))}
-            </div>
-          </section>
-        </>
-      )}
-
-      {/* Results Section */}
-      <section className="panel op-results">
-        <div className="op-section-head op-results__head-wrap">
-          <div>
-            <h2 className="panel__title">Route Plan (Sorted by Send Time)</h2>
-            <p className="op-section-copy">
-              Click anywhere on a row to inspect its schedule. {routes.filter((route) => route.possible).length} of {routes.length} routes clear all safetime checks
-              {' · '}{routes.filter((route) => !route.target.fake).length} real, {routes.filter((route) => route.target.fake).length} fake.
+      {/* Standby panel when in v2 mode and no operation wave is currently open */}
+      {isV2Active && roomSession && !activeOpId && (
+        <section className="panel op-standby-panel">
+          <div className="op-standby-panel__body">
+            <span className="op-standby-panel__icon">🗺️</span>
+            <h3 className="op-standby-panel__title">No Operation Wave Open</h3>
+            <p className="op-standby-panel__desc">
+              Select an operation wave from the list above or click <strong>+ New Operation</strong> to plan launch timings, assign armies, and view route plans.
+            </p>
+            <p className="op-standby-panel__hint">
+              Tip: You can manage your Alliance Armies and Defender Targets anytime using the Master Roster cards above without selecting an operation.
             </p>
           </div>
+        </section>
+      )}
 
-          {/* Alarm Control Button Toolbar */}
-          <div className="op-alarm-toolbar">
-            <button
-              type="button"
-              className={`pill pill--alarm ${alarmEnabled ? 'is-enabled' : 'is-muted'}`}
-              onClick={() => setAlarmEnabled((prev) => !prev)}
-              title={alarmEnabled ? 'Audio alert enabled (1m chime & 5s countdown beeps). Click to mute.' : 'Sound alert is muted. Click to enable.'}
-            >
-              {alarmEnabled ? '🔔 Alarm: ON' : '🔕 Alarm: Muted'}
-            </button>
-            <label className="op-alarm-select-label" title="Choose which attacker army triggers launch sound alarms">
-              <span className="op-alarm-select-tag">Army:</span>
-              <select
-                className="select op-select-solid-sm op-alarm-select"
-                value={alarmAttackerId}
-                onChange={(e) => setAlarmAttackerId(e.target.value)}
-                aria-label="Select attacker army for audio alarm"
-              >
-                <option value="all">All Armies</option>
-                {roster.attackers.map((atk) => (
-                  <option key={atk.id} value={atk.id}>
-                    {atk.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <div className="op-alarm-test-group">
+      {/* Operation Wave Content: Rendered when an operation is open or in standard v1 mode */}
+      {isOperationOpen && (
+        <>
+          {/* Active Operation Wave Header Strip (v2) */}
+          {isV2Active && roomSession && activeOpId && (
+            <div className="op-active-wave-bar">
+              <div className="op-active-wave-bar__info">
+                <span className="op-active-wave-bar__tag">ACTIVE WAVE</span>
+                <strong className="op-active-wave-bar__title">{activeOp.name}</strong>
+                <span className="op-active-wave-bar__meta">
+                  {marchingAttackers.length} armies · {activeTargets.length} targets · {routes.length} routes
+                </span>
+              </div>
               <button
                 type="button"
-                className="pill pill--tiny op-alarm-test-btn"
-                onClick={test5sCountdownSequence}
-                title="Preview 5-second countdown beeps"
+                className="pill pill--tiny pill--secondary"
+                onClick={() => setActiveOpId(null)}
+                title="Close this operation wave to view roster"
               >
-                🔊 Test 5s Countdown
-              </button>
-              <button
-                type="button"
-                className="pill pill--tiny op-alarm-test-btn"
-                onClick={play1MinChime}
-                title="Preview 1-minute warning chime"
-              >
-                🎵 Test 1m Chime
+                ✕ Close Operation
               </button>
             </div>
-          </div>
-        </div>
+          )}
 
-        {/* Route Filters Toolbar */}
-        <div className="op-filters-bar">
-          <div className="op-filter-selects">
-            <label className="op-filter-label">
-              <span>Attacker:</span>
-              <select
-                className="select op-select-filter"
-                value={filterAttacker}
-                onChange={(e) => setFilterAttacker(e.target.value)}
-                aria-label="Filter routes by attacker"
-              >
-                <option value="all">All Attackers ({marchingAttackers.length})</option>
-                {marchingAttackers.map((atk) => {
-                  const count = routes.filter((r) => r.attacker.id === atk.id).length;
-                  return (
-                    <option key={atk.id} value={atk.id}>
-                      {atk.name} ({count} routes)
-                    </option>
-                  );
-                })}
-              </select>
-            </label>
+          {/* Active Operation Wave Command Center */}
+          <section className="panel op-command">
+            <div className="op-command__main">
+              <div className="op-landing-control">
+                <div className="op-landing-control__label-row">
+                  <span className="op-command__label">Coordinated Landing Time</span>
+                  <span className="op-utc-badge">24h UTC</span>
+                  <label
+                    className="op-local-toggle"
+                    title={`Also show every time in ${zoneLabel}. Stays on this device — shared links carry only the plan.`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={showLocal}
+                      onChange={(event) => setShowLocal(event.target.checked)}
+                    />
+                    <span>Show local time</span>
+                  </label>
+                </div>
+                <div className="op-landing-control__inputs">
+                  <input
+                    className="text-input text-input--date"
+                    type="date"
+                    value={landingDate}
+                    onChange={(event) => updateLanding(event.target.value, landingTime)}
+                  />
+                  <Time24Input
+                    value={landingTime}
+                    onChange={(newTime) => updateLanding(landingDate, newTime)}
+                    placeholder="14:00"
+                  />
+                </div>
+                {showLocal && (
+                  <span className="op-landing-local">
+                    = {formatLocalDateTime(parsedLanding)} · {zoneLabel}
+                  </span>
+                )}
+                <div className="op-landing-shortcuts">
+                  <span className="op-landing-shortcuts__label">Shift:</span>
+                  <button type="button" className="pill pill--tiny" onClick={() => shiftLandingHours(1)}>+1h</button>
+                  <button type="button" className="pill pill--tiny" onClick={() => shiftLandingHours(4)}>+4h</button>
+                  <button type="button" className="pill pill--tiny" onClick={() => shiftLandingHours(8)}>+8h</button>
+                  <button type="button" className="pill pill--tiny" onClick={() => shiftLandingHours(12)}>+12h</button>
+                  <button type="button" className="pill pill--tiny" onClick={() => shiftLandingHours(24)}>+24h</button>
+                  <button type="button" className="pill pill--tiny" onClick={setLandingNow}>Now</button>
+                </div>
+              </div>
 
-            <label className="op-filter-label">
-              <span>Target:</span>
-              <select
-                className="select op-select-filter"
-                value={filterTarget}
-                onChange={(e) => setFilterTarget(e.target.value)}
-                aria-label="Filter routes by target"
-              >
-                <option value="all">All Targets ({activeTargets.length})</option>
-                {activeTargets.map((tgt) => {
-                  const count = routes.filter((r) => r.target.id === tgt.id).length;
-                  return (
-                    <option key={tgt.id} value={tgt.id}>
-                      {tgt.name} ({count} routes)
-                    </option>
-                  );
-                })}
-              </select>
-            </label>
-          </div>
-
-          <div className="op-filter-pills-group">
-            <div className="op-filter-pills" role="group" aria-label="Filter by route viability">
-              <button
-                type="button"
-                className={`pill pill--tiny ${filterStatus === 'all' ? 'is-active' : ''}`}
-                onClick={() => setFilterStatus('all')}
-              >
-                All Status ({routes.length})
-              </button>
-              <button
-                type="button"
-                className={`pill pill--tiny pill--clear-filter ${filterStatus === 'possible' ? 'is-active' : ''}`}
-                onClick={() => setFilterStatus('possible')}
-              >
-                Clear ({routes.filter((r) => r.possible).length})
-              </button>
-              <button
-                type="button"
-                className={`pill pill--tiny pill--blocked-filter ${filterStatus === 'blocked' ? 'is-active' : ''}`}
-                onClick={() => setFilterStatus('blocked')}
-              >
-                Blocked ({routes.filter((r) => !routeIsPossible(r.checks)).length})
-              </button>
-            </div>
-
-            <div className="op-filter-pills" role="group" aria-label="Filter by attack type">
-              <button
-                type="button"
-                className={`pill pill--tiny ${filterType === 'all' ? 'is-active' : ''}`}
-                onClick={() => setFilterType('all')}
-              >
-                All Types
-              </button>
-              <button
-                type="button"
-                className={`pill pill--tiny ${filterType === 'real' ? 'is-active' : ''}`}
-                onClick={() => setFilterType('real')}
-              >
-                Real ({routes.filter((r) => !r.target.fake).length})
-              </button>
-              <button
-                type="button"
-                className={`pill pill--tiny ${filterType === 'fake' ? 'is-active' : ''}`}
-                onClick={() => setFilterType('fake')}
-              >
-                Fake ({routes.filter((r) => r.target.fake).length})
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="op-routes">
-          <table>
-            <thead>
-              <tr>
-                <th>Route</th>
-                <th>Distance</th>
-                <th>Travel Duration</th>
-                <th>Launch In</th>
-                <th>Send Time (UTC)</th>
-                <th>Land Time (UTC)</th>
-                <th>
-                  <SafetimeHeaderTooltip />
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {visibleRoutes.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="op-routes-empty">
-                    No routes match the selected participants or filters.
-                  </td>
-                </tr>
-              ) : (
-                visibleRoutes.map((route) => {
-                  const countdown = getCountdownInfo(route.send, now);
-                  return (
-                    <tr
-                      key={route.key}
-                      className={`op-route-row ${(selectedRoute?.key === route.key ? 'is-selected ' : '') + (route.possible ? 'is-possible' : 'is-blocked')}`}
-                      onClick={() => setSelectedKey(route.key)}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          setSelectedKey(route.key);
-                        }
-                      }}
+              <div className="op-speed-control">
+                <span className="op-command__label">Server Speed</span>
+                <div className="speed-group" role="group" aria-label="Server speed">
+                  {[1, 3, 10].map((speed) => (
+                    <button
+                      key={speed}
+                      type="button"
+                      className={'pill pill--speed ' + (activeOp.serverSpeed === speed ? 'is-active' : '')}
+                      aria-pressed={activeOp.serverSpeed === speed}
+                      onClick={() => updateServerSpeed(speed)}
                     >
-                      <td data-label="Route">
-                        <div className="op-route-summary">
-                          <div className="op-route-button__names">
-                            <strong className="op-route-attacker">{route.attacker.name}</strong>
-                            <span className="op-route-arrow" aria-hidden="true">➔</span>
-                            <strong className="op-route-target">{route.target.name}</strong>
-                            <span className="op-route-coords">({route.target.x}|{route.target.y})</span>
-                            <span className={`op-hit-tag ${route.target.fake ? 'is-fake' : 'is-real'}`}>
-                              {route.target.fake ? 'Fake' : 'Real'}
-                            </span>
-                          </div>
-                          <span className="op-route-unit-hint">
-                            {lookup(route.attacker.unitRef).unit.name} ({lookup(route.attacker.unitRef).unit.speed} f/h)
-                            {route.targetSafe.sourceName ? ` · ${route.targetSafe.sourceName}` : ''}
-                          </span>
-                        </div>
-                      </td>
-                      <td data-label="Distance">
-                        <span className="tabular-stat">{route.distance.toFixed(1)}</span> fields
-                      </td>
-                      <td data-label="Travel Duration">
-                        <span className="travel-stat">{formatDuration(route.travel)}</span>
-                      </td>
-                      <td data-label="Launch In">
-                        <span className={`op-countdown-tag op-countdown-tag--${countdown.tier}`}>
-                          {countdown.label}
-                        </span>
-                      </td>
-                      <td data-label="Send Time (UTC)">
-                        <Stamp date={route.send} showLocal={showLocal} seconds className="op-timestamp op-timestamp--send" />
-                      </td>
-                      <td data-label="Land Time (UTC)">
-                        <Stamp date={route.land} showLocal={showLocal} className="op-timestamp op-timestamp--land" />
-                      </td>
-                      <td data-label="Safetime Checks">
-                        <SafetimeCheckCell route={route} showLocal={showLocal} />
+                      {speed}×
+                    </button>
+                  ))}
+                </div>
+                <span className="op-speed-note">
+                  {activeOp.serverSpeed === 1 ? '1× troop speed' : activeOp.serverSpeed === 3 ? '2× troop speed' : '4× troop speed'}
+                </span>
+              </div>
+
+              <div className="op-share-control">
+                <span className="op-command__label">Share Plan</span>
+                <button
+                  type="button"
+                  className={`pill pill--share ${copied ? 'is-copied' : ''}`}
+                  onClick={copyShareLink}
+                  title="Copy short shareable link with current plan settings"
+                >
+                  {copied ? '✓ Link Copied!' : '🔗 Copy Share Link'}
+                </button>
+              </div>
+            </div>
+
+            <p className="hint">
+              All times and safe windows use 24-hour UTC. Coordinate distances are calculated Euclidean.
+            </p>
+          </section>
+
+          {/* Mode-Specific Participant Configuration */}
+          {isV2Active && roomSession ? (
+            /* Top-Secret v2: Operation March Participant Selector Checklist */
+            <OperationParticipantPicker
+              attackers={roster.attackers}
+              players={roster.players}
+              targets={roster.targets}
+              assignedAttackerIds={activeOp.assignedAttackerIds || []}
+              assignedTargetIds={activeOp.assignedTargetIds || []}
+              onToggleAttacker={handleToggleAttacker}
+              onToggleTarget={handleToggleTarget}
+              onSelectAllAttackers={handleSelectAllAttackers}
+              onDeselectAllAttackers={handleDeselectAllAttackers}
+              onSelectAllTargets={handleSelectAllTargets}
+              onDeselectAllTargets={handleDeselectAllTargets}
+              onOpenAttackerModal={() => setIsArmiesModalOpen(true)}
+              onOpenTargetModal={() => setIsTargetsModalOpen(true)}
+            />
+          ) : (
+            /* Standard v1: Direct Inline Attacking Armies and Target Defenders Panels */
+            <>
+              <section className="panel op-section">
+                <div className="op-section-head">
+                  <div className="op-section-head__title-group">
+                    <span className="op-section-tag op-section-tag--attacker">Attackers</span>
+                    <h2 className="panel__title">Attacking Armies ({roster.attackers.length})</h2>
+                    <p className="op-section-copy">Configure slowest troop, speed modifiers, coordinates, and safe hours.</p>
+                  </div>
+                  <button type="button" className="pill pill--tiny pill--primary" onClick={handleAddAttacker}>
+                    + Add Attacker
+                  </button>
+                </div>
+
+                <div className="op-strip-list">
+                  {roster.attackers.map((attacker, index) => (
+                    <AttackerCard
+                      key={attacker.id}
+                      attacker={attacker}
+                      index={index}
+                      showUnitPicker={true}
+                      onPatch={(patch) => handlePatchAttacker(attacker.id, patch)}
+                      onRemove={() => handleRemoveAttacker(attacker.id)}
+                    />
+                  ))}
+                </div>
+              </section>
+
+              <section className="panel op-section">
+                <div className="op-section-head">
+                  <div className="op-section-head__title-group">
+                    <span className="op-section-tag op-section-tag--target">Defenders</span>
+                    <h2 className="panel__title">
+                      Target Defenders ({roster.players.length} {roster.players.length === 1 ? 'account' : 'accounts'} · {roster.targets.length} {roster.targets.length === 1 ? 'village' : 'villages'})
+                    </h2>
+                    <p className="op-section-copy">
+                      Each defender account defines its safe hours once. All villages under an account inherit its safe hours.
+                    </p>
+                  </div>
+                  <button type="button" className="pill pill--tiny pill--primary" onClick={handleAddPlayer}>
+                    + Add Defender
+                  </button>
+                </div>
+
+                <div className="op-defenders-list">
+                  {roster.players.map((player, pIdx) => (
+                    <PlayerGroupCard
+                      key={player.id}
+                      player={player}
+                      pIdx={pIdx}
+                      targets={roster.targets}
+                      onPatchPlayer={(patch) => handlePatchPlayer(player.id, patch)}
+                      onRemovePlayer={() => handleRemovePlayer(player.id)}
+                      onAddVillage={() => handleAddVillage(player.id)}
+                      onPatchTarget={handlePatchTarget}
+                      onRemoveTarget={handleRemoveTarget}
+                    />
+                  ))}
+                </div>
+              </section>
+            </>
+          )}
+
+          {/* Results Section */}
+          <section className="panel op-results">
+            <div className="op-section-head op-results__head-wrap">
+              <div>
+                <h2 className="panel__title">Route Plan (Sorted by Send Time)</h2>
+                <p className="op-section-copy">
+                  Click anywhere on a row to inspect its schedule. {routes.filter((route) => route.possible).length} of {routes.length} routes clear all safetime checks
+                  {' · '}{routes.filter((route) => !route.target.fake).length} real, {routes.filter((route) => route.target.fake).length} fake.
+                </p>
+              </div>
+
+              {/* Alarm Control Button Toolbar */}
+              <div className="op-alarm-toolbar">
+                <button
+                  type="button"
+                  className={`pill pill--alarm ${alarmEnabled ? 'is-enabled' : 'is-muted'}`}
+                  onClick={() => setAlarmEnabled((prev) => !prev)}
+                  title={alarmEnabled ? 'Audio alert enabled (1m chime & 5s countdown beeps). Click to mute.' : 'Sound alert is muted. Click to enable.'}
+                >
+                  {alarmEnabled ? '🔔 Alarm: ON' : '🔕 Alarm: Muted'}
+                </button>
+                <label className="op-alarm-select-label" title="Choose which attacker army triggers launch sound alarms">
+                  <span className="op-alarm-select-tag">Army:</span>
+                  <select
+                    className="select op-select-solid-sm op-alarm-select"
+                    value={alarmAttackerId}
+                    onChange={(e) => setAlarmAttackerId(e.target.value)}
+                    aria-label="Select attacker army for audio alarm"
+                  >
+                    <option value="all">All Armies</option>
+                    {roster.attackers.map((atk) => (
+                      <option key={atk.id} value={atk.id}>
+                        {atk.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <div className="op-alarm-test-group">
+                  <button
+                    type="button"
+                    className="pill pill--tiny op-alarm-test-btn"
+                    onClick={test5sCountdownSequence}
+                    title="Preview 5-second countdown beeps"
+                  >
+                    🔊 Test 5s Countdown
+                  </button>
+                  <button
+                    type="button"
+                    className="pill pill--tiny op-alarm-test-btn"
+                    onClick={play1MinChime}
+                    title="Preview 1-minute warning chime"
+                  >
+                    🎵 Test 1m Chime
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Route Filters Toolbar */}
+            <div className="op-filters-bar">
+              <div className="op-filter-selects">
+                <label className="op-filter-label">
+                  <span>Attacker:</span>
+                  <select
+                    className="select op-select-filter"
+                    value={filterAttacker}
+                    onChange={(e) => setFilterAttacker(e.target.value)}
+                    aria-label="Filter routes by attacker"
+                  >
+                    <option value="all">All Attackers ({marchingAttackers.length})</option>
+                    {marchingAttackers.map((atk) => {
+                      const count = routes.filter((r) => r.attacker.id === atk.id).length;
+                      return (
+                        <option key={atk.id} value={atk.id}>
+                          {atk.name} ({count} routes)
+                        </option>
+                      );
+                    })}
+                  </select>
+                </label>
+
+                <label className="op-filter-label">
+                  <span>Target:</span>
+                  <select
+                    className="select op-select-filter"
+                    value={filterTarget}
+                    onChange={(e) => setFilterTarget(e.target.value)}
+                    aria-label="Filter routes by target"
+                  >
+                    <option value="all">All Targets ({activeTargets.length})</option>
+                    {activeTargets.map((tgt) => {
+                      const count = routes.filter((r) => r.target.id === tgt.id).length;
+                      return (
+                        <option key={tgt.id} value={tgt.id}>
+                          {tgt.name} ({count} routes)
+                        </option>
+                      );
+                    })}
+                  </select>
+                </label>
+              </div>
+
+              <div className="op-filter-pills-group">
+                <div className="op-filter-pills" role="group" aria-label="Filter by route viability">
+                  <button
+                    type="button"
+                    className={`pill pill--tiny ${filterStatus === 'all' ? 'is-active' : ''}`}
+                    onClick={() => setFilterStatus('all')}
+                  >
+                    All Status ({routes.length})
+                  </button>
+                  <button
+                    type="button"
+                    className={`pill pill--tiny pill--clear-filter ${filterStatus === 'possible' ? 'is-active' : ''}`}
+                    onClick={() => setFilterStatus('possible')}
+                  >
+                    Clear ({routes.filter((r) => r.possible).length})
+                  </button>
+                  <button
+                    type="button"
+                    className={`pill pill--tiny pill--blocked-filter ${filterStatus === 'blocked' ? 'is-active' : ''}`}
+                    onClick={() => setFilterStatus('blocked')}
+                  >
+                    Blocked ({routes.filter((r) => !routeIsPossible(r.checks)).length})
+                  </button>
+                </div>
+
+                <div className="op-filter-pills" role="group" aria-label="Filter by attack type">
+                  <button
+                    type="button"
+                    className={`pill pill--tiny ${filterType === 'all' ? 'is-active' : ''}`}
+                    onClick={() => setFilterType('all')}
+                  >
+                    All Types
+                  </button>
+                  <button
+                    type="button"
+                    className={`pill pill--tiny ${filterType === 'real' ? 'is-active' : ''}`}
+                    onClick={() => setFilterType('real')}
+                  >
+                    Real ({routes.filter((r) => !r.target.fake).length})
+                  </button>
+                  <button
+                    type="button"
+                    className={`pill pill--tiny ${filterType === 'fake' ? 'is-active' : ''}`}
+                    onClick={() => setFilterType('fake')}
+                  >
+                    Fake ({routes.filter((r) => r.target.fake).length})
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="op-routes">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Route</th>
+                    <th>Distance</th>
+                    <th>Travel Duration</th>
+                    <th>Launch In</th>
+                    <th>Send Time (UTC)</th>
+                    <th>Land Time (UTC)</th>
+                    <th>
+                      <SafetimeHeaderTooltip />
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visibleRoutes.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="op-routes-empty">
+                        No routes match the selected participants or filters.
                       </td>
                     </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
+                  ) : (
+                    visibleRoutes.map((route) => {
+                      const countdown = getCountdownInfo(route.send, now);
+                      return (
+                        <tr
+                          key={route.key}
+                          className={`op-route-row ${(selectedRoute?.key === route.key ? 'is-selected ' : '') + (route.possible ? 'is-possible' : 'is-blocked')}`}
+                          onClick={() => setSelectedKey(route.key)}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              setSelectedKey(route.key);
+                            }
+                          }}
+                        >
+                          <td data-label="Route">
+                            <div className="op-route-summary">
+                              <div className="op-route-button__names">
+                                <strong className="op-route-attacker">{route.attacker.name}</strong>
+                                <span className="op-route-arrow" aria-hidden="true">➔</span>
+                                <strong className="op-route-target">{route.target.name}</strong>
+                                <span className="op-route-coords">({route.target.x}|{route.target.y})</span>
+                                <span className={`op-hit-tag ${route.target.fake ? 'is-fake' : 'is-real'}`}>
+                                  {route.target.fake ? 'Fake' : 'Real'}
+                                </span>
+                              </div>
+                              <span className="op-route-unit-hint">
+                                {lookup(route.attacker.unitRef).unit.name} ({lookup(route.attacker.unitRef).unit.speed} f/h)
+                                {route.targetSafe.sourceName ? ` · ${route.targetSafe.sourceName}` : ''}
+                              </span>
+                            </div>
+                          </td>
+                          <td data-label="Distance">
+                            <span className="tabular-stat">{route.distance.toFixed(1)}</span> fields
+                          </td>
+                          <td data-label="Travel Duration">
+                            <span className="travel-stat">{formatDuration(route.travel)}</span>
+                          </td>
+                          <td data-label="Launch In">
+                            <span className={`op-countdown-tag op-countdown-tag--${countdown.tier}`}>
+                              {countdown.label}
+                            </span>
+                          </td>
+                          <td data-label="Send Time (UTC)">
+                            <Stamp date={route.send} showLocal={showLocal} seconds className="op-timestamp op-timestamp--send" />
+                          </td>
+                          <td data-label="Land Time (UTC)">
+                            <Stamp date={route.land} showLocal={showLocal} className="op-timestamp op-timestamp--land" />
+                          </td>
+                          <td data-label="Safetime Checks">
+                            <SafetimeCheckCell route={route} showLocal={showLocal} />
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
 
-      {/* Schedule Timeline */}
-      {selectedRoute && (
-        <ScheduleTimeline
-          routes={routes}
-          route={selectedRoute}
-          onSelectRoute={setSelectedKey}
-          showLocal={showLocal}
-        />
+          {/* Schedule Timeline */}
+          {selectedRoute && (
+            <ScheduleTimeline
+              routes={routes}
+              route={selectedRoute}
+              onSelectRoute={setSelectedKey}
+              showLocal={showLocal}
+            />
+          )}
+        </>
       )}
 
       {/* Modals */}

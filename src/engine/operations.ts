@@ -359,7 +359,7 @@ export interface TeamOperation {
 export interface TeamRoomData {
   version: 2;
   roomName: string;
-  activeOpId: string;
+  activeOpId: string | null;
   roster: MasterRoster;
   operations: OperationPlan[];
   updatedAt: number;

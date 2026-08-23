@@ -620,6 +620,74 @@ describe('the operation planner', () => {
     expect(container.querySelector('.op-countdown-tag')).toBeTruthy();
   });
 
+  it('shows confirmation popup before deleting attacker army, defender account, or target village', () => {
+    // Add an attacker
+    const addAtkBtn = [...container.querySelectorAll('.op-section button')].find(
+      (b) => b.textContent?.includes('+ Add Attacker')
+    ) as HTMLElement;
+    expect(addAtkBtn).toBeTruthy();
+    click(addAtkBtn);
+
+    expect(container.querySelectorAll('.op-strip-card--attacker')).toHaveLength(2);
+
+    // Click delete on the second attacker
+    const deleteAtkBtns = container.querySelectorAll('.op-strip-card--attacker .op-remove-danger');
+    expect(deleteAtkBtns.length).toBe(2);
+    click(deleteAtkBtns[1] as HTMLElement);
+
+    // Confirm modal should appear
+    const atkConfirmModal = container.querySelector('.op-modal.op-modal--compact');
+    expect(atkConfirmModal).toBeTruthy();
+    expect(atkConfirmModal?.textContent).toContain('Delete Attacker Army');
+
+    // Cancel deletion
+    const cancelBtn = [...container.querySelectorAll('.op-modal--compact button')].find(
+      (b) => b.textContent?.includes('Cancel')
+    ) as HTMLElement;
+    expect(cancelBtn).toBeTruthy();
+    click(cancelBtn);
+    expect(container.querySelector('.op-modal.op-modal--compact')).toBeNull();
+    expect(container.querySelectorAll('.op-strip-card--attacker')).toHaveLength(2);
+
+    // Delete and confirm
+    const deleteAtkBtnsAgain = container.querySelectorAll('.op-strip-card--attacker .op-remove-danger');
+    click(deleteAtkBtnsAgain[1] as HTMLElement);
+    const confirmDeleteAtkBtn = [...container.querySelectorAll('.op-modal--compact button')].find(
+      (b) => b.textContent?.includes('Delete Army')
+    ) as HTMLElement;
+    expect(confirmDeleteAtkBtn).toBeTruthy();
+    click(confirmDeleteAtkBtn);
+
+    // Now second attacker is removed
+    expect(container.querySelectorAll('.op-strip-card--attacker')).toHaveLength(1);
+
+    // Add defender account
+    const addDefBtn = [...container.querySelectorAll('.op-section button')].find(
+      (b) => b.textContent?.includes('+ Add Defender')
+    ) as HTMLElement;
+    expect(addDefBtn).toBeTruthy();
+    click(addDefBtn);
+    expect(container.querySelectorAll('.op-target-group.is-player')).toHaveLength(2);
+
+    // Click Delete Account on the second defender
+    const deleteAccountBtns = container.querySelectorAll('.op-target-group.is-player .op-remove-danger');
+    expect(deleteAccountBtns.length).toBeGreaterThan(1);
+    click(deleteAccountBtns[deleteAccountBtns.length - 2] as HTMLElement);
+
+    // Account confirm modal appears
+    const defConfirmModal = container.querySelector('.op-modal.op-modal--compact');
+    expect(defConfirmModal).toBeTruthy();
+    expect(defConfirmModal?.textContent).toContain('Delete Defender Account');
+
+    // Confirm deletion
+    const confirmDeleteAccBtn = [...container.querySelectorAll('.op-modal--compact button')].find(
+      (b) => b.textContent?.includes('Delete Account')
+    ) as HTMLElement;
+    expect(confirmDeleteAccBtn).toBeTruthy();
+    click(confirmDeleteAccBtn);
+    expect(container.querySelectorAll('.op-target-group.is-player')).toHaveLength(1);
+  });
+
   it('keeps Team Room bar hidden in v1, and unlocks Top Secret v2 mode after clicking Operation Planner tab 10 times', () => {
     const opTab = [...container.querySelectorAll('.pill--tool')].find(
       (b) => b.getAttribute('aria-label') === 'Operation Planner',
@@ -680,12 +748,21 @@ describe('the operation planner', () => {
     }
 
     const start = Date.now();
-    while (!container.querySelector('.op-participant-chip--attacker')) {
+    while (!container.querySelector('.op-plan-tab')) {
       if (Date.now() - start > 1500) break;
       await act(async () => {
         await new Promise((r) => setTimeout(r, 20));
       });
     }
+
+    // When first entering secret mode, no operation is open by default.
+    expect(container.querySelector('.op-standby-panel')).toBeTruthy();
+    expect(container.textContent).toContain('No Operation Wave Open');
+
+    // Click the operation tab to open Operation 1
+    const firstOpTab = container.querySelector('.op-plan-tab') as HTMLElement;
+    expect(firstOpTab).toBeTruthy();
+    click(firstOpTab);
 
     // Initially 1 attacker and 1 target -> 1 route
     expect(container.querySelectorAll('.op-routes tbody .op-route-row')).toHaveLength(1);
@@ -757,6 +834,12 @@ describe('the operation planner', () => {
       expect(autoSaveBtn.textContent).toContain('Auto-Save: OFF');
 
       click(autoSaveBtn);
+
+      // Open the operation tab to reveal action menu
+      const opTabToOpen = container.querySelector('.op-plan-tab') as HTMLElement;
+      expect(opTabToOpen).toBeTruthy();
+      click(opTabToOpen);
+
       // Duplicate active operation tab (creates unsaved local change)
       const duplicateBtn = [...container.querySelectorAll('.op-plan-tab__btn')].find(
         (b) => b.getAttribute('title')?.includes('Duplicate') || b.textContent?.includes('📑'),

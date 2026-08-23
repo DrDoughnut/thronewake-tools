@@ -32,6 +32,7 @@ import {
 } from '../engine/cpOptimizer';
 import { playableFactions } from '../data/factions';
 import { buildingIcon } from '../icons';
+import { ConfirmDeleteModal } from '../components/ConfirmDeleteModal';
 
 const STORAGE_KEY = 'thronewake.cpOptimizer.state.v1';
 
@@ -117,6 +118,7 @@ export function CpOptimizer() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerCategory, setPickerCategory] = useState<string>('all');
   const [pickerSearch, setPickerSearch] = useState<string>('');
+  const [villageToDelete, setVillageToDelete] = useState<VillageState | null>(null);
 
   const [optimizerMetric, setOptimizerMetric] = useState<OptimizerMetric>('cp');
 
@@ -550,7 +552,7 @@ export function CpOptimizer() {
                           className="cp-village-card-v__remove"
                           onClick={(e) => {
                             e.stopPropagation();
-                            removeVillage(v.id);
+                            setVillageToDelete(v);
                           }}
                           title="Delete this village"
                         >
@@ -1066,6 +1068,21 @@ export function CpOptimizer() {
           </div>
         </div>
       )}
+
+      <ConfirmDeleteModal
+        isOpen={villageToDelete !== null}
+        title="Delete Village"
+        message="Are you sure you want to delete this village? All configured building levels and CP optimization metrics for this village will be permanently removed."
+        itemDescription={villageToDelete?.name}
+        confirmLabel="Delete Village"
+        onConfirm={() => {
+          if (villageToDelete) {
+            removeVillage(villageToDelete.id);
+            setVillageToDelete(null);
+          }
+        }}
+        onCancel={() => setVillageToDelete(null)}
+      />
     </div>
   );
 }

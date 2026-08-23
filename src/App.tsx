@@ -27,15 +27,15 @@ function playTapBlip(count: number) {
     if (ctx.state === 'suspended') ctx.resume();
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(350 + count * 60, ctx.currentTime);
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(380 + count * 70, ctx.currentTime);
     gain.gain.setValueAtTime(0, ctx.currentTime);
-    gain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + 0.01);
-    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.06);
+    gain.gain.linearRampToValueAtTime(0.60, ctx.currentTime + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.08);
     osc.connect(gain);
     gain.connect(ctx.destination);
     osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.07);
+    osc.stop(ctx.currentTime + 0.09);
   } catch {}
 }
 

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import type { Attacker, Player, Target } from '../engine/operations';
 import { enforceMaxSafeWindow, safeWindowDurationMinutes, parseClock } from '../engine/operations';
 import { UnitGridPicker } from './UnitGridPicker';
+import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 
 interface CoordInputProps {
   value: number;
@@ -186,107 +187,133 @@ export function SafeTimeFields({
 export interface AttackerCardProps {
   attacker: Attacker;
   index: number;
+  showUnitPicker?: boolean;
   onPatch: (patch: Partial<Attacker>) => void;
   onRemove: () => void;
 }
 
-export function AttackerCard({ attacker, index, onPatch, onRemove }: AttackerCardProps) {
+export function AttackerCard({
+  attacker,
+  index,
+  showUnitPicker = false,
+  onPatch,
+  onRemove,
+}: AttackerCardProps) {
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+
   return (
-    <article className="op-strip-card op-strip-card--attacker op-roster-card" key={attacker.id}>
-      <div className="op-strip-card__top">
-        <div className="op-strip-card__identity">
-          <span className="op-card__idx">#{index + 1}</span>
-          <input
-            className="text-input op-card__name"
-            aria-label="Attacker name"
-            placeholder="Player / Village Name"
-            value={attacker.name}
-            onChange={(e) => onPatch({ name: e.target.value })}
-          />
-          <div className="coord-inline">
-            <label className="coord-field">
-              <span className="coord-field__tag">X</span>
-              <CoordInput
-                value={attacker.x}
-                onChange={(x) => onPatch({ x })}
-                ariaLabel="Attacker X coordinate"
-              />
-            </label>
-            <label className="coord-field">
-              <span className="coord-field__tag">Y</span>
-              <CoordInput
-                value={attacker.y}
-                onChange={(y) => onPatch({ y })}
-                ariaLabel="Attacker Y coordinate"
-              />
-            </label>
-          </div>
-        </div>
-
-        <div className="op-strip-card__military">
-          <div className="op-strip-card__unit">
-            <UnitGridPicker
-              unitRef={attacker.unitRef}
-              onChange={(unitRef) => onPatch({ unitRef })}
+    <>
+      <article className="op-strip-card op-strip-card--attacker op-roster-card" key={attacker.id}>
+        <div className="op-strip-card__top">
+          <div className="op-strip-card__identity">
+            <span className="op-card__idx">#{index + 1}</span>
+            <input
+              className="text-input op-card__name"
+              aria-label="Attacker name"
+              placeholder="Player / Village Name"
+              value={attacker.name}
+              onChange={(e) => onPatch({ name: e.target.value })}
             />
+            <div className="coord-inline">
+              <label className="coord-field">
+                <span className="coord-field__tag">X</span>
+                <CoordInput
+                  value={attacker.x}
+                  onChange={(x) => onPatch({ x })}
+                  ariaLabel="Attacker X coordinate"
+                />
+              </label>
+              <label className="coord-field">
+                <span className="coord-field__tag">Y</span>
+                <CoordInput
+                  value={attacker.y}
+                  onChange={(y) => onPatch({ y })}
+                  ariaLabel="Attacker Y coordinate"
+                />
+              </label>
+            </div>
           </div>
 
-          <div className="op-strip-card__modifiers">
-            <label className="op-modifier-inline" title="Speed Artifact">
-              <span className="op-modifier-inline__tag">Artifact</span>
-              <select
-                className="select op-select-solid-sm"
-                value={attacker.artifactMultiplier}
-                onChange={(e) =>
-                  onPatch({
-                    artifactMultiplier: Number(e.target.value) as Attacker['artifactMultiplier'],
-                  })
-                }
-              >
-                <option value={1}>1.0×</option>
-                <option value={1.5}>1.5×</option>
-                <option value={2}>2.0×</option>
-              </select>
-            </label>
+          <div className="op-strip-card__military">
+            {showUnitPicker && (
+              <div className="op-strip-card__unit">
+                <UnitGridPicker
+                  unitRef={attacker.unitRef}
+                  onChange={(unitRef) => onPatch({ unitRef })}
+                />
+              </div>
+            )}
 
-            <label className="op-modifier-inline" title="Bannerfield Level (+20% speed per level beyond 20 fields)">
-              <span className="op-modifier-inline__tag">Bannerfield</span>
-              <input
-                className="text-input op-input-solid-sm"
-                type="number"
-                min={0}
-                max={20}
-                value={attacker.bannerfieldLevel}
-                onChange={(e) =>
-                  onPatch({
-                    bannerfieldLevel: Math.min(20, Math.max(0, Number(e.target.value) || 0)),
-                  })
-                }
-              />
-              <span className="bannerfield-bonus-tag-sm">+{attacker.bannerfieldLevel * 20}%</span>
-            </label>
+            <div className="op-strip-card__modifiers">
+              <label className="op-modifier-inline" title="Speed Artifact">
+                <span className="op-modifier-inline__tag">Artifact</span>
+                <select
+                  className="select op-select-solid-sm"
+                  value={attacker.artifactMultiplier}
+                  onChange={(e) =>
+                    onPatch({
+                      artifactMultiplier: Number(e.target.value) as Attacker['artifactMultiplier'],
+                    })
+                  }
+                >
+                  <option value={1}>1.0×</option>
+                  <option value={1.5}>1.5×</option>
+                  <option value={2}>2.0×</option>
+                </select>
+              </label>
+
+              <label className="op-modifier-inline" title="Bannerfield Level (+20% speed per level beyond 20 fields)">
+                <span className="op-modifier-inline__tag">Bannerfield</span>
+                <input
+                  className="text-input op-input-solid-sm"
+                  type="number"
+                  min={0}
+                  max={20}
+                  value={attacker.bannerfieldLevel}
+                  onChange={(e) =>
+                    onPatch({
+                      bannerfieldLevel: Math.min(20, Math.max(0, Number(e.target.value) || 0)),
+                    })
+                  }
+                />
+                <span className="bannerfield-bonus-tag-sm">+{attacker.bannerfieldLevel * 20}%</span>
+              </label>
+            </div>
           </div>
+
+          <button
+            type="button"
+            className="op-remove-danger"
+            aria-label={`Remove ${attacker.name} from roster`}
+            onClick={() => setIsConfirmingDelete(true)}
+            title="Delete army"
+          >
+            🗑️ Delete
+          </button>
         </div>
 
-        <button
-          type="button"
-          className="op-remove-danger"
-          aria-label={`Remove ${attacker.name} from roster`}
-          onClick={onRemove}
-          title="Delete army"
-        >
-          🗑️ Delete
-        </button>
-      </div>
+        <div className="op-strip-card__bottom">
+          <SafeTimeFields
+            owner={attacker}
+            label="Attacker Safe Hours"
+            onChange={(patch) => onPatch(patch)}
+          />
+        </div>
+      </article>
 
-      <div className="op-strip-card__bottom">
-        <SafeTimeFields
-          owner={attacker}
-          label="Attacker Safe Hours"
-          onChange={(patch) => onPatch(patch)}
-        />
-      </div>
-    </article>
+      <ConfirmDeleteModal
+        isOpen={isConfirmingDelete}
+        title="Delete Attacker Army"
+        message="Are you sure you want to delete this attacking army? It will be removed from all operations and master roster."
+        itemDescription={`${attacker.name || 'Attacker'} (${attacker.x}|${attacker.y})`}
+        confirmLabel="Delete Army"
+        onConfirm={() => {
+          setIsConfirmingDelete(false);
+          onRemove();
+        }}
+        onCancel={() => setIsConfirmingDelete(false)}
+      />
+    </>
   );
 }
 
@@ -385,123 +412,155 @@ export function PlayerGroupCard({
   onPatchTarget,
   onRemoveTarget,
 }: PlayerGroupCardProps) {
+  const [isConfirmingDeletePlayer, setIsConfirmingDeletePlayer] = useState(false);
+  const [deletingTarget, setDeletingTarget] = useState<Target | null>(null);
   const playerVillages = targets.filter((t) => t.playerId === player.id);
 
   return (
-    <div className="op-target-group is-player op-roster-target-group" key={player.id}>
-      <div className="op-target-group__head">
-        <div className="op-target-group__player-title">
-          <span className="op-target-group__icon">👤</span>
-          <span className="op-card__idx">#{pIdx + 1}</span>
-          <input
-            className="text-input op-player__name"
-            aria-label="Defender account name"
-            value={player.name}
-            onChange={(e) => onPatchPlayer({ name: e.target.value })}
-            placeholder="Defender Account Name"
-          />
-          <span className="op-target-group__meta">
-            {playerVillages.length} {playerVillages.length === 1 ? 'village' : 'villages'}
-          </span>
+    <>
+      <div className="op-target-group is-player op-roster-target-group" key={player.id}>
+        <div className="op-target-group__head">
+          <div className="op-target-group__player-title">
+            <span className="op-target-group__icon">👤</span>
+            <span className="op-card__idx">#{pIdx + 1}</span>
+            <input
+              className="text-input op-player__name"
+              aria-label="Defender account name"
+              value={player.name}
+              onChange={(e) => onPatchPlayer({ name: e.target.value })}
+              placeholder="Defender Account Name"
+            />
+            <span className="op-target-group__meta">
+              {playerVillages.length} {playerVillages.length === 1 ? 'village' : 'villages'}
+            </span>
+          </div>
+
+          <div className="op-target-group__player-safetime">
+            <SafeTimeFields
+              owner={player}
+              label={`${player.name || 'Defender'} Safe Hours`}
+              onChange={(patch) => onPatchPlayer(patch)}
+            />
+          </div>
+
+          <div className="op-target-group__actions">
+            <button
+              type="button"
+              className="pill pill--tiny pill--primary"
+              onClick={onAddVillage}
+            >
+              + Add Village
+            </button>
+            <button
+              type="button"
+              className="op-remove-danger op-remove-danger--sm"
+              aria-label={`Delete ${player.name} and all attached villages`}
+              onClick={() => setIsConfirmingDeletePlayer(true)}
+              title="Delete entire defender account"
+            >
+              🗑️ Delete Account
+            </button>
+          </div>
         </div>
 
-        <div className="op-target-group__player-safetime">
-          <SafeTimeFields
-            owner={player}
-            label={`${player.name || 'Defender'} Safe Hours`}
-            onChange={(patch) => onPatchPlayer(patch)}
-          />
-        </div>
+        <div className="op-strip-list">
+          {playerVillages.map((target, vIdx) => (
+            <article
+              className={`op-strip-card op-strip-card--target ${target.fake ? 'is-fake' : 'is-real'}`}
+              key={target.id}
+            >
+              <div className="op-strip-card__identity">
+                <span className="op-card__idx">#{vIdx + 1}</span>
+                <input
+                  className="text-input op-card__name"
+                  aria-label="Village name"
+                  placeholder="Village name"
+                  value={target.name}
+                  onChange={(e) => onPatchTarget(target.id, { name: e.target.value })}
+                />
+                <div className="coord-inline">
+                  <label className="coord-field">
+                    <span className="coord-field__tag">X</span>
+                    <CoordInput
+                      value={target.x}
+                      onChange={(x) => onPatchTarget(target.id, { x })}
+                      ariaLabel="Village X coordinate"
+                    />
+                  </label>
+                  <label className="coord-field">
+                    <span className="coord-field__tag">Y</span>
+                    <CoordInput
+                      value={target.y}
+                      onChange={(y) => onPatchTarget(target.id, { y })}
+                      ariaLabel="Village Y coordinate"
+                    />
+                  </label>
+                </div>
+              </div>
 
-        <div className="op-target-group__actions">
-          <button
-            type="button"
-            className="pill pill--tiny pill--primary"
-            onClick={onAddVillage}
-          >
-            + Add Village
-          </button>
-          <button
-            type="button"
-            className="op-remove-danger op-remove-danger--sm"
-            aria-label={`Delete ${player.name} and all attached villages`}
-            onClick={onRemovePlayer}
-            title="Delete entire defender account"
-          >
-            🗑️ Delete Account
-          </button>
+              <div className="op-strip-card__target-meta">
+                <div className="op-fake-group" role="group" aria-label="Attack type">
+                  <button
+                    type="button"
+                    className={`pill pill--tiny op-fake-pill ${target.fake ? '' : 'is-real'}`}
+                    aria-pressed={!target.fake}
+                    onClick={() => onPatchTarget(target.id, { fake: false })}
+                  >
+                    Real
+                  </button>
+                  <button
+                    type="button"
+                    className={`pill pill--tiny op-fake-pill ${target.fake ? 'is-fake' : ''}`}
+                    aria-pressed={target.fake}
+                    onClick={() => onPatchTarget(target.id, { fake: true })}
+                  >
+                    Fake
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  className="op-remove-danger op-remove-danger--sm"
+                  aria-label={`Remove ${target.name}`}
+                  onClick={() => setDeletingTarget(target)}
+                  title="Delete village"
+                >
+                  🗑️
+                </button>
+              </div>
+            </article>
+          ))}
         </div>
       </div>
 
-      <div className="op-strip-list">
-        {playerVillages.map((target, vIdx) => (
-          <article
-            className={`op-strip-card op-strip-card--target ${target.fake ? 'is-fake' : 'is-real'}`}
-            key={target.id}
-          >
-            <div className="op-strip-card__identity">
-              <span className="op-card__idx">#{vIdx + 1}</span>
-              <input
-                className="text-input op-card__name"
-                aria-label="Village name"
-                placeholder="Village name"
-                value={target.name}
-                onChange={(e) => onPatchTarget(target.id, { name: e.target.value })}
-              />
-              <div className="coord-inline">
-                <label className="coord-field">
-                  <span className="coord-field__tag">X</span>
-                  <CoordInput
-                    value={target.x}
-                    onChange={(x) => onPatchTarget(target.id, { x })}
-                    ariaLabel="Village X coordinate"
-                  />
-                </label>
-                <label className="coord-field">
-                  <span className="coord-field__tag">Y</span>
-                  <CoordInput
-                    value={target.y}
-                    onChange={(y) => onPatchTarget(target.id, { y })}
-                    ariaLabel="Village Y coordinate"
-                  />
-                </label>
-              </div>
-            </div>
+      <ConfirmDeleteModal
+        isOpen={isConfirmingDeletePlayer}
+        title="Delete Defender Account"
+        message={`Are you sure you want to delete this defender account and all ${playerVillages.length} attached village(s)? All planned attacks against this account will be removed.`}
+        itemDescription={`${player.name || 'Defender'} (${playerVillages.length} ${playerVillages.length === 1 ? 'village' : 'villages'})`}
+        confirmLabel="Delete Account"
+        onConfirm={() => {
+          setIsConfirmingDeletePlayer(false);
+          onRemovePlayer();
+        }}
+        onCancel={() => setIsConfirmingDeletePlayer(false)}
+      />
 
-            <div className="op-strip-card__target-meta">
-              <div className="op-fake-group" role="group" aria-label="Attack type">
-                <button
-                  type="button"
-                  className={`pill pill--tiny op-fake-pill ${target.fake ? '' : 'is-real'}`}
-                  aria-pressed={!target.fake}
-                  onClick={() => onPatchTarget(target.id, { fake: false })}
-                >
-                  Real
-                </button>
-                <button
-                  type="button"
-                  className={`pill pill--tiny op-fake-pill ${target.fake ? 'is-fake' : ''}`}
-                  aria-pressed={target.fake}
-                  onClick={() => onPatchTarget(target.id, { fake: true })}
-                >
-                  Fake
-                </button>
-              </div>
-
-              <button
-                type="button"
-                className="op-remove-danger op-remove-danger--sm"
-                aria-label={`Remove ${target.name}`}
-                onClick={() => onRemoveTarget(target.id)}
-                title="Delete village"
-              >
-                🗑️
-              </button>
-            </div>
-          </article>
-        ))}
-      </div>
-    </div>
+      <ConfirmDeleteModal
+        isOpen={deletingTarget !== null}
+        title="Delete Village"
+        message="Are you sure you want to delete this target village? Any planned attacks on this village will be removed."
+        itemDescription={`${deletingTarget?.name || 'Village'} (${deletingTarget?.x}|${deletingTarget?.y})`}
+        confirmLabel="Delete Village"
+        onConfirm={() => {
+          if (deletingTarget) {
+            onRemoveTarget(deletingTarget.id);
+            setDeletingTarget(null);
+          }
+        }}
+        onCancel={() => setDeletingTarget(null)}
+      />
+    </>
   );
 }
 
