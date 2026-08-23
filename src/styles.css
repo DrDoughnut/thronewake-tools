@@ -4612,6 +4612,20 @@ select:focus, .select:focus, .text-input:focus {
   letter-spacing: 0.3px;
 }
 
+.op-batch-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.op-section-head__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+
 
 
 

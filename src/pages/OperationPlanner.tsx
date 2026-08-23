@@ -1299,6 +1299,59 @@ export function OperationPlanner({ isV2Unlocked }: { isV2Unlocked?: boolean } = 
     writeShowLocal(showLocal);
   }, [showLocal]);
 
+  // Auto-initialize multi-op roomData when v2 is active so Operation Tabs appear immediately
+  useEffect(() => {
+    if (isV2Active && !roomData) {
+      const initialOp: TeamOperation = {
+        id: 'op1',
+        name: 'Operation 1',
+        landing: state.landing,
+        serverSpeed: state.serverSpeed,
+        attackers: state.attackers,
+        targets: state.targets,
+        players: state.players,
+        updatedAt: Date.now(),
+      };
+      setRoomData({
+        version: 2,
+        roomName: 'Local Operations',
+        activeOpId: 'op1',
+        operations: [initialOp],
+        updatedAt: Date.now(),
+      });
+    }
+  }, [isV2Active, roomData, state]);
+
+  const currentOperations = useMemo(() => {
+    if (!roomData) return [];
+    return roomData.operations.map((o) =>
+      o.id === roomData.activeOpId
+        ? {
+            ...o,
+            landing: state.landing,
+            serverSpeed: state.serverSpeed,
+            attackers: state.attackers,
+            targets: state.targets,
+            players: state.players,
+          }
+        : o
+    );
+  }, [roomData, state]);
+
+  const toggleAllAttackers = (active: boolean) => {
+    setState((current) => ({
+      ...current,
+      attackers: current.attackers.map((a) => ({ ...a, active })),
+    }));
+  };
+
+  const toggleAllTargets = (active: boolean) => {
+    setState((current) => ({
+      ...current,
+      targets: current.targets.map((t) => ({ ...t, active })),
+    }));
+  };
+
   // Team Room Handlers
   const handleRoomDataLoaded = (data: TeamRoomData, session: RoomCryptoSession) => {
     setRoomData(data);
@@ -1775,10 +1828,10 @@ export function OperationPlanner({ isV2Unlocked }: { isV2Unlocked?: boolean } = 
             onSaveRequested={handleSaveRequested}
           />
 
-          {roomData && roomData.operations.length > 0 && (
+          {currentOperations.length > 0 && (
             <OperationTabs
-              operations={roomData.operations}
-              activeOpId={roomData.activeOpId}
+              operations={currentOperations}
+              activeOpId={roomData?.activeOpId || 'op1'}
               onSelectOp={handleSelectOp}
               onCreateOp={handleCreateOp}
               onDuplicateOp={handleDuplicateOp}
@@ -1881,12 +1934,36 @@ export function OperationPlanner({ isV2Unlocked }: { isV2Unlocked?: boolean } = 
           <div className="op-section-head">
             <div className="op-section-head__title-group">
               <span className="op-section-tag op-section-tag--attacker">Attackers</span>
-              <h2 className="panel__title">Attacking Armies ({state.attackers.length})</h2>
+              <h2 className="panel__title">
+                Attacking Armies ({activeAttackers.length}/{state.attackers.length} active)
+              </h2>
               <p className="op-section-copy">Configure slowest troop, speed modifiers, coordinates, and safe hours.</p>
             </div>
-            <button type="button" className="pill pill--tiny pill--primary" onClick={addAttacker}>
-              + Add Attacker
-            </button>
+            <div className="op-section-head__actions">
+              {state.attackers.length > 1 && (
+                <div className="op-batch-actions">
+                  <button
+                    type="button"
+                    className="pill pill--tiny"
+                    onClick={() => toggleAllAttackers(true)}
+                    title="Activate all armies in roster for this operation"
+                  >
+                    ✓ Activate All
+                  </button>
+                  <button
+                    type="button"
+                    className="pill pill--tiny"
+                    onClick={() => toggleAllAttackers(false)}
+                    title="Bench all armies in roster for this operation"
+                  >
+                    ⏸ Bench All
+                  </button>
+                </div>
+              )}
+              <button type="button" className="pill pill--tiny pill--primary" onClick={addAttacker}>
+                + Add Attacker
+              </button>
+            </div>
           </div>
 
           <div className="op-strip-list">
@@ -2008,12 +2085,34 @@ export function OperationPlanner({ isV2Unlocked }: { isV2Unlocked?: boolean } = 
           <div className="op-section-head">
             <div className="op-section-head__title-group">
               <span className="op-section-tag op-section-tag--target">Defenders</span>
-              <h2 className="panel__title">Target Defenders ({state.players.length})</h2>
+              <h2 className="panel__title">
+                Target Defenders ({state.players.length} {state.players.length === 1 ? 'account' : 'accounts'} · {activeTargets.length}/{state.targets.length} villages active)
+              </h2>
               <p className="op-section-copy">
                 Each defender account defines its safe hours once. All villages under an account inherit its safe hours.
               </p>
             </div>
             <div className="op-section-head__actions">
+              {state.targets.length > 1 && (
+                <div className="op-batch-actions">
+                  <button
+                    type="button"
+                    className="pill pill--tiny"
+                    onClick={() => toggleAllTargets(true)}
+                    title="Activate all villages in roster as targets for this operation"
+                  >
+                    ✓ Activate All
+                  </button>
+                  <button
+                    type="button"
+                    className="pill pill--tiny"
+                    onClick={() => toggleAllTargets(false)}
+                    title="Bench all villages from this operation"
+                  >
+                    ⏸ Bench All
+                  </button>
+                </div>
+              )}
               <button type="button" className="pill pill--tiny pill--primary" onClick={addDefender}>
                 + Add Defender
               </button>
