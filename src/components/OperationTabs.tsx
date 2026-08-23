@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import type { TeamOperation } from '../engine/operations';
+import type { OperationPlan } from '../engine/operations';
 
 interface OperationTabsProps {
-  operations: TeamOperation[];
+  operations: OperationPlan[];
   activeOpId: string;
   onSelectOp: (opId: string) => void;
   onCreateOp: (name: string) => void;
@@ -25,7 +25,7 @@ export function OperationTabs({
   const [isCreating, setIsCreating] = useState(false);
   const [newOpName, setNewOpName] = useState('');
 
-  const handleStartRename = (op: TeamOperation) => {
+  const handleStartRename = (op: OperationPlan) => {
     setIsRenamingId(op.id);
     setRenameValue(op.name);
   };
@@ -50,8 +50,8 @@ export function OperationTabs({
         {operations.map((op, idx) => {
           const isActive = op.id === activeOpId;
           const isRenaming = isRenamingId === op.id;
-          const activeAtkCount = op.attackers.filter((a) => a.active !== false).length;
-          const activeTgtCount = op.targets.filter((t) => t.active !== false).length;
+          const activeAtkCount = op.assignedAttackerIds ? op.assignedAttackerIds.length : 0;
+          const activeTgtCount = op.assignedTargetIds ? op.assignedTargetIds.length : 0;
 
           if (isRenaming) {
             return (

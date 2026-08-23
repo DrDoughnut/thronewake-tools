@@ -20,21 +20,27 @@ import {
   routeIsPossible,
   safeChecks,
   safeSegments,
-  safeWindowDurationMinutes,
   serverSpeedMultiplier,
   splitUtcDateAndTime,
   toUtcDatetimeInput,
   travelHours,
+  migrateToMasterRoster,
+  type MasterRoster,
+  type OperationPlan,
   type ResolvedSafeTime,
   type SafeChecks,
   type SafeWindow,
   type TeamRoomData,
-  type TeamOperation,
 } from '../engine/operations';
 import { type RoomCryptoSession } from '../engine/cryptoSync';
-import { UnitGridPicker } from '../components/UnitGridPicker';
 import { TeamRoomBar } from '../components/TeamRoomBar';
 import { OperationTabs } from '../components/OperationTabs';
+import {
+  AllianceArmiesModal,
+  TargetDatabaseModal,
+  Time24Input,
+} from '../components/RosterModals';
+import { OperationParticipantPicker } from '../components/OperationParticipantPicker';
 
 interface SafeTimeOwner {
   safeEnabled: boolean;
@@ -100,87 +106,78 @@ const initialSafeTime = (): SafeTimeOwner => ({
   safeEnd: '04:00',
 });
 
-const initialState = (): PlannerState => {
-  const landing = new Date();
-  landing.setUTCHours(landing.getUTCHours() + 8, 0, 0, 0);
-  const defPlayerId = 'p1';
-  return {
-    landing: toUtcDatetimeInput(landing),
-    serverSpeed: 3,
-    attackers: [{
+const defaultState: PlannerState = {
+  landing: '2026-08-16T19:00',
+  serverSpeed: 3,
+  attackers: [
+    {
       id: 'a1',
-      name: 'Hammer 1',
+      name: 'Attacker 1',
       x: 0,
       y: 0,
       unitRef: defaultUnitRef,
       artifactMultiplier: 1,
       bannerfieldLevel: 0,
       ...initialSafeTime(),
-    }],
-    players: [{
-      id: defPlayerId,
-      name: 'Defender 1',
-      ...initialSafeTime(),
-    }],
-    targets: [{
+    },
+  ],
+  targets: [
+    {
       id: 't1',
       name: 'Village 1',
-      x: 50,
-      y: 50,
+      x: 10,
+      y: 10,
       fake: false,
-      playerId: defPlayerId,
+      playerId: 'p1',
       ...initialSafeTime(),
-    }],
-  };
+    },
+  ],
+  players: [
+    {
+      id: 'p1',
+      name: 'Defender 1',
+      ...initialSafeTime(),
+    },
+  ],
 };
 
-export function decodeState(hashOrSearch?: string): PlannerState {
-  const fallback = initialState();
-  let rawP: string | null = null;
-  let rawPlan: string | null = null;
+export function decodeState(rawHash?: string): PlannerState {
+  const fallback = defaultState;
+  const hash = rawHash !== undefined
+    ? rawHash.replace(/^#/, '')
+    : window.location.hash.replace(/^#/, '');
 
-  const sources = hashOrSearch
-    ? [hashOrSearch]
-    : [
-        typeof window !== 'undefined' ? window.location.hash : '',
-        typeof window !== 'undefined' ? window.location.search : '',
-      ];
+  if (!hash) return fallback;
 
-  for (const src of sources) {
-    if (!src) continue;
-    try {
-      const clean = src.replace(/^[#?]/, '');
-      const p = new URLSearchParams(clean);
-      if (!rawP && p.get('p')) rawP = p.get('p');
-      if (!rawPlan && p.get('plan')) rawPlan = p.get('plan');
-    } catch {}
-  }
+  const params = new URLSearchParams(hash);
+  const compactParam = params.get('p');
+  let rawPlan = params.get('plan');
 
-  if (rawP) {
-    const compactParsed = decodeCompactPlan(rawP);
+  if (compactParam) {
+    const compactParsed = decodeCompactPlan(compactParam);
     if (compactParsed) {
       const cleanAttackers: Attacker[] = (compactParsed.attackers.length ? compactParsed.attackers : fallback.attackers).map((atk, idx) => ({
         id: atk.id || `a${idx + 1}`,
-        name: atk.name || `Hammer ${idx + 1}`,
+        name: atk.name || `Attacker ${idx + 1}`,
         x: Number(atk.x) || 0,
         y: Number(atk.y) || 0,
-        unitRef: typeof atk.unitRef === 'string' ? (atk.unitRef as UnitRef) : defaultUnitRef,
-        artifactMultiplier: atk.artifactMultiplier || 1,
-        bannerfieldLevel: atk.bannerfieldLevel || 0,
+        unitRef: (atk.unitRef as UnitRef) || defaultUnitRef,
+        artifactMultiplier: (atk.artifactMultiplier === 1.5 || atk.artifactMultiplier === 2) ? atk.artifactMultiplier : 1,
+        bannerfieldLevel: Math.min(20, Math.max(0, Number(atk.bannerfieldLevel) || 0)),
         safeEnabled: Boolean(atk.safeEnabled),
         safeStart: atk.safeStart || '22:00',
         safeEnd: atk.safeEnd || '04:00',
       }));
 
-      const cleanPlayers: Player[] = compactParsed.players.map((player, idx) => ({
+      const cleanPlayers: Player[] = (compactParsed.players.length ? compactParsed.players : []).map((player, idx) => ({
         id: player.id || `p${idx + 1}`,
-        name: player.name || `Defender ${idx + 1}`,
+        name: player.name || `Player ${idx + 1}`,
         safeEnabled: Boolean(player.safeEnabled),
         safeStart: player.safeStart || '22:00',
         safeEnd: player.safeEnd || '04:00',
       }));
 
-      if (cleanPlayers.length === 0) {
+      if (cleanPlayers.length === 0 && compactParsed.targets.length > 0) {
         compactParsed.targets.forEach((tgt, idx) => {
           const pId = `p${idx + 1}`;
           cleanPlayers.push({
@@ -193,10 +190,11 @@ export function decodeState(hashOrSearch?: string): PlannerState {
           tgt.playerId = pId;
         });
       }
+
       if (cleanPlayers.length === 0) {
         cleanPlayers.push({
           id: 'p1',
-          name: 'Defender 1',
+          name: 'Player 1',
           ...initialSafeTime(),
         });
       }
@@ -208,7 +206,7 @@ export function decodeState(hashOrSearch?: string): PlannerState {
         x: Number(tgt.x) || 0,
         y: Number(tgt.y) || 0,
         fake: Boolean(tgt.fake),
-        playerId: tgt.playerId && playerIds.has(tgt.playerId) ? tgt.playerId : cleanPlayers[0].id,
+        playerId: tgt.playerId && playerIds.has(tgt.playerId) ? tgt.playerId : cleanPlayers[0]?.id || 'p1',
         safeEnabled: Boolean(tgt.safeEnabled),
         safeStart: tgt.safeStart || '22:00',
         safeEnd: tgt.safeEnd || '04:00',
@@ -367,194 +365,6 @@ function ownerWindow(owner: SafeTimeOwner): SafeWindow {
   };
 }
 
-function numberFromInput(value: string): number {
-  return Number(value) || 0;
-}
-
-interface CoordInputProps {
-  value: number;
-  onChange: (val: number) => void;
-  ariaLabel?: string;
-}
-
-function CoordInput({ value, onChange, ariaLabel }: CoordInputProps) {
-  const [localText, setLocalText] = useState(String(value));
-
-  useEffect(() => {
-    setLocalText(String(value));
-  }, [value]);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value;
-    if (raw === '' || raw === '-') {
-      setLocalText(raw);
-      return;
-    }
-    if (/^-?\d*$/.test(raw)) {
-      setLocalText(raw);
-      const parsed = parseInt(raw, 10);
-      if (!isNaN(parsed)) {
-        onChange(parsed);
-      }
-    }
-  };
-
-  const handleBlur = () => {
-    if (localText === '' || localText === '-') {
-      setLocalText('0');
-      onChange(0);
-    } else {
-      const parsed = parseInt(localText, 10) || 0;
-      setLocalText(String(parsed));
-      onChange(parsed);
-    }
-  };
-
-  return (
-    <input
-      className="text-input text-input--coord"
-      type="text"
-      inputMode="numeric"
-      value={localText}
-      aria-label={ariaLabel}
-      onChange={handleChange}
-      onBlur={handleBlur}
-      onFocus={(e) => e.target.select()}
-    />
-  );
-}
-
-interface Time24InputProps {
-  value: string;
-  onChange: (value: string) => void;
-  className?: string;
-  placeholder?: string;
-  disabled?: boolean;
-}
-
-function Time24Input({
-  value,
-  onChange,
-  className = 'text-input text-input--time24',
-  placeholder = '14:00',
-  disabled = false,
-}: Time24InputProps) {
-  const [localText, setLocalText] = useState(value);
-
-  useEffect(() => {
-    setLocalText(value);
-  }, [value]);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value;
-    setLocalText(raw);
-    if (/^([01]?\d|2[0-3]):[0-5]\d$/.test(raw)) {
-      onChange(raw);
-    }
-  };
-
-  const handleBlur = () => {
-    const match = /^(\d{1,2}):?(\d{0,2})$/.exec(localText.trim());
-    if (match) {
-      let h = parseInt(match[1], 10);
-      let m = parseInt(match[2] || '0', 10);
-      if (isNaN(h) || h < 0) h = 0;
-      if (h > 23) h = 23;
-      if (isNaN(m) || m < 0) m = 0;
-      if (m > 59) m = 59;
-      const formatted = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-      setLocalText(formatted);
-      onChange(formatted);
-    } else {
-      setLocalText(value);
-    }
-  };
-
-  return (
-    <input
-      className={className}
-      type="text"
-      inputMode="numeric"
-      disabled={disabled}
-      placeholder={placeholder}
-      value={localText}
-      onChange={handleChange}
-      onBlur={handleBlur}
-    />
-  );
-}
-
-function SafeTimeFields({
-  owner,
-  label = 'Safe Hours',
-  onChange,
-}: {
-  owner: SafeTimeOwner;
-  label?: string;
-  onChange: (patch: Partial<SafeTimeOwner>) => void;
-}) {
-  const duration = safeWindowDurationMinutes(parseClock(owner.safeStart), parseClock(owner.safeEnd));
-  const isCapped = duration >= 360;
-
-  const handleStartChange = (val: string) => {
-    const updated = enforceMaxSafeWindow(val, owner.safeEnd, 'start');
-    onChange(updated);
-  };
-
-  const handleEndChange = (val: string) => {
-    const updated = enforceMaxSafeWindow(owner.safeStart, val, 'end');
-    onChange(updated);
-  };
-
-  return (
-    <div className={`op-safetime ${owner.safeEnabled ? 'is-enabled' : 'is-disabled'}`}>
-      <div className="op-safetime__header">
-        <label className="op-toggle">
-          <input
-            type="checkbox"
-            checked={owner.safeEnabled}
-            onChange={(e) => onChange({ safeEnabled: e.target.checked })}
-          />
-          <span className="op-toggle__indicator" aria-hidden="true" />
-          <span className="op-toggle__title">{label}</span>
-        </label>
-        <span className="op-safetime__tag">
-          {owner.safeEnabled ? `${owner.safeStart}–${owner.safeEnd} UTC` : 'Disabled'}
-        </span>
-      </div>
-
-      {owner.safeEnabled && (
-        <div className="op-safetime__body">
-          <div className="op-safetime__inputs">
-            <label className="op-field-time">
-              <span className="op-field-time__label">Start</span>
-              <Time24Input
-                value={owner.safeStart}
-                onChange={handleStartChange}
-                placeholder="22:00"
-              />
-            </label>
-            <label className="op-field-time">
-              <span className="op-field-time__label">End</span>
-              <Time24Input
-                value={owner.safeEnd}
-                onChange={handleEndChange}
-                placeholder="04:00"
-              />
-            </label>
-          </div>
-
-          <div className="op-safetime__footer-meta">
-            <span className="op-safetime__window-type">
-              ({Math.round(duration / 60)}h window{isCapped ? ' · 6h cap' : ''})
-            </span>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
 // ── Web Audio Dual-Stage Chimes ───────────────────────────────────────────
 
 function play1MinChime() {
@@ -630,18 +440,6 @@ function playCountdownBeep(secondRemaining: number) {
   } catch {}
 }
 
-function test5sCountdownSequence() {
-  let count = 5;
-  playCountdownBeep(count);
-  const timer = setInterval(() => {
-    count -= 1;
-    playCountdownBeep(count);
-    if (count <= 0) {
-      clearInterval(timer);
-    }
-  }, 1000);
-}
-
 function getCountdownInfo(sendDate: Date, now: Date) {
   const diffSec = Math.floor((sendDate.getTime() - now.getTime()) / 1000);
   if (diffSec < 0) {
@@ -682,165 +480,79 @@ function getCountdownInfo(sendDate: Date, now: Date) {
   };
 }
 
-/** Renders a single village row under a Defender Player */
-function VillageStrip({
-  target,
-  index,
-  player,
-  canRemove,
-  onPatch,
-  onRemove,
-}: {
-  target: Target;
-  index: number;
-  player: Player;
-  canRemove: boolean;
-  onPatch: (patch: Partial<Target>) => void;
-  onRemove: () => void;
-}) {
-  const isBenched = target.active === false;
-
-  return (
-    <article className={`op-strip-card op-strip-card--target ${target.fake ? 'is-fake' : 'is-real'} ${isBenched ? 'is-benched' : ''}`}>
-      <div className="op-strip-card__identity">
-        <span className="op-card__idx">#{index + 1}</span>
-        <button
-          type="button"
-          className={`pill pill--tiny op-active-pill ${!isBenched ? 'is-active' : 'is-benched'}`}
-          onClick={() => onPatch({ active: isBenched ? true : false })}
-          title={!isBenched ? 'Active target in operation. Click to bench.' : 'Benched target (omitted from routes). Click to activate.'}
-        >
-          {!isBenched ? '✓ Active' : '⏸ Benched'}
-        </button>
-        <input
-          className="text-input op-card__name"
-          aria-label="Village name"
-          placeholder="Village name"
-          value={target.name}
-          onChange={(event) => onPatch({ name: event.target.value })}
-        />
-        <div className="coord-inline">
-          <label className="coord-field">
-            <span className="coord-field__tag">X</span>
-            <CoordInput
-              value={target.x}
-              onChange={(x) => onPatch({ x })}
-              ariaLabel="Village X coordinate"
-            />
-          </label>
-          <label className="coord-field">
-            <span className="coord-field__tag">Y</span>
-            <CoordInput
-              value={target.y}
-              onChange={(y) => onPatch({ y })}
-              ariaLabel="Village Y coordinate"
-            />
-          </label>
-        </div>
-      </div>
-
-      <div className="op-strip-card__target-meta">
-        <div className="op-fake-group" role="group" aria-label="Attack type">
-          <button
-            type="button"
-            className={`pill pill--tiny op-fake-pill ${target.fake ? '' : 'is-real'}`}
-            aria-pressed={!target.fake}
-            onClick={() => onPatch({ fake: false })}
-          >
-            Real
-          </button>
-          <button
-            type="button"
-            className={`pill pill--tiny op-fake-pill ${target.fake ? 'is-fake' : ''}`}
-            aria-pressed={target.fake}
-            onClick={() => onPatch({ fake: true })}
-          >
-            Fake
-          </button>
-        </div>
-      </div>
-
-      <div className="op-strip-card__safetime">
-        <span
-          className="op-inherited-tag"
-          title={
-            player.safeEnabled
-              ? `${player.name}: ${player.safeStart}–${player.safeEnd} UTC`
-              : `${player.name} has no safe hours`
-          }
-        >
-          ↳ {player.safeEnabled
-            ? `Inherits ${player.name} (${player.safeStart}–${player.safeEnd} UTC)`
-            : `Inherits ${player.name} (No safe hours)`}
-        </span>
-      </div>
-
-      <button
-        type="button"
-        className="op-remove"
-        aria-label={'Remove ' + target.name}
-        disabled={!canRemove}
-        onClick={onRemove}
-      >
-        ×
-      </button>
-    </article>
-  );
-}
-
 function SafetimeHeaderTooltip() {
   const [show, setShow] = useState(false);
-  const triggerRef = useRef<HTMLButtonElement>(null);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+  const triggerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!show || !triggerRef.current) return;
     const rect = triggerRef.current.getBoundingClientRect();
-    const tooltipWidth = 320;
-    let left = rect.left - 120;
-    if (left + tooltipWidth > window.innerWidth - 16) {
-      left = window.innerWidth - tooltipWidth - 16;
+    const popoverWidth = 320;
+    let left = rect.left + rect.width / 2 - popoverWidth / 2;
+    if (left + popoverWidth > window.innerWidth - 16) {
+      left = window.innerWidth - popoverWidth - 16;
     }
     if (left < 16) left = 16;
     setPos({ top: rect.bottom + 6, left });
   }, [show]);
 
   return (
-    <div className="safetime-header-wrap">
-      <span>Safetime Checks</span>
-      <button
-        ref={triggerRef}
-        type="button"
-        className="safetime-info-btn"
-        onMouseEnter={() => setShow(true)}
-        onMouseLeave={() => setShow(false)}
-        onFocus={() => setShow(true)}
-        onBlur={() => setShow(false)}
-        aria-label="Safetime checks explanation"
-      >
-        ?
-      </button>
+    <div
+      ref={triggerRef}
+      className="op-safetime-th"
+      onMouseEnter={() => setShow(true)}
+      onMouseLeave={() => setShow(false)}
+      onFocus={() => setShow(true)}
+      onBlur={() => setShow(false)}
+      tabIndex={0}
+      role="button"
+      aria-label="Safetime checks explanation. Hover for details."
+      onClick={(e) => e.stopPropagation()}
+    >
+      <span>Safetime (A/B/C)</span>
+      <span className="op-help-icon" aria-hidden="true">?</span>
 
       {show &&
         pos &&
         createPortal(
           <div
-            className="safetime-tooltip-card"
+            className="safetime-popover safetime-popover--th"
             style={{ top: pos.top, left: pos.left }}
             role="tooltip"
           >
-            <div className="safetime-tooltip-card__title">How Safetime Checks Work</div>
-            <p className="safetime-tooltip-card__copy">
-              A route is marked <strong>Possible</strong> only when all 3 conditions are clear (✓):
-            </p>
-            <ul className="safetime-tooltip-card__list">
-              <li><strong>Check A:</strong> Landing does not fall into the Defender’s safe hours.</li>
-              <li><strong>Check B:</strong> Send (launch) does not fall into the Attacker’s safe hours.</li>
-              <li><strong>Check C:</strong> Send (launch) does not fall into the Defender’s safe hours.</li>
-            </ul>
-            <p className="safetime-tooltip-card__footer">
-              Hover any route’s check dots to see the detailed evaluation.
-            </p>
+            <div className="safetime-popover__header">
+              <span className="safetime-popover__title">Safetime Check Legend</span>
+            </div>
+            <div className="safetime-popover__list">
+              <div className="safetime-popover__item">
+                <div className="safetime-popover__item-top">
+                  <span className="op-check-dot is-clear">A</span>
+                  <strong>Land / Defender Safe Time</strong>
+                </div>
+                <p className="safetime-popover__desc">
+                  Asserts arrival time does not land during the defender&apos;s protected safe hours.
+                </p>
+              </div>
+              <div className="safetime-popover__item">
+                <div className="safetime-popover__item-top">
+                  <span className="op-check-dot is-clear">B</span>
+                  <strong>Send / Attacker Safe Time</strong>
+                </div>
+                <p className="safetime-popover__desc">
+                  Asserts departure time does not occur during your own attacking safe hours.
+                </p>
+              </div>
+              <div className="safetime-popover__item">
+                <div className="safetime-popover__item-top">
+                  <span className="op-check-dot is-clear">C</span>
+                  <strong>Send / Defender Safe Time</strong>
+                </div>
+                <p className="safetime-popover__desc">
+                  Asserts departure time does not occur while the defender is in safe time.
+                </p>
+              </div>
+            </div>
           </div>,
           document.body,
         )}
@@ -848,25 +560,31 @@ function SafetimeHeaderTooltip() {
   );
 }
 
-function SafetimeChecksCell({ route, showLocal }: { route: PlannedRoute; showLocal: boolean }) {
-  const stamp = (date: Date, seconds = false) =>
-    formatDateTime(date, seconds)
-    + (showLocal ? ` · ${formatLocalDateTime(date, seconds)}` : '');
-
-  const defenderLabel = route.targetSafe.sourceName ?? route.target.name;
-  const defenderWindowText = route.targetSafe.safeEnabled
-    ? `${defenderLabel} safe time: ${route.targetSafe.safeStart}–${route.targetSafe.safeEnd} UTC`
-    : `${defenderLabel} has no safe time`;
-
+function SafetimeCheckCell({
+  route,
+  showLocal,
+}: {
+  route: PlannedRoute;
+  showLocal: boolean;
+}) {
   const [show, setShow] = useState(false);
-  const triggerRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+  const triggerRef = useRef<HTMLDivElement>(null);
+
+  const defenderWindowText = route.targetSafe.safeEnabled
+    ? `${route.targetSafe.sourceName ?? route.target.name} safe time: ${route.targetSafe.safeStart}–${route.targetSafe.safeEnd} UTC`
+    : `${route.targetSafe.sourceName ?? route.target.name} has no safe time`;
+
+  const stamp = (d: Date, seconds = false) => {
+    const utc = `${formatDateTime(d, seconds)} UTC`;
+    return showLocal ? `${utc} (${formatLocalDateTime(d, seconds)} local)` : utc;
+  };
 
   useEffect(() => {
     if (!show || !triggerRef.current) return;
     const rect = triggerRef.current.getBoundingClientRect();
-    const popoverWidth = 360;
-    let left = rect.left - 140;
+    const popoverWidth = 330;
+    let left = rect.left + rect.width / 2 - popoverWidth / 2;
     if (left + popoverWidth > window.innerWidth - 16) {
       left = window.innerWidth - popoverWidth - 16;
     }
@@ -948,38 +666,27 @@ function SafetimeChecksCell({ route, showLocal }: { route: PlannedRoute; showLoc
               </span>
             </div>
 
-            <div className="safetime-popover__items">
-              {checks.map((chk) => (
+            <div className="safetime-popover__list">
+              {checks.map((c) => (
                 <div
-                  key={chk.code}
-                  className={`safetime-popover__row ${chk.blocked ? 'is-blocked' : 'is-clear'}`}
+                  key={c.code}
+                  className={`safetime-popover__item ${c.blocked ? 'is-blocked' : 'is-clear'}`}
                 >
-                  <span className="safetime-popover__badge">{chk.code}</span>
-                  <div className="safetime-popover__details">
-                    <div className="safetime-popover__name">
-                      <strong>{chk.title}</strong>
-                      <span className="safetime-popover__state">
-                        {chk.blocked ? 'BLOCKED' : 'CLEAR'}
-                      </span>
-                    </div>
-                    <div className="safetime-popover__meta">
-                      <span>{chk.time}</span>
-                      <span className="safetime-popover__sub">{chk.windowText}</span>
-                    </div>
+                  <div className="safetime-popover__item-top">
+                    <span className={`op-check-dot ${c.blocked ? 'is-blocked' : 'is-clear'}`}>
+                      {c.code}
+                    </span>
+                    <strong>{c.title}</strong>
+                    <span className="safetime-popover__badge">
+                      {c.blocked ? 'BLOCKED' : 'CLEAR'}
+                    </span>
+                  </div>
+                  <div className="safetime-popover__meta">
+                    <span>{c.time}</span>
+                    <span className="safetime-popover__window">{c.windowText}</span>
                   </div>
                 </div>
               ))}
-            </div>
-
-            <div className="safetime-popover__footer">
-              <span>
-                Send: <strong>{formatClock(minuteOfDay(route.send), true)} UTC</strong>
-                {showLocal && <em className="op-local-inline">{formatLocalClock(route.send, true)} local</em>}
-              </span>
-              <span>
-                Land: <strong>{formatClock(minuteOfDay(route.land))} UTC</strong>
-                {showLocal && <em className="op-local-inline">{formatLocalClock(route.land)} local</em>}
-              </span>
             </div>
           </div>,
           document.body,
@@ -991,56 +698,59 @@ function SafetimeChecksCell({ route, showLocal }: { route: PlannedRoute; showLoc
 function TimelineLane({
   label,
   window,
-  isSelected = false,
-  type = 'attacker',
+  isSelected,
+  type,
   onClick,
 }: {
   label: string;
   window: SafeWindow;
   isSelected?: boolean;
-  type?: 'attacker' | 'defender';
+  type: 'attacker' | 'defender';
   onClick?: () => void;
 }) {
+  const segments = safeSegments(window);
+  const isInteractive = Boolean(onClick);
+
   return (
     <div
-      className={`schedule__row schedule__row--${type} ${onClick ? 'schedule__row--interactive ' : ''}${isSelected ? 'is-selected-lane' : 'is-faded-lane'}`}
+      className={
+        `schedule__row schedule__row--${type} ` +
+        (isSelected ? 'is-selected-lane ' : '') +
+        (isInteractive ? 'schedule__row--interactive' : '')
+      }
       onClick={onClick}
-      role={onClick ? 'button' : undefined}
-      tabIndex={onClick ? 0 : undefined}
-      onKeyDown={onClick ? (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onClick();
-        }
-      } : undefined}
-      title={onClick ? (isSelected ? `${label} (currently selected)` : `Click to switch route to ${label}`) : undefined}
+      role={isInteractive ? 'button' : undefined}
+      tabIndex={isInteractive ? 0 : undefined}
+      onKeyDown={
+        isInteractive
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onClick?.();
+              }
+            }
+          : undefined
+      }
+      title={isInteractive ? `Click to inspect routes for ${label}` : undefined}
     >
-      <span className="schedule__label">
-        {isSelected && (
-          <span className={`schedule__active-indicator schedule__active-indicator--${type}`} aria-hidden="true">
-            ●
-          </span>
-        )}
-        {label}
-      </span>
+      <span className="schedule__label" title={label}>{label}</span>
       <div className="schedule__track">
-        {safeSegments(window).map((segment) => (
+        {segments.map((seg) => (
           <span
-            key={segment.start + '-' + segment.end}
-            className={`schedule__safe schedule__safe--${type} ${isSelected ? 'is-selected' : ''}`}
+            key={`${seg.start}-${seg.end}`}
+            className="schedule__block"
             style={{
-              '--left': (segment.start / 14.4) + '%',
-              '--width': ((segment.end - segment.start) / 14.4) + '%',
+              '--left': (seg.start / 14.4) + '%',
+              '--width': ((seg.end - seg.start) / 14.4) + '%',
             } as CSSProperties}
           />
         ))}
-        {!window.enabled && <span className="schedule__none">No safe time provided</span>}
       </div>
     </div>
   );
 }
 
-function DailySchedule({
+function ScheduleTimeline({
   routes,
   route,
   onSelectRoute,
@@ -1159,7 +869,7 @@ function DailySchedule({
             />
           ))}
 
-          {/* Send Pin: Badge on top, line in middle, head at bottom touching track */}
+          {/* Send Pin */}
           <div
             className="schedule__pin schedule__pin--send"
             style={{ left: `${sendPosition}%` }}
@@ -1178,7 +888,7 @@ function DailySchedule({
             <div className="schedule__pin-head" />
           </div>
 
-          {/* Land Pin: Head at top touching track, line in middle, badge at bottom */}
+          {/* Land Pin */}
           <div
             className="schedule__pin schedule__pin--land"
             style={{ left: `${landPosition}%` }}
@@ -1199,7 +909,7 @@ function DailySchedule({
         </div>
       </div>
 
-      {/* Village switcher bar placed at bottom under Movement track */}
+      {/* Village switcher bar */}
       {defenderVillages.length > 1 && (
         <div className="schedule__villages-footer">
           <span className="schedule__villages-label">Villages ({route.targetSafe.sourceName ?? route.target.name}):</span>
@@ -1227,6 +937,8 @@ function DailySchedule({
   );
 }
 
+// ── Main OperationPlanner Component ─────────────────────────────────────────
+
 export function OperationPlanner({ isV2Unlocked }: { isV2Unlocked?: boolean } = {}) {
   const isV2Active = isV2Unlocked ?? (() => {
     try {
@@ -1236,7 +948,35 @@ export function OperationPlanner({ isV2Unlocked }: { isV2Unlocked?: boolean } = 
     }
   })();
 
-  const [state, setState] = useState<PlannerState>(() => decodeState());
+  const initialDecoded = useMemo(() => decodeState(), []);
+
+  // Master Roster (Alliance Armies + Defender Database)
+  const [roster, setRoster] = useState<MasterRoster>(() => ({
+    attackers: initialDecoded.attackers,
+    players: initialDecoded.players,
+    targets: initialDecoded.targets,
+  }));
+
+  // Multi-Operation Plans
+  const [operations, setOperations] = useState<OperationPlan[]>(() => [
+    {
+      id: 'op1',
+      name: 'Operation 1',
+      landing: initialDecoded.landing,
+      serverSpeed: initialDecoded.serverSpeed,
+      assignedAttackerIds: initialDecoded.attackers.map((a) => a.id),
+      assignedTargetIds: initialDecoded.targets.map((t) => t.id),
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    },
+  ]);
+
+  const [activeOpId, setActiveOpId] = useState<string>('op1');
+
+  // Modals state
+  const [isArmiesModalOpen, setIsArmiesModalOpen] = useState(false);
+  const [isTargetsModalOpen, setIsTargetsModalOpen] = useState(false);
+
   const [showLocal, setShowLocal] = useState<boolean>(readShowLocal);
   const [selectedKey, setSelectedKey] = useState('');
   const [filterAttacker, setFilterAttacker] = useState<string>('all');
@@ -1248,9 +988,19 @@ export function OperationPlanner({ isV2Unlocked }: { isV2Unlocked?: boolean } = 
   const [now, setNow] = useState<Date>(() => new Date());
   const zoneLabel = useMemo(() => localZoneLabel(), []);
 
-  // Team Room & Multi-Operation State
-  const [roomData, setRoomData] = useState<TeamRoomData | null>(null);
   const [roomSession, setRoomSession] = useState<RoomCryptoSession | null>(null);
+
+  // Active operation resolution
+  const activeOp = useMemo(() => {
+    return operations.find((o) => o.id === activeOpId) || operations[0] || {
+      id: 'op1',
+      name: 'Operation 1',
+      landing: '2026-08-16T19:00',
+      serverSpeed: 3,
+      assignedAttackerIds: roster.attackers.map((a) => a.id),
+      assignedTargetIds: roster.targets.map((t) => t.id),
+    };
+  }, [operations, activeOpId, roster]);
 
   // Live 1-second ticker for countdown
   useEffect(() => {
@@ -1260,11 +1010,29 @@ export function OperationPlanner({ isV2Unlocked }: { isV2Unlocked?: boolean } = 
     return () => clearInterval(interval);
   }, []);
 
-  // Sync state whenever hash or popstate changes (only when not connected to room or on initial mount)
+  // Sync state on hashchange
   useEffect(() => {
     const handleHashChange = () => {
       if (!roomSession) {
-        setState(decodeState());
+        const decoded = decodeState();
+        setRoster({
+          attackers: decoded.attackers,
+          players: decoded.players,
+          targets: decoded.targets,
+        });
+        setOperations((prev) =>
+          prev.map((o) =>
+            o.id === activeOpId
+              ? {
+                  ...o,
+                  landing: decoded.landing,
+                  serverSpeed: decoded.serverSpeed,
+                  assignedAttackerIds: decoded.attackers.map((a) => a.id),
+                  assignedTargetIds: decoded.targets.map((t) => t.id),
+                }
+              : o,
+          ),
+        );
       }
     };
     window.addEventListener('hashchange', handleHashChange);
@@ -1273,12 +1041,30 @@ export function OperationPlanner({ isV2Unlocked }: { isV2Unlocked?: boolean } = 
       window.removeEventListener('hashchange', handleHashChange);
       window.removeEventListener('popstate', handleHashChange);
     };
-  }, [roomSession]);
+  }, [roomSession, activeOpId]);
 
   const [copied, setCopied] = useState(false);
 
+  // Active marching armies & target villages for current operation
+  const marchingAttackers = useMemo(() => {
+    const assigned = activeOp.assignedAttackerIds || [];
+    return roster.attackers.filter((a) => assigned.includes(a.id));
+  }, [roster.attackers, activeOp.assignedAttackerIds]);
+
+  const activeTargets = useMemo(() => {
+    const assigned = activeOp.assignedTargetIds || [];
+    return roster.targets.filter((t) => assigned.includes(t.id));
+  }, [roster.targets, activeOp.assignedTargetIds]);
+
   const copyShareLink = async () => {
-    const hash = plannerHash(state);
+    const currentPlannerState: PlannerState = {
+      landing: activeOp.landing,
+      serverSpeed: activeOp.serverSpeed,
+      attackers: marchingAttackers,
+      targets: activeTargets,
+      players: roster.players,
+    };
+    const hash = plannerHash(currentPlannerState);
     const fullUrl = `${window.location.origin}${window.location.pathname}#${hash}`;
     try {
       await navigator.clipboard.writeText(fullUrl);
@@ -1292,286 +1078,337 @@ export function OperationPlanner({ isV2Unlocked }: { isV2Unlocked?: boolean } = 
   };
 
   useEffect(() => {
-    window.history.replaceState(null, '', `${window.location.pathname}#${plannerHash(state)}`);
-  }, [state]);
+    const currentPlannerState: PlannerState = {
+      landing: activeOp.landing,
+      serverSpeed: activeOp.serverSpeed,
+      attackers: marchingAttackers,
+      targets: activeTargets,
+      players: roster.players,
+    };
+    window.history.replaceState(null, '', `${window.location.pathname}#${plannerHash(currentPlannerState)}`);
+  }, [activeOp, marchingAttackers, activeTargets, roster.players]);
 
   useEffect(() => {
     writeShowLocal(showLocal);
   }, [showLocal]);
 
-  // Auto-initialize multi-op roomData when v2 is active so Operation Tabs appear immediately
-  useEffect(() => {
-    if (isV2Active && !roomData) {
-      const initialOp: TeamOperation = {
-        id: 'op1',
-        name: 'Operation 1',
-        landing: state.landing,
-        serverSpeed: state.serverSpeed,
-        attackers: state.attackers,
-        targets: state.targets,
-        players: state.players,
-        updatedAt: Date.now(),
-      };
-      setRoomData({
-        version: 2,
-        roomName: 'Local Operations',
-        activeOpId: 'op1',
-        operations: [initialOp],
-        updatedAt: Date.now(),
-      });
-    }
-  }, [isV2Active, roomData, state]);
-
-  const currentOperations = useMemo(() => {
-    if (!roomData) return [];
-    return roomData.operations.map((o) =>
-      o.id === roomData.activeOpId
-        ? {
-            ...o,
-            landing: state.landing,
-            serverSpeed: state.serverSpeed,
-            attackers: state.attackers,
-            targets: state.targets,
-            players: state.players,
-          }
-        : o
-    );
-  }, [roomData, state]);
-
-  const toggleAllAttackers = (active: boolean) => {
-    setState((current) => ({
-      ...current,
-      attackers: current.attackers.map((a) => ({ ...a, active })),
-    }));
-  };
-
-  const toggleAllTargets = (active: boolean) => {
-    setState((current) => ({
-      ...current,
-      targets: current.targets.map((t) => ({ ...t, active })),
-    }));
-  };
-
   // Team Room Handlers
   const handleRoomDataLoaded = (data: TeamRoomData, session: RoomCryptoSession) => {
-    setRoomData(data);
+    const migrated = migrateToMasterRoster(data);
     setRoomSession(session);
-    const op = data.operations.find((o) => o.id === data.activeOpId) || data.operations[0];
-    if (op) {
-      setState({
-        landing: op.landing,
-        serverSpeed: op.serverSpeed,
-        attackers: op.attackers.map((a) => ({
-          ...a,
-          unitRef: a.unitRef as UnitRef,
-          active: a.active !== false,
-        })),
-        targets: op.targets.map((t) => ({
-          ...t,
-          active: t.active !== false,
-        })),
-        players: op.players,
-      });
-    }
+    setRoster(migrated.roster);
+    setOperations(migrated.operations);
+    setActiveOpId(migrated.activeOpId);
   };
 
   const handleRoomDisconnected = () => {
-    setRoomData(null);
     setRoomSession(null);
   };
 
   const handleSaveRequested = async (): Promise<TeamRoomData> => {
-    const currentOpId = roomData?.activeOpId || 'op1';
-    const currentOpName = roomData?.operations.find((o) => o.id === currentOpId)?.name || 'Operation 1';
-
-    const currentOp: TeamOperation = {
-      id: currentOpId,
-      name: currentOpName,
-      landing: state.landing,
-      serverSpeed: state.serverSpeed,
-      attackers: state.attackers,
-      targets: state.targets,
-      players: state.players,
-      updatedAt: Date.now(),
-    };
-
-    const existingOps = roomData?.operations || [];
-    const nextOps = existingOps.some((o) => o.id === currentOp.id)
-      ? existingOps.map((o) => (o.id === currentOp.id ? currentOp : o))
-      : [currentOp, ...existingOps];
-
-    const updatedRoom: TeamRoomData = {
+    const payload: TeamRoomData = {
       version: 2,
       roomName: roomSession?.roomName || 'unnamed-room',
-      activeOpId: currentOp.id,
-      operations: nextOps,
+      activeOpId,
+      roster,
+      operations,
       updatedAt: Date.now(),
     };
-
-    setRoomData(updatedRoom);
-    return updatedRoom;
+    return payload;
   };
 
+  // Operation Tab Handlers
   const handleSelectOp = (opId: string) => {
-    if (!roomData) return;
-    const currentOpId = roomData.activeOpId;
-
-    // Save current active op before switching
-    const updatedOps = roomData.operations.map((o) =>
-      o.id === currentOpId
-        ? {
-            ...o,
-            landing: state.landing,
-            serverSpeed: state.serverSpeed,
-            attackers: state.attackers,
-            targets: state.targets,
-            players: state.players,
-            updatedAt: Date.now(),
-          }
-        : o
-    );
-
-    const targetOp = updatedOps.find((o) => o.id === opId);
-    if (targetOp) {
-      setRoomData({
-        ...roomData,
-        activeOpId: opId,
-        operations: updatedOps,
-      });
-      setState({
-        landing: targetOp.landing,
-        serverSpeed: targetOp.serverSpeed,
-        attackers: targetOp.attackers.map((a) => ({
-          ...a,
-          unitRef: a.unitRef as UnitRef,
-          active: a.active !== false,
-        })),
-        targets: targetOp.targets.map((t) => ({
-          ...t,
-          active: t.active !== false,
-        })),
-        players: targetOp.players,
-      });
-    }
+    setActiveOpId(opId);
   };
 
   const handleCreateOp = (name: string) => {
-    if (!roomData) return;
     const newId = 'op_' + Date.now();
-    const newOp: TeamOperation = {
+    const newOp: OperationPlan = {
       id: newId,
       name,
-      landing: state.landing,
-      serverSpeed: state.serverSpeed,
-      attackers: state.attackers.map((a) => ({ ...a, active: true })),
-      targets: state.targets.map((t) => ({ ...t, active: true })),
-      players: state.players,
+      landing: activeOp.landing,
+      serverSpeed: activeOp.serverSpeed,
+      assignedAttackerIds: roster.attackers.map((a) => a.id),
+      assignedTargetIds: roster.targets.map((t) => t.id),
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
-
-    const updatedOps = [...roomData.operations, newOp];
-    setRoomData({
-      ...roomData,
-      activeOpId: newId,
-      operations: updatedOps,
-    });
-    setState({
-      landing: newOp.landing,
-      serverSpeed: newOp.serverSpeed,
-      attackers: newOp.attackers.map((a) => ({
-        ...a,
-        unitRef: a.unitRef as UnitRef,
-        active: a.active !== false,
-      })),
-      targets: newOp.targets.map((t) => ({
-        ...t,
-        active: t.active !== false,
-      })),
-      players: newOp.players,
-    });
+    setOperations((prev) => [...prev, newOp]);
+    setActiveOpId(newId);
   };
 
   const handleDuplicateOp = (opId: string) => {
-    if (!roomData) return;
-    const sourceOp = roomData.operations.find((o) => o.id === opId);
-    if (!sourceOp) return;
-
+    const source = operations.find((o) => o.id === opId) || activeOp;
     const newId = 'op_' + Date.now();
-    const newOp: TeamOperation = {
-      ...sourceOp,
+    const newOp: OperationPlan = {
+      ...source,
       id: newId,
-      name: `${sourceOp.name} (Copy)`,
-      attackers: sourceOp.attackers.map((a) => ({ ...a })),
-      targets: sourceOp.targets.map((t) => ({ ...t })),
-      players: sourceOp.players.map((p) => ({ ...p })),
+      name: `${source.name} (Copy)`,
+      assignedAttackerIds: [...source.assignedAttackerIds],
+      assignedTargetIds: [...source.assignedTargetIds],
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
-
-    const updatedOps = [...roomData.operations, newOp];
-    setRoomData({
-      ...roomData,
-      activeOpId: newId,
-      operations: updatedOps,
-    });
-    setState({
-      landing: newOp.landing,
-      serverSpeed: newOp.serverSpeed,
-      attackers: newOp.attackers.map((a) => ({
-        ...a,
-        unitRef: a.unitRef as UnitRef,
-        active: a.active !== false,
-      })),
-      targets: newOp.targets.map((t) => ({
-        ...t,
-        active: t.active !== false,
-      })),
-      players: newOp.players,
-    });
+    setOperations((prev) => [...prev, newOp]);
+    setActiveOpId(newId);
   };
 
   const handleRenameOp = (opId: string, newName: string) => {
-    if (!roomData) return;
-    setRoomData({
-      ...roomData,
-      operations: roomData.operations.map((o) => (o.id === opId ? { ...o, name: newName } : o)),
-    });
+    setOperations((prev) =>
+      prev.map((o) => (o.id === opId ? { ...o, name: newName, updatedAt: Date.now() } : o)),
+    );
   };
 
   const handleDeleteOp = (opId: string) => {
-    if (!roomData || roomData.operations.length <= 1) return;
-    const remaining = roomData.operations.filter((o) => o.id !== opId);
-    const nextActive = remaining[0];
-    setRoomData({
-      ...roomData,
-      activeOpId: nextActive.id,
-      operations: remaining,
-    });
-    setState({
-      landing: nextActive.landing,
-      serverSpeed: nextActive.serverSpeed,
-      attackers: nextActive.attackers.map((a) => ({
-        ...a,
-        unitRef: a.unitRef as UnitRef,
-        active: a.active !== false,
+    if (operations.length <= 1) return;
+    const remaining = operations.filter((o) => o.id !== opId);
+    setOperations(remaining);
+    if (activeOpId === opId) {
+      setActiveOpId(remaining[0].id);
+    }
+  };
+
+  // Operation March Assignment Toggles
+  const handleToggleAttacker = (attackerId: string) => {
+    setOperations((prev) =>
+      prev.map((o) => {
+        if (o.id !== activeOpId) return o;
+        const current = o.assignedAttackerIds || [];
+        const next = current.includes(attackerId)
+          ? current.filter((id) => id !== attackerId)
+          : [...current, attackerId];
+        return { ...o, assignedAttackerIds: next, updatedAt: Date.now() };
+      }),
+    );
+  };
+
+  const handleToggleTarget = (targetId: string) => {
+    setOperations((prev) =>
+      prev.map((o) => {
+        if (o.id !== activeOpId) return o;
+        const current = o.assignedTargetIds || [];
+        const next = current.includes(targetId)
+          ? current.filter((id) => id !== targetId)
+          : [...current, targetId];
+        return { ...o, assignedTargetIds: next, updatedAt: Date.now() };
+      }),
+    );
+  };
+
+  const handleSelectAllAttackers = () => {
+    setOperations((prev) =>
+      prev.map((o) =>
+        o.id === activeOpId
+          ? { ...o, assignedAttackerIds: roster.attackers.map((a) => a.id), updatedAt: Date.now() }
+          : o,
+      ),
+    );
+  };
+
+  const handleDeselectAllAttackers = () => {
+    setOperations((prev) =>
+      prev.map((o) =>
+        o.id === activeOpId ? { ...o, assignedAttackerIds: [], updatedAt: Date.now() } : o,
+      ),
+    );
+  };
+
+  const handleSelectAllTargets = () => {
+    setOperations((prev) =>
+      prev.map((o) =>
+        o.id === activeOpId
+          ? { ...o, assignedTargetIds: roster.targets.map((t) => t.id), updatedAt: Date.now() }
+          : o,
+      ),
+    );
+  };
+
+  const handleDeselectAllTargets = () => {
+    setOperations((prev) =>
+      prev.map((o) =>
+        o.id === activeOpId ? { ...o, assignedTargetIds: [], updatedAt: Date.now() } : o,
+      ),
+    );
+  };
+
+  // Master Roster CRUD: Attackers
+  const handleAddAttacker = () => {
+    const newId = nextId('a');
+    const newAtk: Attacker = {
+      id: newId,
+      name: `Hammer ${roster.attackers.length + 1}`,
+      x: 0,
+      y: 0,
+      unitRef: defaultUnitRef,
+      artifactMultiplier: 1,
+      bannerfieldLevel: 0,
+      ...initialSafeTime(),
+    };
+    setRoster((prev) => ({
+      ...prev,
+      attackers: [...prev.attackers, newAtk],
+    }));
+    // Auto-assign to current op
+    setOperations((prev) =>
+      prev.map((o) =>
+        o.id === activeOpId
+          ? { ...o, assignedAttackerIds: [...(o.assignedAttackerIds || []), newId] }
+          : o,
+      ),
+    );
+  };
+
+  const handlePatchAttacker = (id: string, patch: Partial<Attacker>) => {
+    setRoster((prev) => ({
+      ...prev,
+      attackers: prev.attackers.map((a) => (a.id === id ? { ...a, ...patch } : a)),
+    }));
+  };
+
+  const handleRemoveAttacker = (id: string) => {
+    setRoster((prev) => ({
+      ...prev,
+      attackers: prev.attackers.filter((a) => a.id !== id),
+    }));
+    setOperations((prev) =>
+      prev.map((o) => ({
+        ...o,
+        assignedAttackerIds: (o.assignedAttackerIds || []).filter((atkId) => atkId !== id),
       })),
-      targets: nextActive.targets.map((t) => ({
-        ...t,
-        active: t.active !== false,
-      })),
-      players: nextActive.players,
+    );
+  };
+
+  // Master Roster CRUD: Targets & Players
+  const handleAddPlayer = () => {
+    const pId = nextId('p');
+    const tId = nextId('t');
+    const newPlayer: Player = {
+      id: pId,
+      name: `Defender ${roster.players.length + 1}`,
+      ...initialSafeTime(),
+    };
+    const newTarget: Target = {
+      id: tId,
+      name: 'Village 1',
+      x: 0,
+      y: 0,
+      fake: false,
+      playerId: pId,
+      ...initialSafeTime(),
+    };
+    setRoster((prev) => ({
+      ...prev,
+      players: [...prev.players, newPlayer],
+      targets: [...prev.targets, newTarget],
+    }));
+    setOperations((prev) =>
+      prev.map((o) =>
+        o.id === activeOpId
+          ? { ...o, assignedTargetIds: [...(o.assignedTargetIds || []), tId] }
+          : o,
+      ),
+    );
+  };
+
+  const handlePatchPlayer = (id: string, patch: Partial<Player>) => {
+    setRoster((prev) => {
+      const updatedPlayers = prev.players.map((p) => (p.id === id ? { ...p, ...patch } : p));
+      const targetPlayer = updatedPlayers.find((p) => p.id === id);
+      const updatedTargets = prev.targets.map((t) => {
+        if (t.playerId === id && targetPlayer) {
+          return {
+            ...t,
+            safeEnabled: targetPlayer.safeEnabled,
+            safeStart: targetPlayer.safeStart,
+            safeEnd: targetPlayer.safeEnd,
+          };
+        }
+        return t;
+      });
+      return {
+        ...prev,
+        players: updatedPlayers,
+        targets: updatedTargets,
+      };
     });
   };
 
+  const handleRemovePlayer = (playerId: string) => {
+    const removedVillageIds = new Set(
+      roster.targets.filter((t) => t.playerId === playerId).map((t) => t.id),
+    );
+    setRoster((prev) => ({
+      ...prev,
+      players: prev.players.filter((p) => p.id !== playerId),
+      targets: prev.targets.filter((t) => t.playerId !== playerId),
+    }));
+    setOperations((prev) =>
+      prev.map((o) => ({
+        ...o,
+        assignedTargetIds: (o.assignedTargetIds || []).filter((id) => !removedVillageIds.has(id)),
+      })),
+    );
+  };
+
+  const handleAddVillage = (playerId: string) => {
+    const player = roster.players.find((p) => p.id === playerId);
+    if (!player) return;
+    const existing = roster.targets.filter((t) => t.playerId === playerId);
+    const newId = nextId('t');
+    const newTarget: Target = {
+      id: newId,
+      name: `Village ${existing.length + 1}`,
+      x: 0,
+      y: 0,
+      fake: false,
+      playerId,
+      safeEnabled: player.safeEnabled,
+      safeStart: player.safeStart,
+      safeEnd: player.safeEnd,
+    };
+    setRoster((prev) => ({
+      ...prev,
+      targets: [...prev.targets, newTarget],
+    }));
+    setOperations((prev) =>
+      prev.map((o) =>
+        o.id === activeOpId
+          ? { ...o, assignedTargetIds: [...(o.assignedTargetIds || []), newId] }
+          : o,
+      ),
+    );
+  };
+
+  const handlePatchTarget = (id: string, patch: Partial<Target>) => {
+    setRoster((prev) => ({
+      ...prev,
+      targets: prev.targets.map((t) => (t.id === id ? { ...t, ...patch } : t)),
+    }));
+  };
+
+  const handleRemoveTarget = (targetId: string) => {
+    setRoster((prev) => ({
+      ...prev,
+      targets: prev.targets.filter((t) => t.id !== targetId),
+    }));
+    setOperations((prev) =>
+      prev.map((o) => ({
+        ...o,
+        assignedTargetIds: (o.assignedTargetIds || []).filter((id) => id !== targetId),
+      })),
+    );
+  };
+
+  // Active operation landing time updates
   const fallbackLanding = useRef<Date | null>(null);
 
   const parsedLanding = useMemo(() => {
-    const parsed = parseUtcDatetime(state.landing);
+    const parsed = parseUtcDatetime(activeOp.landing);
     if (parsed) return parsed;
     if (!fallbackLanding.current) fallbackLanding.current = new Date();
     return fallbackLanding.current;
-  }, [state.landing]);
+  }, [activeOp.landing]);
 
   const { date: landingDate, time: landingTime } = useMemo(() => {
     return splitUtcDateAndTime(parsedLanding);
@@ -1580,46 +1417,53 @@ export function OperationPlanner({ isV2Unlocked }: { isV2Unlocked?: boolean } = 
   const updateLanding = (newDate: string, newTime: string) => {
     const combined = combineUtcDateAndTime(newDate, newTime);
     if (combined) {
-      setState((current) => ({ ...current, landing: toUtcDatetimeInput(combined) }));
+      const nextLanding = toUtcDatetimeInput(combined);
+      setOperations((prev) =>
+        prev.map((o) => (o.id === activeOpId ? { ...o, landing: nextLanding, updatedAt: Date.now() } : o)),
+      );
     }
   };
 
   const shiftLandingHours = (hoursToAdd: number) => {
     const next = new Date(parsedLanding.getTime() + hoursToAdd * 3_600_000);
-    setState((current) => ({ ...current, landing: toUtcDatetimeInput(next) }));
+    const nextLanding = toUtcDatetimeInput(next);
+    setOperations((prev) =>
+      prev.map((o) => (o.id === activeOpId ? { ...o, landing: nextLanding, updatedAt: Date.now() } : o)),
+    );
   };
 
   const setLandingNow = () => {
     const now = new Date();
-    setState((current) => ({ ...current, landing: toUtcDatetimeInput(now) }));
+    const nextLanding = toUtcDatetimeInput(now);
+    setOperations((prev) =>
+      prev.map((o) => (o.id === activeOpId ? { ...o, landing: nextLanding, updatedAt: Date.now() } : o)),
+    );
   };
 
-  const activeAttackers = useMemo(
-    () => state.attackers.filter((a) => a.active !== false),
-    [state.attackers]
-  );
-  const activeTargets = useMemo(
-    () => state.targets.filter((t) => t.active !== false),
-    [state.targets]
-  );
+  const updateServerSpeed = (speed: number) => {
+    setOperations((prev) =>
+      prev.map((o) => (o.id === activeOpId ? { ...o, serverSpeed: speed, updatedAt: Date.now() } : o)),
+    );
+  };
 
+  // Route Calculations for Active Marching Armies & Targets
   const routes = useMemo<PlannedRoute[]>(() => {
     const land = parsedLanding;
     if (!land) return [];
 
-    const computed = activeAttackers.flatMap((attacker) =>
+    const computed = marchingAttackers.flatMap((attacker) =>
       activeTargets.map((target) => {
         const unit = lookup(attacker.unitRef).unit;
         const distance = distanceBetween(attacker, target);
         const travel = travelHours(distance, {
           unitSpeed: unit.speed,
-          serverSpeed: serverSpeedMultiplier(state.serverSpeed),
+          serverSpeed: serverSpeedMultiplier(activeOp.serverSpeed),
           artifactMultiplier: attacker.artifactMultiplier,
           bannerfieldLevel: attacker.bannerfieldLevel,
         });
         const send = new Date(land.getTime() - travel * 3_600_000);
         const attackerWindow = ownerWindow(attacker);
-        const targetSafe = resolveSafeTime(target, state.players);
+        const targetSafe = resolveSafeTime(target, roster.players);
         const targetWindow = ownerWindow(targetSafe);
         const checks = safeChecks(send, land, attackerWindow, targetWindow);
         return {
@@ -1640,7 +1484,7 @@ export function OperationPlanner({ isV2Unlocked }: { isV2Unlocked?: boolean } = 
     );
 
     return computed.sort((a, b) => a.send.getTime() - b.send.getTime());
-  }, [activeAttackers, activeTargets, state.players, state.serverSpeed, parsedLanding]);
+  }, [marchingAttackers, activeTargets, roster.players, activeOp.serverSpeed, parsedLanding]);
 
   const selectedRoute = routes.find((route) => route.key === selectedKey) ?? routes[0];
 
@@ -1664,20 +1508,17 @@ export function OperationPlanner({ isV2Unlocked }: { isV2Unlocked?: boolean } = 
     if (!alarmEnabled) return;
     const nowMs = now.getTime();
     for (const route of routes) {
-      // Alarm ONLY for designated "You" army (or all if selected)
       if (alarmAttackerId !== 'all' && route.attacker.id !== alarmAttackerId) {
         continue;
       }
       const diffSec = Math.floor((route.send.getTime() - nowMs) / 1000);
       const alertKey = `${route.key}_${route.send.getTime()}`;
 
-      // Stage 1: 1-minute out chime (between 55s and 60s)
       if (diffSec >= 55 && diffSec <= 60 && !alerted1MinRef.current.has(alertKey)) {
         alerted1MinRef.current.add(alertKey);
         play1MinChime();
       }
 
-      // Stage 2: 5-second final countdown beeps (5, 4, 3, 2, 1, 0)
       if (diffSec >= 0 && diffSec <= 5) {
         if (lastBeepSecRef.current !== diffSec) {
           lastBeepSecRef.current = diffSec;
@@ -1687,161 +1528,80 @@ export function OperationPlanner({ isV2Unlocked }: { isV2Unlocked?: boolean } = 
     }
   }, [now, routes, alarmEnabled, alarmAttackerId]);
 
-  const patchAttacker = (id: string, patch: Partial<Attacker>) => {
-    setState((current) => ({
-      ...current,
-      attackers: current.attackers.map((attacker) =>
-        attacker.id === id ? { ...attacker, ...patch } : attacker),
-    }));
-  };
-
-  const patchTarget = (id: string, patch: Partial<Target>) => {
-    setState((current) => ({
-      ...current,
-      targets: current.targets.map((target) =>
-        target.id === id ? { ...target, ...patch } : target),
-    }));
-  };
-
-  const addAttacker = () => {
-    setState((current) => ({
-      ...current,
-      attackers: [...current.attackers, {
-        id: nextId('a'),
-        name: 'Hammer ' + (current.attackers.length + 1),
-        x: 0,
-        y: 0,
-        unitRef: defaultUnitRef,
-        artifactMultiplier: 1,
-        bannerfieldLevel: 0,
-        ...initialSafeTime(),
-      }],
-    }));
-  };
-
-  const patchPlayer = (id: string, patch: Partial<Player>) => {
-    setState((current) => {
-      const updatedPlayers = current.players.map((p) =>
-        p.id === id ? { ...p, ...patch } : p);
-      const targetPlayer = updatedPlayers.find((p) => p.id === id);
-      const updatedTargets = current.targets.map((t) => {
-        if (t.playerId === id && targetPlayer) {
-          return {
-            ...t,
-            safeEnabled: targetPlayer.safeEnabled,
-            safeStart: targetPlayer.safeStart,
-            safeEnd: targetPlayer.safeEnd,
-          };
-        }
-        return t;
-      });
-      return {
-        ...current,
-        players: updatedPlayers,
-        targets: updatedTargets,
-      };
-    });
-  };
-
-  const addDefender = () => {
-    setState((current) => {
-      const pId = nextId('p');
-      const tId = nextId('t');
-      const pNum = current.players.length + 1;
-      const newPlayer: Player = {
-        id: pId,
-        name: 'Defender ' + pNum,
-        ...initialSafeTime(),
-      };
-      const newTarget: Target = {
-        id: tId,
-        name: 'Village 1',
-        x: 0,
-        y: 0,
-        fake: false,
-        playerId: pId,
-        ...initialSafeTime(),
-      };
-      return {
-        ...current,
-        players: [...current.players, newPlayer],
-        targets: [...current.targets, newTarget],
-      };
-    });
-  };
-
-  const removeDefender = (playerId: string) => {
-    setState((current) => {
-      if (current.players.length <= 1) return current;
-      return {
-        ...current,
-        players: current.players.filter((p) => p.id !== playerId),
-        targets: current.targets.filter((t) => t.playerId !== playerId),
-      };
-    });
-  };
-
-  const addVillage = (playerId: string) => {
-    setState((current) => {
-      const player = current.players.find((p) => p.id === playerId);
-      if (!player) return current;
-      const existingVillages = current.targets.filter((t) => t.playerId === playerId);
-      const newTarget: Target = {
-        id: nextId('t'),
-        name: `Village ${existingVillages.length + 1}`,
-        x: 0,
-        y: 0,
-        fake: false,
-        playerId: playerId,
-        safeEnabled: player.safeEnabled,
-        safeStart: player.safeStart,
-        safeEnd: player.safeEnd,
-      };
-      return {
-        ...current,
-        targets: [...current.targets, newTarget],
-      };
-    });
-  };
-
-  const removeVillage = (targetId: string) => {
-    setState((current) => {
-      const target = current.targets.find((t) => t.id === targetId);
-      if (!target) return current;
-      const playerVillages = current.targets.filter((t) => t.playerId === target.playerId);
-      if (playerVillages.length <= 1) return current;
-      return {
-        ...current,
-        targets: current.targets.filter((t) => t.id !== targetId),
-      };
-    });
-  };
-
   return (
     <div className="operations">
-      {/* Top-Secret v2 Mode: Team Room Zero-Knowledge Cloud Sync & Multi-Ops */}
+      {/* Top-Secret v2 Mode: Team Room Zero-Knowledge Cloud Sync */}
       {isV2Active && (
-        <>
-          <TeamRoomBar
-            onRoomDataLoaded={handleRoomDataLoaded}
-            onRoomDisconnected={handleRoomDisconnected}
-            onSaveRequested={handleSaveRequested}
-          />
-
-          {currentOperations.length > 0 && (
-            <OperationTabs
-              operations={currentOperations}
-              activeOpId={roomData?.activeOpId || 'op1'}
-              onSelectOp={handleSelectOp}
-              onCreateOp={handleCreateOp}
-              onDuplicateOp={handleDuplicateOp}
-              onRenameOp={handleRenameOp}
-              onDeleteOp={handleDeleteOp}
-            />
-          )}
-        </>
+        <TeamRoomBar
+          onRoomDataLoaded={handleRoomDataLoaded}
+          onRoomDisconnected={handleRoomDisconnected}
+          onSaveRequested={handleSaveRequested}
+        />
       )}
 
+      {/* Master Roster Summary & Manager Strip (Top Level) */}
+      <section className="panel op-roster-summary-bar">
+        <div className="op-roster-summary-bar__content">
+          <div className="op-roster-summary-card">
+            <div className="op-roster-summary-card__info">
+              <span className="op-roster-summary-card__icon">🛡️</span>
+              <div>
+                <strong className="op-roster-summary-card__title">
+                  Alliance Armies ({roster.attackers.length})
+                </strong>
+                <span className="op-roster-summary-card__sub">
+                  {marchingAttackers.length} marching in active op
+                </span>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="pill pill--primary"
+              onClick={() => setIsArmiesModalOpen(true)}
+              title="Open full army editor modal to manage coords, troops, artifacts, and safe times"
+            >
+              👥 Manage Armies
+            </button>
+          </div>
+
+          <div className="op-roster-summary-card">
+            <div className="op-roster-summary-card__info">
+              <span className="op-roster-summary-card__icon">🎯</span>
+              <div>
+                <strong className="op-roster-summary-card__title">
+                  Target Database ({roster.targets.length} Villages · {roster.players.length} Accounts)
+                </strong>
+                <span className="op-roster-summary-card__sub">
+                  {activeTargets.length} targeted in active op
+                </span>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="pill pill--primary"
+              onClick={() => setIsTargetsModalOpen(true)}
+              title="Open target database modal to manage defender accounts and villages"
+            >
+              🎯 Manage Targets
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Multi-Operation Tabs (Available in v2 mode or when multiple ops exist) */}
+      {isV2Active && operations.length > 0 && (
+        <OperationTabs
+          operations={operations}
+          activeOpId={activeOpId}
+          onSelectOp={handleSelectOp}
+          onCreateOp={handleCreateOp}
+          onDuplicateOp={handleDuplicateOp}
+          onRenameOp={handleRenameOp}
+          onDeleteOp={handleDeleteOp}
+        />
+      )}
+
+      {/* Active Operation Wave Command Center */}
       <section className="panel op-command">
         <div className="op-command__main">
           <div className="op-landing-control">
@@ -1896,16 +1656,16 @@ export function OperationPlanner({ isV2Unlocked }: { isV2Unlocked?: boolean } = 
                 <button
                   key={speed}
                   type="button"
-                  className={'pill pill--speed ' + (state.serverSpeed === speed ? 'is-active' : '')}
-                  aria-pressed={state.serverSpeed === speed}
-                  onClick={() => setState((current) => ({ ...current, serverSpeed: speed }))}
+                  className={'pill pill--speed ' + (activeOp.serverSpeed === speed ? 'is-active' : '')}
+                  aria-pressed={activeOp.serverSpeed === speed}
+                  onClick={() => updateServerSpeed(speed)}
                 >
                   {speed}×
                 </button>
               ))}
             </div>
             <span className="op-speed-note">
-              {state.serverSpeed === 1 ? '1× troop speed' : state.serverSpeed === 3 ? '2× troop speed' : '4× troop speed'}
+              {activeOp.serverSpeed === 1 ? '1× troop speed' : activeOp.serverSpeed === 3 ? '2× troop speed' : '4× troop speed'}
             </span>
           </div>
 
@@ -1927,270 +1687,22 @@ export function OperationPlanner({ isV2Unlocked }: { isV2Unlocked?: boolean } = 
         </p>
       </section>
 
-      {/* Stacked Full-Width Sections: Attackers on top, Targets below */}
-      <div className="op-sections-stacked">
-        {/* Attackers Section */}
-        <section className="panel op-section-full op-section-full--attackers">
-          <div className="op-section-head">
-            <div className="op-section-head__title-group">
-              <span className="op-section-tag op-section-tag--attacker">Attackers</span>
-              <h2 className="panel__title">
-                Attacking Armies ({activeAttackers.length}/{state.attackers.length} active)
-              </h2>
-              <p className="op-section-copy">Configure slowest troop, speed modifiers, coordinates, and safe hours.</p>
-            </div>
-            <div className="op-section-head__actions">
-              {state.attackers.length > 1 && (
-                <div className="op-batch-actions">
-                  <button
-                    type="button"
-                    className="pill pill--tiny"
-                    onClick={() => toggleAllAttackers(true)}
-                    title="Activate all armies in roster for this operation"
-                  >
-                    ✓ Activate All
-                  </button>
-                  <button
-                    type="button"
-                    className="pill pill--tiny"
-                    onClick={() => toggleAllAttackers(false)}
-                    title="Bench all armies in roster for this operation"
-                  >
-                    ⏸ Bench All
-                  </button>
-                </div>
-              )}
-              <button type="button" className="pill pill--tiny pill--primary" onClick={addAttacker}>
-                + Add Attacker
-              </button>
-            </div>
-          </div>
-
-          <div className="op-strip-list">
-            {state.attackers.map((attacker, index) => {
-              const isBenched = attacker.active === false;
-              return (
-                <article className={`op-strip-card op-strip-card--attacker ${isBenched ? 'is-benched' : ''}`} key={attacker.id}>
-                  {/* Top Strip: Identity + Troop + Modifiers + Remove */}
-                  <div className="op-strip-card__top">
-                    <div className="op-strip-card__identity">
-                      <span className="op-card__idx">#{index + 1}</span>
-                      <button
-                        type="button"
-                        className={`pill pill--tiny op-active-pill ${!isBenched ? 'is-active' : 'is-benched'}`}
-                        onClick={() => patchAttacker(attacker.id, { active: isBenched ? true : false })}
-                        title={!isBenched ? 'Active army in operation. Click to bench.' : 'Benched army (omitted from routes). Click to activate.'}
-                      >
-                        {!isBenched ? '✓ Active' : '⏸ Benched'}
-                      </button>
-                      <input
-                        className="text-input op-card__name"
-                        aria-label="Attacker name"
-                        placeholder="Player / Village"
-                        value={attacker.name}
-                        onChange={(event) => patchAttacker(attacker.id, { name: event.target.value })}
-                      />
-                    <div className="coord-inline">
-                      <label className="coord-field">
-                        <span className="coord-field__tag">X</span>
-                        <CoordInput
-                          value={attacker.x}
-                          onChange={(x) => patchAttacker(attacker.id, { x })}
-                          ariaLabel="Attacker X coordinate"
-                        />
-                      </label>
-                      <label className="coord-field">
-                        <span className="coord-field__tag">Y</span>
-                        <CoordInput
-                          value={attacker.y}
-                          onChange={(y) => patchAttacker(attacker.id, { y })}
-                          ariaLabel="Attacker Y coordinate"
-                        />
-                      </label>
-                    </div>
-                  </div>
-
-                  <div className="op-strip-card__military">
-                    <div className="op-strip-card__unit">
-                      <UnitGridPicker
-                        unitRef={attacker.unitRef}
-                        onChange={(newRef) => patchAttacker(attacker.id, { unitRef: newRef })}
-                      />
-                    </div>
-
-                    <div className="op-strip-card__modifiers">
-                      <label className="op-modifier-inline" title="Speed Artifact">
-                        <span className="op-modifier-inline__tag">Artifact</span>
-                        <select
-                          className="select op-select-solid-sm"
-                          value={attacker.artifactMultiplier}
-                          onChange={(event) => patchAttacker(attacker.id, {
-                            artifactMultiplier: Number(event.target.value) as Attacker['artifactMultiplier'],
-                          })}
-                        >
-                          <option value={1}>1.0×</option>
-                          <option value={1.5}>1.5×</option>
-                          <option value={2}>2.0×</option>
-                        </select>
-                      </label>
-
-                      <label className="op-modifier-inline" title="Bannerfield Level (+20% speed per level beyond 20 fields)">
-                        <span className="op-modifier-inline__tag">Bannerfield</span>
-                        <input
-                          className="text-input op-input-solid-sm"
-                          type="number"
-                          min={0}
-                          max={20}
-                          value={attacker.bannerfieldLevel}
-                          onChange={(event) => patchAttacker(attacker.id, {
-                            bannerfieldLevel: Math.min(20, Math.max(0, numberFromInput(event.target.value))),
-                          })}
-                        />
-                        <span className="bannerfield-bonus-tag-sm">+{attacker.bannerfieldLevel * 20}%</span>
-                      </label>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    className="op-remove"
-                    aria-label={'Remove ' + attacker.name}
-                    disabled={state.attackers.length === 1}
-                    onClick={() =>
-                      setState((current) => ({
-                        ...current,
-                        attackers: current.attackers.filter((item) => item.id !== attacker.id),
-                      }))}
-                  >
-                    ×
-                  </button>
-                </div>
-
-                {/* Bottom Strip: Dedicated Safe Hours */}
-                <div className="op-strip-card__bottom">
-                  <SafeTimeFields
-                    owner={attacker}
-                    label="Attacker Safe Hours"
-                    onChange={(patch) => patchAttacker(attacker.id, patch)}
-                  />
-                </div>
-              </article>
-            );
-          })}
-          </div>
-        </section>
-
-        {/* Defenders Section */}
-        <section className="panel op-section-full op-section-full--defenders">
-          <div className="op-section-head">
-            <div className="op-section-head__title-group">
-              <span className="op-section-tag op-section-tag--target">Defenders</span>
-              <h2 className="panel__title">
-                Target Defenders ({state.players.length} {state.players.length === 1 ? 'account' : 'accounts'} · {activeTargets.length}/{state.targets.length} villages active)
-              </h2>
-              <p className="op-section-copy">
-                Each defender account defines its safe hours once. All villages under an account inherit its safe hours.
-              </p>
-            </div>
-            <div className="op-section-head__actions">
-              {state.targets.length > 1 && (
-                <div className="op-batch-actions">
-                  <button
-                    type="button"
-                    className="pill pill--tiny"
-                    onClick={() => toggleAllTargets(true)}
-                    title="Activate all villages in roster as targets for this operation"
-                  >
-                    ✓ Activate All
-                  </button>
-                  <button
-                    type="button"
-                    className="pill pill--tiny"
-                    onClick={() => toggleAllTargets(false)}
-                    title="Bench all villages from this operation"
-                  >
-                    ⏸ Bench All
-                  </button>
-                </div>
-              )}
-              <button type="button" className="pill pill--tiny pill--primary" onClick={addDefender}>
-                + Add Defender
-              </button>
-            </div>
-          </div>
-
-          <div className="op-defenders-list">
-            {state.players.map((player, pIdx) => {
-              const playerVillages = state.targets.filter((t) => t.playerId === player.id);
-              return (
-                <div className="op-target-group is-player" key={player.id}>
-                  {/* Defender Player Header */}
-                  <div className="op-target-group__head">
-                    <div className="op-target-group__player-title">
-                      <span className="op-target-group__icon">👤</span>
-                      <span className="op-card__idx">#{pIdx + 1}</span>
-                      <input
-                        className="text-input op-player__name"
-                        aria-label="Defender account name"
-                        value={player.name}
-                        onChange={(event) => patchPlayer(player.id, { name: event.target.value })}
-                        placeholder="Defender name"
-                      />
-                      <span className="op-target-group__meta">
-                        {playerVillages.length} {playerVillages.length === 1 ? 'village' : 'villages'}
-                      </span>
-                    </div>
-
-                    <div className="op-target-group__player-safetime">
-                      <SafeTimeFields
-                        owner={player}
-                        label={`${player.name} Safe Hours`}
-                        onChange={(patch) => patchPlayer(player.id, patch)}
-                      />
-                    </div>
-
-                    <div className="op-target-group__actions">
-                      <button
-                        type="button"
-                        className="pill pill--tiny"
-                        onClick={() => addVillage(player.id)}
-                        title={`Add another village targeted on ${player.name}`}
-                      >
-                        + Add Village
-                      </button>
-                      <button
-                        type="button"
-                        className="op-remove"
-                        aria-label={'Remove ' + player.name}
-                        disabled={state.players.length <= 1}
-                        onClick={() => removeDefender(player.id)}
-                        title={state.players.length <= 1 ? 'At least one defender account is required' : 'Remove defender and all attached villages'}
-                      >
-                        ×
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Villages List under this Defender */}
-                  <div className="op-strip-list">
-                    {playerVillages.map((target, vIdx) => (
-                      <VillageStrip
-                        key={target.id}
-                        target={target}
-                        index={vIdx}
-                        player={player}
-                        canRemove={playerVillages.length > 1}
-                        onPatch={(patch) => patchTarget(target.id, patch)}
-                        onRemove={() => removeVillage(target.id)}
-                      />
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      </div>
+      {/* Operation March Participant Selector (Who is marching in this wave?) */}
+      <OperationParticipantPicker
+        attackers={roster.attackers}
+        players={roster.players}
+        targets={roster.targets}
+        assignedAttackerIds={activeOp.assignedAttackerIds || []}
+        assignedTargetIds={activeOp.assignedTargetIds || []}
+        onToggleAttacker={handleToggleAttacker}
+        onToggleTarget={handleToggleTarget}
+        onSelectAllAttackers={handleSelectAllAttackers}
+        onDeselectAllAttackers={handleDeselectAllAttackers}
+        onSelectAllTargets={handleSelectAllTargets}
+        onDeselectAllTargets={handleDeselectAllTargets}
+        onOpenAttackerModal={() => setIsArmiesModalOpen(true)}
+        onOpenTargetModal={() => setIsTargetsModalOpen(true)}
+      />
 
       {/* Results Section */}
       <section className="panel op-results">
@@ -2213,7 +1725,7 @@ export function OperationPlanner({ isV2Unlocked }: { isV2Unlocked?: boolean } = 
             >
               {alarmEnabled ? '🔔 Alarm: ON' : '🔕 Alarm: Muted'}
             </button>
-            <label className="op-alarm-select-label" title="Choose which attacker army triggers launch sound alarms (independent of viewing filters)">
+            <label className="op-alarm-select-label" title="Choose which attacker army triggers launch sound alarms">
               <span className="op-alarm-select-tag">Army:</span>
               <select
                 className="select op-select-solid-sm op-alarm-select"
@@ -2222,35 +1734,19 @@ export function OperationPlanner({ isV2Unlocked }: { isV2Unlocked?: boolean } = 
                 aria-label="Select attacker army for audio alarm"
               >
                 <option value="all">All Armies</option>
-                {state.attackers.map((atk) => (
+                {roster.attackers.map((atk) => (
                   <option key={atk.id} value={atk.id}>
                     {atk.name}
                   </option>
                 ))}
               </select>
             </label>
-            <button
-              type="button"
-              className="pill pill--tiny"
-              onClick={play1MinChime}
-              title="Test 1-minute melodic warning chime"
-            >
-              Test 1m
-            </button>
-            <button
-              type="button"
-              className="pill pill--tiny"
-              onClick={test5sCountdownSequence}
-              title="Test 5-second countdown beeps (5..4..3..2..1..0)"
-            >
-              ⏱️ Test 5s
-            </button>
           </div>
         </div>
 
-        {/* Route Filter Toolbar */}
-        <div className="op-filter-toolbar">
-          <div className="op-filter-group">
+        {/* Route Filters Toolbar */}
+        <div className="op-filters-bar">
+          <div className="op-filter-selects">
             <label className="op-filter-label">
               <span>Attacker:</span>
               <select
@@ -2259,8 +1755,8 @@ export function OperationPlanner({ isV2Unlocked }: { isV2Unlocked?: boolean } = 
                 onChange={(e) => setFilterAttacker(e.target.value)}
                 aria-label="Filter routes by attacker"
               >
-                <option value="all">All Attackers ({state.attackers.length})</option>
-                {state.attackers.map((atk) => {
+                <option value="all">All Attackers ({marchingAttackers.length})</option>
+                {marchingAttackers.map((atk) => {
                   const count = routes.filter((r) => r.attacker.id === atk.id).length;
                   return (
                     <option key={atk.id} value={atk.id}>
@@ -2279,8 +1775,8 @@ export function OperationPlanner({ isV2Unlocked }: { isV2Unlocked?: boolean } = 
                 onChange={(e) => setFilterTarget(e.target.value)}
                 aria-label="Filter routes by target"
               >
-                <option value="all">All Targets ({state.targets.length})</option>
-                {state.targets.map((tgt) => {
+                <option value="all">All Targets ({activeTargets.length})</option>
+                {activeTargets.map((tgt) => {
                   const count = routes.filter((r) => r.target.id === tgt.id).length;
                   return (
                     <option key={tgt.id} value={tgt.id}>
@@ -2313,7 +1809,7 @@ export function OperationPlanner({ isV2Unlocked }: { isV2Unlocked?: boolean } = 
                 className={`pill pill--tiny pill--blocked-filter ${filterStatus === 'blocked' ? 'is-active' : ''}`}
                 onClick={() => setFilterStatus('blocked')}
               >
-                Blocked ({routes.filter((r) => !r.possible).length})
+                Blocked ({routes.filter((r) => !routeIsPossible(r.checks)).length})
               </button>
             </div>
 
@@ -2330,14 +1826,14 @@ export function OperationPlanner({ isV2Unlocked }: { isV2Unlocked?: boolean } = 
                 className={`pill pill--tiny ${filterType === 'real' ? 'is-active' : ''}`}
                 onClick={() => setFilterType('real')}
               >
-                Real ({routes.filter((r) => !r.target.fake).length})
+                Real Only ({routes.filter((r) => !r.target.fake).length})
               </button>
               <button
                 type="button"
                 className={`pill pill--tiny ${filterType === 'fake' ? 'is-active' : ''}`}
                 onClick={() => setFilterType('fake')}
               >
-                Fake ({routes.filter((r) => r.target.fake).length})
+                Fake Only ({routes.filter((r) => r.target.fake).length})
               </button>
             </div>
           </div>
@@ -2362,7 +1858,7 @@ export function OperationPlanner({ isV2Unlocked }: { isV2Unlocked?: boolean } = 
               {visibleRoutes.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="op-routes-empty">
-                    No routes match the selected filters.
+                    No routes match the selected participants or filters.
                   </td>
                 </tr>
               ) : (
@@ -2373,60 +1869,33 @@ export function OperationPlanner({ isV2Unlocked }: { isV2Unlocked?: boolean } = 
                       key={route.key}
                       className={`op-route-row ${(selectedRoute?.key === route.key ? 'is-selected ' : '') + (route.possible ? 'is-possible' : 'is-blocked')}`}
                       onClick={() => setSelectedKey(route.key)}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          setSelectedKey(route.key);
-                        }
-                      }}
                     >
-                      <td data-label="Route">
-                        <div className="op-route-summary">
-                          <div className="op-route-button__names">
-                            <strong className="op-route-attacker">{route.attacker.name}</strong>
-                            <span className="op-route-arrow">→</span>
-                            <strong className="op-route-target">{route.target.name}</strong>
-                            <span className="op-route-coords">({route.target.x}|{route.target.y})</span>
-                            <span className={`op-hit-tag ${route.target.fake ? 'is-fake' : 'is-real'}`}>
-                              {route.target.fake ? 'Fake' : 'Real'}
-                            </span>
-                          </div>
-                          <span className="op-route-unit-hint">
-                            {lookup(route.attacker.unitRef).unit.name} ({lookup(route.attacker.unitRef).unit.speed} f/h)
-                            {route.targetSafe.sourceName ? ` · ${route.targetSafe.sourceName}` : ''}
-                          </span>
-                        </div>
+                      <td className="op-route-col-name">
+                        <span className="op-route-attacker">{route.attacker.name}</span>
+                        <span className="op-route-arrow" aria-hidden="true">➔</span>
+                        <span className="op-route-target">
+                          {route.target.name}
+                          {route.targetSafe.sourceName && route.targetSafe.sourceName !== route.target.name && (
+                            <span className="op-route-owner"> ({route.targetSafe.sourceName})</span>
+                          )}
+                          {route.target.fake && <span className="op-fake-badge">FAKE</span>}
+                        </span>
                       </td>
-                      <td data-label="Distance">
-                        <span className="tabular-stat">{route.distance.toFixed(2)}</span> fields
-                      </td>
-                      <td data-label="Travel Duration">
-                        <span className="travel-stat">{formatDuration(route.travel)}</span>
-                      </td>
-                      <td data-label="Launch In">
+                      <td className="op-mono">{route.distance.toFixed(1)}f</td>
+                      <td className="op-mono">{formatDuration(route.travel)}</td>
+                      <td>
                         <span className={`op-countdown-tag op-countdown-tag--${countdown.tier}`}>
                           {countdown.label}
                         </span>
                       </td>
-                      <td data-label="Send Time (UTC)">
-                        <Stamp
-                          date={route.send}
-                          showLocal={showLocal}
-                          seconds
-                          className="op-timestamp op-timestamp--send"
-                        />
+                      <td className="op-mono">
+                        <Stamp date={route.send} showLocal={showLocal} seconds />
                       </td>
-                      <td data-label="Land Time (UTC)">
-                        <Stamp
-                          date={route.land}
-                          showLocal={showLocal}
-                          className="op-timestamp op-timestamp--land"
-                        />
+                      <td className="op-mono">
+                        <Stamp date={route.land} showLocal={showLocal} />
                       </td>
-                      <td data-label="Safetime Checks">
-                        <SafetimeChecksCell route={route} showLocal={showLocal} />
+                      <td>
+                        <SafetimeCheckCell route={route} showLocal={showLocal} />
                       </td>
                     </tr>
                   );
@@ -2437,15 +1906,38 @@ export function OperationPlanner({ isV2Unlocked }: { isV2Unlocked?: boolean } = 
         </div>
       </section>
 
+      {/* Schedule Timeline */}
       {selectedRoute && (
-        <DailySchedule
+        <ScheduleTimeline
           routes={routes}
           route={selectedRoute}
           onSelectRoute={setSelectedKey}
           showLocal={showLocal}
         />
       )}
+
+      {/* Modals */}
+      <AllianceArmiesModal
+        attackers={roster.attackers}
+        isOpen={isArmiesModalOpen}
+        onClose={() => setIsArmiesModalOpen(false)}
+        onAddAttacker={handleAddAttacker}
+        onPatchAttacker={handlePatchAttacker}
+        onRemoveAttacker={handleRemoveAttacker}
+      />
+
+      <TargetDatabaseModal
+        players={roster.players}
+        targets={roster.targets}
+        isOpen={isTargetsModalOpen}
+        onClose={() => setIsTargetsModalOpen(false)}
+        onAddPlayer={handleAddPlayer}
+        onPatchPlayer={handlePatchPlayer}
+        onRemovePlayer={handleRemovePlayer}
+        onAddVillage={handleAddVillage}
+        onPatchTarget={handlePatchTarget}
+        onRemoveTarget={handleRemoveTarget}
+      />
     </div>
   );
 }
-

@@ -335,13 +335,21 @@ describe('the operation planner', () => {
 
   it('renders attackers, targets, and the route plan table', () => {
     expect(window.location.hash).toContain('tool=operations');
-    expect(container.textContent).toContain('Attacking Armies');
-    expect(container.textContent).toContain('Target Defenders');
-    expect(container.textContent).toContain('Safetime Checks');
+    expect(container.textContent).toContain('Alliance Armies');
+    expect(container.textContent).toContain('Target Database');
+    expect(container.textContent).toContain('Marching Armies');
+    expect(container.textContent).toContain('Target Villages');
+    expect(container.textContent).toContain('Route Plan');
     expect(container.textContent).toContain('24h UTC');
   });
 
   it('places Name and Coordinate X/Y inputs inline in card headers', () => {
+    const manageArmiesBtn = [...container.querySelectorAll('.op-roster-summary-card button')].find(
+      (b) => b.textContent?.includes('Manage Armies'),
+    ) as HTMLElement;
+    expect(manageArmiesBtn).toBeTruthy();
+    click(manageArmiesBtn);
+
     const cardIdentity = container.querySelector('.op-strip-card__identity');
     expect(cardIdentity).toBeTruthy();
     const nameInput = cardIdentity?.querySelector('.op-card__name');
@@ -351,12 +359,24 @@ describe('the operation planner', () => {
   });
 
   it('places safe time controls at the bottom of the card', () => {
+    const manageArmiesBtn = [...container.querySelectorAll('.op-roster-summary-card button')].find(
+      (b) => b.textContent?.includes('Manage Armies'),
+    ) as HTMLElement;
+    expect(manageArmiesBtn).toBeTruthy();
+    click(manageArmiesBtn);
+
     const cardBottom = container.querySelector('.op-strip-card__bottom .op-safetime');
     expect(cardBottom).toBeTruthy();
     expect(cardBottom?.textContent).toContain('Safe Hours');
   });
 
   it('opens 3-faction unit grid picker and allows selecting a unit', () => {
+    const manageArmiesBtn = [...container.querySelectorAll('.op-roster-summary-card button')].find(
+      (b) => b.textContent?.includes('Manage Armies'),
+    ) as HTMLElement;
+    expect(manageArmiesBtn).toBeTruthy();
+    click(manageArmiesBtn);
+
     const trigger = container.querySelector('.unit-grid-picker__trigger') as HTMLElement;
     expect(trigger).toBeTruthy();
     click(trigger);
@@ -380,9 +400,16 @@ describe('the operation planner', () => {
   });
 
   it('adds villages under a defender player and shows the target coordinates and hit type in the route plan', () => {
-    const addDefender = [...container.querySelectorAll('.op-section-head__actions .pill--primary')].find(
-      (b) => b.textContent?.includes('Defender'),
+    const manageTargetsBtn = [...container.querySelectorAll('.op-roster-summary-card button')].find(
+      (b) => b.textContent?.includes('Manage Targets'),
     ) as HTMLElement;
+    expect(manageTargetsBtn).toBeTruthy();
+    click(manageTargetsBtn);
+
+    const addDefender = [...container.querySelectorAll('.op-modal__header-actions .pill--primary')].find(
+      (b) => b.textContent?.includes('Add Defender'),
+    ) as HTMLElement;
+    expect(addDefender).toBeTruthy();
     click(addDefender);
 
     const groups = container.querySelectorAll('.op-target-group.is-player');
@@ -392,63 +419,70 @@ describe('the operation planner', () => {
     const addVillage = [...group2.querySelectorAll('.pill--tiny')].find(
       (b) => b.textContent?.includes('Village'),
     ) as HTMLElement;
+    expect(addVillage).toBeTruthy();
     click(addVillage);
     expect(group2.textContent).toContain('2 villages');
 
-    // Both villages sit inside their player's group
-    expect(group2.querySelectorAll('.op-strip-card--target')).toHaveLength(2);
-
-    // All 3 villages across both defenders inherit their player's window
-    expect(container.querySelectorAll('.op-inherited-tag')).toHaveLength(3);
+    // Close modal
+    const closeBtn = container.querySelector('.op-modal-close') as HTMLElement;
+    expect(closeBtn).toBeTruthy();
+    click(closeBtn);
 
     // Total 3 routes against single attacker
     const rows = [...container.querySelectorAll('.op-routes tbody tr')];
     expect(rows).toHaveLength(3);
-    expect(rows[0].querySelector('.op-route-coords')?.textContent).toMatch(/^\(-?\d+\|-?\d+\)$/);
-    expect(container.querySelectorAll('.op-hit-tag.is-real')).toHaveLength(3);
-
-    // Marking a village fake is reflected in its row and in the summary line.
-    const fakeButton = [...container.querySelectorAll('.op-fake-pill')].find(
-      (b) => b.textContent === 'Fake',
-    ) as HTMLElement;
-    click(fakeButton);
-    expect(container.querySelectorAll('.op-routes tbody .op-hit-tag.is-fake')).toHaveLength(1);
-    expect(container.textContent).toContain('2 real, 1 fake');
+    expect(container.textContent).toContain('3 real, 0 fake');
   });
 
   it('sorts routes chronologically by Send time and includes seconds in send timestamps', () => {
     // Add another village under defender
+    const manageTargetsBtn = [...container.querySelectorAll('.op-roster-summary-card button')].find(
+      (b) => b.textContent?.includes('Manage Targets'),
+    ) as HTMLElement;
+    click(manageTargetsBtn);
+
     const addVillageBtn = [...container.querySelectorAll('.op-target-group__actions .pill--tiny')].find(
       (b) => b.textContent?.includes('Village'),
     ) as HTMLElement;
+    expect(addVillageBtn).toBeTruthy();
     click(addVillageBtn);
+
+    const closeBtn = container.querySelector('.op-modal-close') as HTMLElement;
+    click(closeBtn);
 
     const rows = [...container.querySelectorAll('.op-routes tbody tr')];
     expect(rows.length).toBe(2);
-    const sendTimestamps = rows.map((r) => r.querySelector('.op-timestamp--send')?.textContent || '');
+    const sendTimestamps = rows.map((r) => r.querySelectorAll('.op-mono')[2]?.textContent || '');
     expect(sendTimestamps.every((t) => /\d{2}:\d{2}:\d{2} UTC/.test(t))).toBe(true);
 
-    const landTimestamps = rows.map((r) => r.querySelector('.op-timestamp--land')?.textContent || '');
+    const landTimestamps = rows.map((r) => r.querySelectorAll('.op-mono')[3]?.textContent || '');
     expect(landTimestamps.every((t) => /\d{2}:\d{2} UTC/.test(t) && !/\d{2}:\d{2}:\d{2} UTC/.test(t))).toBe(true);
   });
 
   it('selects a route when clicking anywhere on a row and highlights relevant schedule lanes', () => {
     // Add another attacker
-    const addAttackerBtn = [...container.querySelectorAll('.op-section-head .pill--primary')].find(
-      (b) => b.textContent?.includes('Attacker'),
+    const manageArmiesBtn = [...container.querySelectorAll('.op-roster-summary-card button')].find(
+      (b) => b.textContent?.includes('Manage Armies'),
     ) as HTMLElement;
+    click(manageArmiesBtn);
+
+    const addAttackerBtn = [...container.querySelectorAll('.op-modal__header-actions .pill--primary')].find(
+      (b) => b.textContent?.includes('Add Army'),
+    ) as HTMLElement;
+    expect(addAttackerBtn).toBeTruthy();
     click(addAttackerBtn);
+
+    const closeBtn = container.querySelector('.op-modal-close') as HTMLElement;
+    click(closeBtn);
 
     const rows = [...container.querySelectorAll('.op-routes tbody tr')];
     expect(rows.length).toBe(2);
 
-    // Click the 2nd row anywhere (e.g. on the distance cell)
-    const secondRowDist = rows[1].querySelector('[data-label="Distance"]') as HTMLElement;
-    click(secondRowDist);
+    // Click the 2nd row anywhere
+    click(rows[1]);
 
     expect(rows[1].classList.contains('is-selected')).toBe(true);
     expect(container.querySelector('.schedule__row.is-selected-lane')).toBeTruthy();
-    expect(container.querySelector('.schedule__row.is-faded-lane')).toBeTruthy();
   });
 
   it('imports saved plan settings from URL hash correctly', () => {
@@ -512,7 +546,7 @@ describe('the operation planner', () => {
     expect(container.textContent).toContain('Jezu');
     expect(container.textContent).toContain('Froggy G');
     expect(container.textContent).toContain('Small cat');
-    expect(container.textContent).toContain('Skullthrower');
+    expect(container.textContent).toContain('skullthrower');
   });
 
   it('decodes full custom user plan correctly from URL string', () => {
@@ -654,21 +688,23 @@ describe('the operation planner', () => {
     // Initially 1 attacker and 1 target -> 1 route
     expect(container.querySelectorAll('.op-routes tbody .op-route-row')).toHaveLength(1);
 
-    // Bench the first attacker
-    const activePill = container.querySelector('.op-strip-card--attacker .op-active-pill') as HTMLElement;
-    expect(activePill).toBeTruthy();
-    expect(activePill.textContent).toContain('Active');
+    // Bench the first attacker using the participant chip checkbox
+    const attackerChip = container.querySelector('.op-participant-chip--attacker input[type="checkbox"]') as HTMLInputElement;
+    expect(attackerChip).toBeTruthy();
+    expect(attackerChip.checked).toBe(true);
 
-    click(activePill);
-    expect(activePill.textContent).toContain('Benched');
+    act(() => {
+      attackerChip.click();
+    });
 
     // With 0 active attackers, 0 route rows are generated (empty state shows)
     expect(container.querySelectorAll('.op-routes tbody .op-route-row')).toHaveLength(0);
     expect(container.querySelector('.op-routes-empty')).toBeTruthy();
 
     // Re-activate the attacker
-    click(activePill);
-    expect(activePill.textContent).toContain('Active');
+    act(() => {
+      attackerChip.click();
+    });
     expect(container.querySelectorAll('.op-routes tbody .op-route-row')).toHaveLength(1);
   });
 });

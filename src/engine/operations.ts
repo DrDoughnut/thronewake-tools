@@ -321,6 +321,29 @@ export interface CompactPlannerState {
   players: CompactPlayer[];
 }
 
+export type Attacker = CompactAttacker;
+export type Player = CompactPlayer;
+export type Target = CompactTarget;
+export type PlannerState = CompactPlannerState;
+
+
+export interface MasterRoster {
+  attackers: CompactAttacker[];
+  players: CompactPlayer[];
+  targets: CompactTarget[];
+}
+
+export interface OperationPlan {
+  id: string;
+  name: string;
+  landing: string;
+  serverSpeed: number;
+  assignedAttackerIds: string[];
+  assignedTargetIds: string[];
+  createdAt?: number;
+  updatedAt?: number;
+}
+
 export interface TeamOperation {
   id: string;
   name: string;
@@ -337,8 +360,184 @@ export interface TeamRoomData {
   version: 2;
   roomName: string;
   activeOpId: string;
-  operations: TeamOperation[];
+  roster: MasterRoster;
+  operations: OperationPlan[];
   updatedAt: number;
+}
+
+/**
+ * Migrates any team room payload (v1, legacy v2 with duplicated ops)
+ * into a clean MasterRoster + OperationPlan[] structure.
+ */
+export function migrateToMasterRoster(raw: any, fallbackState?: CompactPlannerState): TeamRoomData {
+  if (!raw || typeof raw !== 'object') {
+    const fallback: CompactPlannerState = fallbackState || {
+      landing: '2026-08-16T19:00',
+      serverSpeed: 3,
+      attackers: [
+        {
+          id: 'a1',
+          name: 'Attacker 1',
+          x: 0,
+          y: 0,
+          unitRef: 'embermark_dominion/emberblade',
+          artifactMultiplier: 1,
+          bannerfieldLevel: 0,
+          safeEnabled: true,
+          safeStart: '22:00',
+          safeEnd: '04:00',
+          active: true,
+        },
+      ],
+      targets: [
+        {
+          id: 't1',
+          name: 'Target 1',
+          x: 10,
+          y: 10,
+          fake: false,
+          playerId: 'p1',
+          safeEnabled: true,
+          safeStart: '22:00',
+          safeEnd: '04:00',
+          active: true,
+        },
+      ],
+      players: [
+        {
+          id: 'p1',
+          name: 'Defender 1',
+          safeEnabled: true,
+          safeStart: '22:00',
+          safeEnd: '04:00',
+        },
+      ],
+    };
+
+    return {
+      version: 2,
+      roomName: 'Local Operations',
+      activeOpId: 'op1',
+      roster: {
+        attackers: fallback.attackers,
+        players: fallback.players,
+        targets: fallback.targets,
+      },
+      operations: [
+        {
+          id: 'op1',
+          name: 'Operation 1',
+          landing: fallback.landing,
+          serverSpeed: fallback.serverSpeed,
+          assignedAttackerIds: fallback.attackers.map((a) => a.id),
+          assignedTargetIds: fallback.targets.map((t) => t.id),
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        },
+      ],
+      updatedAt: Date.now(),
+    };
+  }
+
+  // If already in new MasterRoster format:
+  if (raw.roster && Array.isArray(raw.operations)) {
+    return {
+      version: 2,
+      roomName: raw.roomName || 'unnamed-room',
+      activeOpId: raw.activeOpId || (raw.operations[0]?.id ?? 'op1'),
+      roster: {
+        attackers: Array.isArray(raw.roster.attackers) ? raw.roster.attackers : [],
+        players: Array.isArray(raw.roster.players) ? raw.roster.players : [],
+        targets: Array.isArray(raw.roster.targets) ? raw.roster.targets : [],
+      },
+      operations: raw.operations.map((op: any, index: number) => ({
+        id: op.id || `op_${index + 1}`,
+        name: op.name || `Operation ${index + 1}`,
+        landing: op.landing || '2026-08-16T19:00',
+        serverSpeed: op.serverSpeed || 3,
+        assignedAttackerIds: Array.isArray(op.assignedAttackerIds)
+          ? op.assignedAttackerIds
+          : raw.roster.attackers.map((a: any) => a.id),
+        assignedTargetIds: Array.isArray(op.assignedTargetIds)
+          ? op.assignedTargetIds
+          : raw.roster.targets.map((t: any) => t.id),
+        createdAt: op.createdAt || Date.now(),
+        updatedAt: op.updatedAt || Date.now(),
+      })),
+      updatedAt: raw.updatedAt || Date.now(),
+    };
+  }
+
+  // If legacy TeamRoomData where operations had their own copies of attackers/targets:
+  const legacyOps: any[] = Array.isArray(raw.operations) ? raw.operations : [];
+  const masterAttackersMap = new Map<string, CompactAttacker>();
+  const masterPlayersMap = new Map<string, CompactPlayer>();
+  const masterTargetsMap = new Map<string, CompactTarget>();
+
+  const convertedOps: OperationPlan[] = [];
+
+  for (let i = 0; i < legacyOps.length; i++) {
+    const op = legacyOps[i];
+    const opId = op.id || `op_${i + 1}`;
+    const opAttackers: CompactAttacker[] = Array.isArray(op.attackers) ? op.attackers : [];
+    const opPlayers: CompactPlayer[] = Array.isArray(op.players) ? op.players : [];
+    const opTargets: CompactTarget[] = Array.isArray(op.targets) ? op.targets : [];
+
+    opAttackers.forEach((a) => {
+      if (!masterAttackersMap.has(a.id)) {
+        masterAttackersMap.set(a.id, a);
+      }
+    });
+
+    opPlayers.forEach((p) => {
+      if (!masterPlayersMap.has(p.id)) {
+        masterPlayersMap.set(p.id, p);
+      }
+    });
+
+    opTargets.forEach((t) => {
+      if (!masterTargetsMap.has(t.id)) {
+        masterTargetsMap.set(t.id, t);
+      }
+    });
+
+    convertedOps.push({
+      id: opId,
+      name: op.name || `Operation ${i + 1}`,
+      landing: op.landing || '2026-08-16T19:00',
+      serverSpeed: op.serverSpeed || 3,
+      assignedAttackerIds: opAttackers.filter((a) => a.active !== false).map((a) => a.id),
+      assignedTargetIds: opTargets.filter((t) => t.active !== false).map((t) => t.id),
+      createdAt: op.createdAt || Date.now(),
+      updatedAt: op.updatedAt || Date.now(),
+    });
+  }
+
+  if (convertedOps.length === 0) {
+    convertedOps.push({
+      id: 'op1',
+      name: 'Operation 1',
+      landing: '2026-08-16T19:00',
+      serverSpeed: 3,
+      assignedAttackerIds: Array.from(masterAttackersMap.keys()),
+      assignedTargetIds: Array.from(masterTargetsMap.keys()),
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+  }
+
+  return {
+    version: 2,
+    roomName: raw.roomName || 'unnamed-room',
+    activeOpId: raw.activeOpId || convertedOps[0].id,
+    roster: {
+      attackers: Array.from(masterAttackersMap.values()),
+      players: Array.from(masterPlayersMap.values()),
+      targets: Array.from(masterTargetsMap.values()),
+    },
+    operations: convertedOps,
+    updatedAt: raw.updatedAt || Date.now(),
+  };
 }
 
 export interface ResolvedSafeTime extends CompactSafeTimeOwner {
