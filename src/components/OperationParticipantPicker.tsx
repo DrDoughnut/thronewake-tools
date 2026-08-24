@@ -73,17 +73,17 @@ export function OperationParticipantPicker({
         </div>
       </div>
 
-      <div className="op-participant-sections">
-        {/* Section 1: Marching Armies */}
-        <div className="op-participant-section op-participant-section--attackers">
-          <div className="op-participant-section__header">
-            <div className="op-participant-section__title-wrap">
+      <div className="op-participant-picker__grid">
+        {/* Left Column: Marching Armies */}
+        <div className="op-participant-col op-participant-col--attackers">
+          <div className="op-participant-col__header">
+            <div className="op-participant-col__title-wrap">
               <span className="op-participant-col__tag op-participant-col__tag--attacker">Attackers</span>
               <h3 className="op-participant-col__title">
                 Marching Armies ({activeAttackerCount}/{totalAttackerCount})
               </h3>
             </div>
-            <div className="op-participant-section__actions">
+            <div className="op-participant-col__actions">
               <button
                 type="button"
                 className="pill pill--tiny"
@@ -148,16 +148,16 @@ export function OperationParticipantPicker({
           </div>
         </div>
 
-        {/* Section 2: Target Villages Top-Down Sorted by Player */}
-        <div className="op-participant-section op-participant-section--targets">
-          <div className="op-participant-section__header">
-            <div className="op-participant-section__title-wrap">
+        {/* Right Column: Target Villages Sorted by Defender */}
+        <div className="op-participant-col op-participant-col--targets">
+          <div className="op-participant-col__header">
+            <div className="op-participant-col__title-wrap">
               <span className="op-participant-col__tag op-participant-col__tag--target">Targets</span>
               <h3 className="op-participant-col__title">
                 Target Villages ({activeTargetCount}/{totalTargetCount})
               </h3>
             </div>
-            <div className="op-participant-section__actions">
+            <div className="op-participant-col__actions">
               <button
                 type="button"
                 className="pill pill--tiny"

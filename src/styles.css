@@ -4819,15 +4819,19 @@ select:focus, .select:focus, .text-input:focus {
   background: hsl(220, 20%, 10%);
 }
 
-.op-participant-picker__grid,
-.op-participant-sections {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
+.op-participant-picker__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
 }
 
-.op-participant-col,
-.op-participant-section {
+@media (max-width: 860px) {
+  .op-participant-picker__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.op-participant-col {
   display: flex;
   flex-direction: column;
   background: hsl(220, 22%, 8%);
