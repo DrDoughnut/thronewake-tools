@@ -181,11 +181,6 @@ export async function saveToCloud(
   roomId: string,
   encryptedCiphertext: string
 ): Promise<{ success: boolean; error?: string }> {
-  // Always cache locally as well
-  try {
-    localStorage.setItem(`thronewake.room_cache.${roomId}`, encryptedCiphertext);
-  } catch {}
-
   try {
     const key = `tw_${roomId.slice(0, 32)}`;
     const res = await fetch(UPSTASH_REST_URL, {
@@ -209,7 +204,7 @@ export async function saveToCloud(
 }
 
 /**
- * Fetches encrypted ciphertext from the cloud store.
+ * Fetches encrypted ciphertext directly from the cloud store.
  */
 export async function loadFromCloud(
   roomId: string
@@ -226,35 +221,14 @@ export async function loadFromCloud(
     });
 
     if (!res.ok) {
-      // Fallback to local cache on cloud network error
-      try {
-        const localCached = localStorage.getItem(`thronewake.room_cache.${roomId}`);
-        if (localCached) return { success: true, data: localCached };
-      } catch {}
       return { success: false, error: `Cloud load failed (HTTP ${res.status})` };
     }
 
     const payload = (await res.json()) as { result?: string | null; error?: string };
     const text = payload.result ?? null;
 
-    if (text) {
-      try {
-        localStorage.setItem(`thronewake.room_cache.${roomId}`, text);
-      } catch {}
-    } else {
-      // If cloud is null, check if we have an offline cached version
-      try {
-        const localCached = localStorage.getItem(`thronewake.room_cache.${roomId}`);
-        if (localCached) return { success: true, data: localCached };
-      } catch {}
-    }
-
     return { success: true, data: text };
   } catch (err: unknown) {
-    try {
-      const localCached = localStorage.getItem(`thronewake.room_cache.${roomId}`);
-      if (localCached) return { success: true, data: localCached };
-    } catch {}
     const message = err instanceof Error ? err.message : 'Network error';
     return { success: false, error: message };
   }
