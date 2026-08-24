@@ -403,17 +403,18 @@ describe('the operation planner', () => {
     expect(groups).toHaveLength(2); // Initial Defender 1 + Defender 2
 
     const group2 = groups[1] as HTMLElement;
+    expect(group2.textContent).toContain('0 villages');
     const addVillage = [...group2.querySelectorAll('.pill--tiny')].find(
       (b) => b.textContent?.includes('Village'),
     ) as HTMLElement;
     expect(addVillage).toBeTruthy();
     click(addVillage);
-    expect(group2.textContent).toContain('2 villages');
+    expect(group2.textContent).toContain('1 village');
 
-    // Total 3 routes against single attacker
+    // Total 2 routes against single attacker (1 on Defender 1 + 1 on Defender 2)
     const rows = [...container.querySelectorAll('.op-routes tbody tr')];
-    expect(rows).toHaveLength(3);
-    expect(container.textContent).toContain('3 real, 0 fake');
+    expect(rows).toHaveLength(2);
+    expect(container.textContent).toContain('2 real, 0 fake');
   });
 
   it('sorts routes chronologically by Send time and includes seconds in send timestamps', () => {
@@ -672,9 +673,10 @@ describe('the operation planner', () => {
     expect(container.querySelectorAll('.op-target-group.is-player')).toHaveLength(2);
 
     // Click Delete Account on the second defender
-    const deleteAccountBtns = container.querySelectorAll('.op-target-group.is-player .op-remove-danger');
-    expect(deleteAccountBtns.length).toBeGreaterThan(1);
-    click(deleteAccountBtns[deleteAccountBtns.length - 2] as HTMLElement);
+    const groups = container.querySelectorAll('.op-target-group.is-player');
+    const deleteAccountBtn2 = groups[1].querySelector('.op-remove-danger') as HTMLElement;
+    expect(deleteAccountBtn2).toBeTruthy();
+    click(deleteAccountBtn2);
 
     // Account confirm modal appears
     const defConfirmModal = container.querySelector('.op-modal.op-modal--compact');

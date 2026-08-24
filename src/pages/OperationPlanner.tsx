@@ -1444,33 +1444,15 @@ export function OperationPlanner({
   // Master Roster CRUD: Targets & Players
   const handleAddPlayer = () => {
     const pId = nextId('p');
-    const tId = nextId('t');
     const newPlayer: Player = {
       id: pId,
       name: `Defender ${roster.players.length + 1}`,
       ...initialSafeTime(),
     };
-    const newTarget: Target = {
-      id: tId,
-      name: 'Village 1',
-      x: 0,
-      y: 0,
-      fake: false,
-      playerId: pId,
-      ...initialSafeTime(),
-    };
     setRoster((prev) => ({
       ...prev,
       players: [...prev.players, newPlayer],
-      targets: [...prev.targets, newTarget],
     }));
-    setOperations((prev) =>
-      prev.map((o) =>
-        o.id === activeOpId
-          ? { ...o, assignedTargetIds: [...(o.assignedTargetIds || []), tId] }
-          : o,
-      ),
-    );
   };
 
   const handlePatchPlayer = (id: string, patch: Partial<Player>) => {
