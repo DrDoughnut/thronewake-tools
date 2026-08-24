@@ -395,6 +395,7 @@ export interface PlayerGroupCardProps {
   player: Player;
   pIdx: number;
   targets: Target[];
+  defaultExpanded?: boolean;
   onPatchPlayer: (patch: Partial<Player>) => void;
   onRemovePlayer: () => void;
   onAddVillage: () => void;
@@ -406,6 +407,7 @@ export function PlayerGroupCard({
   player,
   pIdx,
   targets,
+  defaultExpanded = false,
   onPatchPlayer,
   onRemovePlayer,
   onAddVillage,
@@ -414,14 +416,20 @@ export function PlayerGroupCard({
 }: PlayerGroupCardProps) {
   const [isConfirmingDeletePlayer, setIsConfirmingDeletePlayer] = useState(false);
   const [deletingTarget, setDeletingTarget] = useState<Target | null>(null);
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const playerVillages = targets.filter((t) => t.playerId === player.id);
+
+  const handleAddVillage = () => {
+    setIsExpanded(true);
+    onAddVillage();
+  };
 
   return (
     <>
       <div className="op-target-group is-player op-roster-target-group" key={player.id}>
         <div className="op-target-group__head">
           <div className="op-target-group__player-title">
-            <span className="op-target-group__icon">👤</span>
+            <span className="op-target-group__icon" aria-hidden="true">👤</span>
             <span className="op-card__idx">#{pIdx + 1}</span>
             <input
               className="text-input op-player__name"
@@ -430,24 +438,13 @@ export function PlayerGroupCard({
               onChange={(e) => onPatchPlayer({ name: e.target.value })}
               placeholder="Defender Account Name"
             />
-            <span className="op-target-group__meta">
-              {playerVillages.length} {playerVillages.length === 1 ? 'village' : 'villages'}
-            </span>
-          </div>
-
-          <div className="op-target-group__player-safetime">
-            <SafeTimeFields
-              owner={player}
-              label={`${player.name || 'Defender'} Safe Hours`}
-              onChange={(patch) => onPatchPlayer(patch)}
-            />
           </div>
 
           <div className="op-target-group__actions">
             <button
               type="button"
               className="pill pill--tiny pill--primary"
-              onClick={onAddVillage}
+              onClick={handleAddVillage}
             >
               + Add Village
             </button>
@@ -463,55 +460,86 @@ export function PlayerGroupCard({
           </div>
         </div>
 
-        <div className="op-strip-list">
-          {playerVillages.map((target, vIdx) => (
-            <article
-              className="op-strip-card op-strip-card--target"
-              key={target.id}
-            >
-              <div className="op-strip-card__identity">
-                <span className="op-card__idx">#{vIdx + 1}</span>
-                <input
-                  className="text-input op-card__name"
-                  aria-label="Village name"
-                  placeholder="Village name"
-                  value={target.name}
-                  onChange={(e) => onPatchTarget(target.id, { name: e.target.value })}
-                />
-                <div className="coord-inline">
-                  <label className="coord-field">
-                    <span className="coord-field__tag">X</span>
-                    <CoordInput
-                      value={target.x}
-                      onChange={(x) => onPatchTarget(target.id, { x })}
-                      ariaLabel="Village X coordinate"
-                    />
-                  </label>
-                  <label className="coord-field">
-                    <span className="coord-field__tag">Y</span>
-                    <CoordInput
-                      value={target.y}
-                      onChange={(y) => onPatchTarget(target.id, { y })}
-                      ariaLabel="Village Y coordinate"
-                    />
-                  </label>
-                </div>
-              </div>
-
-              <div className="op-strip-card__target-meta">
-                <button
-                  type="button"
-                  className="op-remove-danger op-remove-danger--sm"
-                  aria-label={`Remove ${target.name}`}
-                  onClick={() => setDeletingTarget(target)}
-                  title="Delete village"
-                >
-                  🗑️
-                </button>
-              </div>
-            </article>
-          ))}
+        <div className="op-target-group__player-safetime">
+          <SafeTimeFields
+            owner={player}
+            label={`${player.name || 'Defender'} Safe Hours`}
+            onChange={(patch) => onPatchPlayer(patch)}
+          />
         </div>
+
+        <details
+          className="op-villages-disclosure"
+          open={isExpanded}
+          onToggle={(e) => setIsExpanded(e.currentTarget.open)}
+        >
+          <summary className="op-villages-summary">
+            <span className="op-villages-summary__title">
+              🏘️ {playerVillages.length} {playerVillages.length === 1 ? 'village' : 'villages'}
+            </span>
+            {!isExpanded && playerVillages.length > 0 && (
+              <span className="op-villages-summary__preview">
+                {playerVillages.map((v) => `${v.name || 'Village'} (${v.x}|${v.y})`).join(' · ')}
+              </span>
+            )}
+          </summary>
+
+          <div className="op-strip-list">
+            {playerVillages.length === 0 ? (
+              <div className="op-villages-empty">
+                No villages yet. Click "+ Add Village" above to add one.
+              </div>
+            ) : (
+              playerVillages.map((target, vIdx) => (
+                <article
+                  className="op-strip-card op-strip-card--target"
+                  key={target.id}
+                >
+                  <div className="op-strip-card__identity">
+                    <span className="op-card__idx">#{vIdx + 1}</span>
+                    <input
+                      className="text-input op-card__name"
+                      aria-label="Village name"
+                      placeholder="Village name"
+                      value={target.name}
+                      onChange={(e) => onPatchTarget(target.id, { name: e.target.value })}
+                    />
+                    <div className="coord-inline">
+                      <label className="coord-field">
+                        <span className="coord-field__tag">X</span>
+                        <CoordInput
+                          value={target.x}
+                          onChange={(x) => onPatchTarget(target.id, { x })}
+                          ariaLabel="Village X coordinate"
+                        />
+                      </label>
+                      <label className="coord-field">
+                        <span className="coord-field__tag">Y</span>
+                        <CoordInput
+                          value={target.y}
+                          onChange={(y) => onPatchTarget(target.id, { y })}
+                          ariaLabel="Village Y coordinate"
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="op-strip-card__target-meta">
+                    <button
+                      type="button"
+                      className="op-remove-danger op-remove-danger--sm"
+                      aria-label={`Remove ${target.name}`}
+                      onClick={() => setDeletingTarget(target)}
+                      title="Delete village"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                </article>
+              ))
+            )}
+          </div>
+        </details>
       </div>
 
       <ConfirmDeleteModal
@@ -572,6 +600,8 @@ export function TargetDatabaseModal({
   onPatchTarget,
   onRemoveTarget,
 }: TargetDatabaseModalProps) {
+  const [expandAll, setExpandAll] = useState<boolean | null>(null);
+
   if (!isOpen) return null;
 
   return (
@@ -590,8 +620,18 @@ export function TargetDatabaseModal({
             </div>
           </div>
           <div className="op-modal__header-actions">
+            {players.length > 0 && (
+              <button
+                type="button"
+                className="pill pill--tiny pill--secondary"
+                onClick={() => setExpandAll((prev) => (prev === true ? false : true))}
+                title={expandAll === true ? 'Collapse all village lists' : 'Expand all village lists'}
+              >
+                {expandAll === true ? 'Collapse All' : 'Expand All'}
+              </button>
+            )}
             <button type="button" className="pill pill--primary" onClick={onAddPlayer}>
-              + Add Defender Account
+              + Add Defender
             </button>
             <button type="button" className="op-modal-close" onClick={onClose} aria-label="Close targets modal">
               ✕
@@ -601,15 +641,16 @@ export function TargetDatabaseModal({
 
         <div className="op-modal__body">
           {players.length === 0 ? (
-            <div className="op-modal__empty">No defender accounts. Click "+ Add Defender Account" above.</div>
+            <div className="op-modal__empty">No defender accounts. Click "+ Add Defender" above.</div>
           ) : (
             <div className="op-defenders-list">
               {players.map((player, pIdx) => (
                 <PlayerGroupCard
-                  key={player.id}
+                  key={`${player.id}-${expandAll ?? 'default'}`}
                   player={player}
                   pIdx={pIdx}
                   targets={targets}
+                  defaultExpanded={expandAll ?? false}
                   onPatchPlayer={(patch) => onPatchPlayer(player.id, patch)}
                   onRemovePlayer={() => onRemovePlayer(player.id)}
                   onAddVillage={() => onAddVillage(player.id)}
