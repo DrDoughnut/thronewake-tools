@@ -6262,7 +6262,7 @@ select:focus, .select:focus, .text-input:focus {
   .op-filter-disclosure .op-filters-bar { padding: 9px; }
 }
 
-.op-room-menu { position: relative; }
+.op-room-menu { position: relative; z-index: 100; }
 .op-room-menu > summary {
   list-style: none;
   border: 1px solid hsl(220, 16%, 27%);
@@ -6278,23 +6278,25 @@ select:focus, .select:focus, .text-input:focus {
 .op-room-menu__panel {
   position: absolute;
   top: calc(100% + 6px);
-  right: 0;
-  z-index: 50;
+  left: 0;
+  z-index: 999;
   display: grid;
   gap: 6px;
-  min-width: 170px;
+  min-width: 175px;
   padding: 8px;
-  border: 1px solid hsl(220, 16%, 27%);
+  border: 1px solid hsl(220, 16%, 32%);
   border-radius: 8px;
   background: hsl(220, 22%, 8%);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.7);
 }
 .op-room-menu__panel .pill { width: 100%; justify-content: center; }
 
 /* ── Unified Room Card ───────────────────────────────────────────────── */
 .op-unified-room-card {
   padding: 0;
-  overflow: hidden;
+  overflow: visible;
+  position: relative;
+  z-index: 30;
   margin-bottom: 12px;
 }
 .op-unified-room-card__classified-strip {
@@ -6305,6 +6307,8 @@ select:focus, .select:focus, .text-input:focus {
   padding: 6px 14px;
   background: linear-gradient(90deg, rgba(46, 204, 113, 0.14) 0%, rgba(26, 188, 156, 0.06) 100%);
   border-bottom: 1px solid rgba(46, 204, 113, 0.25);
+  border-top-left-radius: inherit;
+  border-top-right-radius: inherit;
   font-size: 11px;
   font-weight: 750;
   color: #2ecc71;
