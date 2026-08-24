@@ -768,13 +768,7 @@ describe('the operation planner', () => {
     expect(firstOpTab).toBeTruthy();
     click(firstOpTab);
 
-    // Participant selection is intentionally collapsed in the focused Setup workspace.
-    const editParticipants = [...container.querySelectorAll('.op-participant-picker button')].find(
-      (button) => button.textContent?.includes('Edit Participants'),
-    ) as HTMLButtonElement;
-    expect(editParticipants).toBeTruthy();
-    click(editParticipants);
-
+    // Participant selection is always visible in the Setup workspace.
     const attackerChip = container.querySelector('.op-participant-chip--attacker input[type="checkbox"]') as HTMLInputElement;
     expect(attackerChip.checked).toBe(true);
     act(() => attackerChip.click());
@@ -797,10 +791,6 @@ describe('the operation planner', () => {
     ) as HTMLButtonElement;
     expect(setupTab).toBeTruthy();
     click(setupTab);
-    const reopenParticipants = [...container.querySelectorAll('.op-participant-picker button')].find(
-      (button) => button.textContent?.includes('Edit Participants'),
-    ) as HTMLButtonElement;
-    click(reopenParticipants);
     const benchedAttacker = container.querySelector('.op-participant-chip--attacker input[type="checkbox"]') as HTMLInputElement;
     act(() => benchedAttacker.click());
     const routesTabReopened = [...container.querySelectorAll('.op-workspace-nav button')].find(
@@ -1000,10 +990,6 @@ describe('the operation planner', () => {
       // Verify modal closes and new operation is created and open
       expect(container.querySelector('.op-modal--import')).toBeNull();
       expect(container.querySelector('.op-workspace-bar')).toBeTruthy();
-      const editImportedParticipants = [...container.querySelectorAll('.op-participant-picker button')].find(
-        (button) => button.textContent?.includes('Edit Participants'),
-      ) as HTMLButtonElement;
-      click(editImportedParticipants);
       expect(container.textContent).toContain('Alpha Strike');
       expect(container.textContent).toContain('Capital City');
     } finally {

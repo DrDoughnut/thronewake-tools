@@ -2178,10 +2178,9 @@ export function OperationPlanner({
                   ) : (
                     visibleRoutes.map((route) => {
                       const countdown = getCountdownInfo(route.send, now);
-                      const defenderDisplayName =
-                        route.targetSafe.sourceName && route.targetSafe.sourceName !== route.target.name
-                          ? `${route.targetSafe.sourceName}: ${route.target.name}`
-                          : route.target.name;
+                      const defenderName = route.targetSafe.sourceName || route.target.name;
+                      const hasDifferentVillageName =
+                        route.targetSafe.sourceName && route.targetSafe.sourceName !== route.target.name;
 
                       return (
                         <tr
@@ -2202,11 +2201,16 @@ export function OperationPlanner({
                               <div className="op-route-button__names">
                                 <strong className="op-route-attacker">{route.attacker.name}</strong>
                                 <span className="op-route-arrow" aria-hidden="true">➔</span>
-                                <strong className="op-route-target">{defenderDisplayName}</strong>
+                                <strong className="op-route-target">{defenderName}</strong>
                                 <span className={`op-hit-tag ${route.target.fake ? 'is-fake' : 'is-real'}`}>
                                   {route.target.fake ? 'Fake' : 'Real'}
                                 </span>
                               </div>
+                              {hasDifferentVillageName && (
+                                <span className="op-route-village-subtext">
+                                  {route.target.name}
+                                </span>
+                              )}
                             </div>
                           </td>
                           <td data-label="Distance / Map Pin">
