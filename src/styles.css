@@ -6291,13 +6291,207 @@ select:focus, .select:focus, .text-input:focus {
 }
 .op-room-menu__panel .pill { width: 100%; justify-content: center; }
 
-@media (max-width: 760px) {
-  .op-team-room-bar__content { align-items: flex-start; }
-  .op-team-room-bar__left { gap: 8px; }
-  .op-team-room-bar__title-wrap { width: 100%; }
-  .op-team-room-active { gap: 7px; }
-  .op-team-room-bar__right { width: 100%; justify-content: space-between; overflow: hidden; }
-  .op-team-room-synctime { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* ── Unified Room Card ───────────────────────────────────────────────── */
+.op-unified-room-card {
+  padding: 0;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+.op-unified-room-card__classified-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 14px;
+  background: linear-gradient(90deg, rgba(46, 204, 113, 0.14) 0%, rgba(26, 188, 156, 0.06) 100%);
+  border-bottom: 1px solid rgba(46, 204, 113, 0.25);
+  font-size: 11px;
+  font-weight: 750;
+  color: #2ecc71;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.op-unified-room-card .op-team-room-bar__content {
+  padding: 10px 14px;
+}
+.op-room-speed-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.op-room-speed-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+.op-room-speed-buttons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.op-room-speed-buttons .pill {
+  padding: 2px 7px;
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+/* ── Operation(s) Strip Panel ────────────────────────────────────────── */
+.op-plans-strip-panel {
+  margin-bottom: 12px;
+  padding: 12px 14px;
+}
+.op-plans-strip__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.op-plans-strip__title-wrap {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.op-plans-strip__title-wrap .op-section-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 750;
+  color: #fff;
+}
+.op-plans-strip__subtitle {
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+/* ── Operation Emoji & Inline Rename ─────────────────────────────────── */
+.op-plan-tab__content {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.op-plan-tab__emoji-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.op-plan-tab__emoji-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  font-size: 14px;
+  line-height: 1;
+  padding: 2px 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.op-plan-tab__emoji-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.15);
+}
+.op-emoji-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 60;
+  background: hsl(220, 24%, 10%);
+  border: 1px solid hsl(220, 16%, 28%);
+  border-radius: 8px;
+  padding: 6px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.5);
+  width: 170px;
+}
+.op-emoji-popover__grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+}
+.op-emoji-popover__item {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  font-size: 15px;
+  padding: 4px 2px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  line-height: 1;
+}
+.op-emoji-popover__item:hover {
+  background: rgba(84, 160, 255, 0.2);
+  border-color: rgba(84, 160, 255, 0.4);
+  transform: scale(1.2);
+}
+.op-emoji-popover__item.is-active {
+  background: rgba(46, 204, 113, 0.2);
+  border-color: #2ecc71;
+}
+
+/* ── Workspace Bar Editable Name ─────────────────────────────────────── */
+.op-workspace-bar__title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.op-workspace-bar__emoji {
+  font-size: 16px;
+}
+.op-workspace-bar__name-input {
+  font-size: 13.5px;
+  font-weight: 750;
+  color: #fff;
+  background: hsl(220, 20%, 6%);
+  border: 1px solid hsl(220, 16%, 24%);
+  border-radius: 4px;
+  padding: 3px 7px;
+  width: 180px;
+}
+.op-workspace-bar__name-input:focus {
+  border-color: #54a0ff;
+  background: hsl(220, 20%, 10%);
+}
+
+/* ── Target Participant Filter Bar & Badge ───────────────────────────── */
+.op-participant-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+  padding: 4px 6px;
+  background: hsl(220, 20%, 8%);
+  border: 1px solid hsl(220, 15%, 18%);
+  border-radius: 6px;
+}
+.op-participant-filter-pill {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+.op-participant-filter-pill:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+.op-participant-filter-pill.is-active {
+  background: rgba(84, 160, 255, 0.15);
+  border-color: rgba(84, 160, 255, 0.35);
+  color: #54a0ff;
+  font-weight: 700;
+}
+.op-participant-chip__owner-badge {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #72c2dd;
+  background: rgba(114, 194, 221, 0.12);
+  border: 1px solid rgba(114, 194, 221, 0.25);
+  padding: 1px 5px;
+  border-radius: 3px;
+  white-space: nowrap;
 }
 
 @media (max-width: 640px) {

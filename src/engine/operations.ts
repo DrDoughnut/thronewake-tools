@@ -336,6 +336,7 @@ export interface MasterRoster {
 export interface OperationPlan {
   id: string;
   name: string;
+  icon?: string;
   landing: string;
   serverSpeed: number;
   assignedAttackerIds: string[];

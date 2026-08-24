@@ -1677,27 +1677,33 @@ export function OperationPlanner({
     }
   }, [now, routes, alarmEnabled, alarmAttackerId]);
 
+  const handleRoomServerSpeedChange = (speed: number) => {
+    setOperations((prev) =>
+      prev.map((o) => ({
+        ...o,
+        serverSpeed: speed,
+        updatedAt: Date.now(),
+      }))
+    );
+  };
+
+  const handleChangeOpIcon = (opId: string, icon: string) => {
+    setOperations((prev) =>
+      prev.map((o) => (o.id === opId ? { ...o, icon, updatedAt: Date.now() } : o))
+    );
+  };
+
   const isOperationOpen = !isV2Active || Boolean(roomSession && activeOpId);
 
   return (
     <div className={`operations ${isV2Active ? 'operations--v2-classified' : ''}`}>
-      {/* Top-Secret v2 Classified Banner */}
-      {isV2Active && (
-        <div className="op-v2-classified-banner">
-          <div className="op-v2-classified-banner__left">
-            <span className="op-v2-classified-banner__pulse" />
-            <span>🕵️ TOP SECRET CLASSIFIED MODE</span>
-            <span className="op-v2-classified-banner__tag">v2 Live Collaboration</span>
-          </div>
-          <span>Zero-Knowledge AES-256</span>
-        </div>
-      )}
-
-      {/* Top-Secret v2 Mode: Team Room Zero-Knowledge Cloud Sync, Master Roster Bar, and Multi-Ops */}
+      {/* Top-Secret v2 Mode: Unified Team Room Card with Zero-Knowledge Cloud Sync & Global Server Speed */}
       {isV2Active && (
         <>
           <TeamRoomBar
             hasUnsavedChanges={hasUnsavedChanges}
+            serverSpeed={activeOp.serverSpeed}
+            onServerSpeedChange={handleRoomServerSpeedChange}
             onRoomDataLoaded={handleRoomDataLoaded}
             onRoomDisconnected={handleRoomDisconnected}
             onSaveRequested={handleSaveRequested}
@@ -1705,9 +1711,12 @@ export function OperationPlanner({
 
           {roomSession && (
             <>
-              <section className="panel op-v2-roster" aria-label="Alliance roster">
+              <section className="panel op-v2-roster" aria-label="Hammer and Target Management">
                 <div className="op-v2-roster__head">
-                  <div><span className="op-v2-quickbar__badge">Encrypted room roster</span><p>Manage the people and villages shared by every operation.</p></div>
+                  <div>
+                    <h2 className="op-section-title">Hammer and Target Management</h2>
+                    <p>Manage the alliance armies, defender accounts, and target villages.</p>
+                  </div>
                   <button type="button" className="pill pill--tiny pill--import-btn" onClick={() => setIsImportModalOpen(true)}>📥 Import</button>
                 </div>
                 <div className="op-v2-roster__cards">
@@ -1732,6 +1741,7 @@ export function OperationPlanner({
                 onCreateOp={handleCreateOp}
                 onDuplicateOp={handleDuplicateOp}
                 onRenameOp={handleRenameOp}
+                onChangeIconOp={handleChangeOpIcon}
                 onDeleteOp={handleDeleteOp}
               />
             </>
@@ -1773,7 +1783,7 @@ export function OperationPlanner({
               </button>
             </div>
             <p className="op-standby-panel__hint">
-              Tip: You can manage your Alliance Armies and Defender Targets anytime using the Master Roster cards above without selecting an operation.
+              Tip: You can manage your Alliance Armies and Defender Targets anytime using the Hammer and Target Management cards above.
             </p>
           </div>
         </section>
@@ -1785,9 +1795,18 @@ export function OperationPlanner({
           {isV2Active && roomSession && activeOpId && (
             <div className="op-workspace-bar">
               <div className="op-workspace-bar__operation">
-                <span className="op-workspace-bar__eyebrow">Operation</span>
-                <strong>{activeOp.name}</strong>
-                <span>{marchingAttackers.length} armies · {activeTargets.length} targets · {routes.length} routes</span>
+                <span className="op-workspace-bar__eyebrow">Active Operation</span>
+                <div className="op-workspace-bar__title-row">
+                  <span className="op-workspace-bar__emoji">{activeOp.icon || '🎯'}</span>
+                  <input
+                    type="text"
+                    className="text-input op-workspace-bar__name-input"
+                    value={activeOp.name}
+                    aria-label="Operation name"
+                    onChange={(e) => handleRenameOp(activeOp.id, e.target.value)}
+                    title="Click to rename operation"
+                  />
+                </div>
               </div>
               <nav className="op-workspace-nav" aria-label="Planner workspace">
                 <button

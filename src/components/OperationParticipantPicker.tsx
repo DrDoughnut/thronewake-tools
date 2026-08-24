@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { Attacker, Player, Target } from '../engine/operations';
 
 interface OperationParticipantPickerProps {
@@ -35,11 +36,16 @@ export function OperationParticipantPicker({
   onOpenAttackerModal,
   onOpenTargetModal,
 }: OperationParticipantPickerProps) {
+  const [selectedPlayerFilter, setSelectedPlayerFilter] = useState<string | null>(null);
   const activeAttackerCount = assignedAttackerIds.length;
   const totalAttackerCount = attackers.length;
 
   const activeTargetCount = assignedTargetIds.length;
   const totalTargetCount = targets.length;
+
+  const filteredTargets = selectedPlayerFilter
+    ? targets.filter((t) => t.playerId === selectedPlayerFilter)
+    : targets;
 
   return (
     <section className="panel op-participant-picker">
@@ -126,7 +132,7 @@ export function OperationParticipantPicker({
           </div>
         </div>
 
-        {/* Right Column: Target Villages Grouped by Defender */}
+        {/* Right Column: Target Villages */}
         <div className="op-participant-col op-participant-col--targets">
           <div className="op-participant-col__header">
             <div className="op-participant-col__title-wrap">
@@ -163,115 +169,78 @@ export function OperationParticipantPicker({
             </div>
           </div>
 
-          <div className="op-participant-chips op-participant-chips--grouped">
-            {targets.length === 0 ? (
+          {/* Quick Defender Filter Tabs if 2+ defenders exist */}
+          {players.length > 1 && (
+            <div className="op-participant-filter-bar">
+              <button
+                type="button"
+                className={`op-participant-filter-pill ${selectedPlayerFilter === null ? 'is-active' : ''}`}
+                onClick={() => setSelectedPlayerFilter(null)}
+              >
+                All ({targets.length})
+              </button>
+              {players.map((p) => {
+                const count = targets.filter((t) => t.playerId === p.id).length;
+                if (count === 0) return null;
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    className={`op-participant-filter-pill ${selectedPlayerFilter === p.id ? 'is-active' : ''}`}
+                    onClick={() => setSelectedPlayerFilter(selectedPlayerFilter === p.id ? null : p.id)}
+                  >
+                    👤 {p.name} ({count})
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          <div className="op-participant-chips">
+            {filteredTargets.length === 0 ? (
               <div className="op-participant-chips__empty">
-                No targets in database.{' '}
+                No targets found.{' '}
                 <button type="button" className="btn-link" onClick={onOpenTargetModal}>
                   + Add targets
                 </button>
               </div>
             ) : (
-              <>
-                {players.map((player) => {
-                  const playerTargets = targets.filter((t) => t.playerId === player.id);
-                  if (playerTargets.length === 0) return null;
+              filteredTargets.map((tgt) => {
+                const isSelected = assignedTargetIds.includes(tgt.id);
+                const isFake = fakeTargetIds.includes(tgt.id);
+                const owner = players.find((p) => p.id === tgt.playerId);
 
-                  return (
-                    <div key={player.id} className="op-participant-group">
-                      <div className="op-participant-group__head">
-                        <span className="op-participant-group__name">👤 {player.name}</span>
-                        <span className="op-participant-group__count">
-                          {playerTargets.filter((t) => assignedTargetIds.includes(t.id)).length}/{playerTargets.length} active
-                        </span>
-                      </div>
-                      <div className="op-participant-group__items">
-                        {playerTargets.map((tgt) => {
-                          const isSelected = assignedTargetIds.includes(tgt.id);
-                          const isFake = fakeTargetIds.includes(tgt.id);
-
-                          return (
-                            <div key={tgt.id} className="op-target-assignment">
-                              <label
-                                className={`op-participant-chip op-participant-chip--target ${isSelected ? 'is-selected' : ''} ${isFake ? 'is-fake' : ''}`}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={isSelected}
-                                  onChange={() => onToggleTarget(tgt.id)}
-                                />
-                                <span className="op-participant-chip__check" aria-hidden="true">
-                                  {isSelected ? '✓' : ''}
-                                </span>
-                                <span className="op-participant-chip__name">{tgt.name || 'Village'}</span>
-                                <span className="op-participant-chip__meta">({tgt.x}|{tgt.y})</span>
-                              </label>
-                              {isSelected && (
-                                <button
-                                  type="button"
-                                  className={`pill pill--tiny op-target-mode ${isFake ? 'is-fake' : 'is-real'}`}
-                                  onClick={() => onToggleTargetFake(tgt.id)}
-                                  aria-pressed={isFake}
-                                  title="Attack type for this operation only"
-                                >
-                                  {isFake ? 'Fake' : 'Real'}
-                                </button>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })}
-
-                {/* Any unassigned targets */}
-                {targets.filter((t) => !t.playerId || !players.some((p) => p.id === t.playerId)).length > 0 && (
-                  <div className="op-participant-group">
-                    <div className="op-participant-group__head">
-                      <span className="op-participant-group__name">📍 Other Villages</span>
-                    </div>
-                    <div className="op-participant-group__items">
-                      {targets
-                        .filter((t) => !t.playerId || !players.some((p) => p.id === t.playerId))
-                        .map((tgt) => {
-                          const isSelected = assignedTargetIds.includes(tgt.id);
-                          const isFake = fakeTargetIds.includes(tgt.id);
-
-                          return (
-                            <div key={tgt.id} className="op-target-assignment">
-                              <label
-                                className={`op-participant-chip op-participant-chip--target ${isSelected ? 'is-selected' : ''} ${isFake ? 'is-fake' : ''}`}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={isSelected}
-                                  onChange={() => onToggleTarget(tgt.id)}
-                                />
-                                <span className="op-participant-chip__check" aria-hidden="true">
-                                  {isSelected ? '✓' : ''}
-                                </span>
-                                <span className="op-participant-chip__name">{tgt.name || 'Target'}</span>
-                                <span className="op-participant-chip__meta">({tgt.x}|{tgt.y})</span>
-                              </label>
-                              {isSelected && (
-                                <button
-                                  type="button"
-                                  className={`pill pill--tiny op-target-mode ${isFake ? 'is-fake' : 'is-real'}`}
-                                  onClick={() => onToggleTargetFake(tgt.id)}
-                                  aria-pressed={isFake}
-                                  title="Attack type for this operation only"
-                                >
-                                  {isFake ? 'Fake' : 'Real'}
-                                </button>
-                              )}
-                            </div>
-                          );
-                        })}
-                    </div>
+                return (
+                  <div key={tgt.id} className="op-target-assignment">
+                    <label
+                      className={`op-participant-chip op-participant-chip--target ${isSelected ? 'is-selected' : ''} ${isFake ? 'is-fake' : ''}`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => onToggleTarget(tgt.id)}
+                      />
+                      <span className="op-participant-chip__check" aria-hidden="true">
+                        {isSelected ? '✓' : ''}
+                      </span>
+                      <span className="op-participant-chip__name">{tgt.name || 'Village'}</span>
+                      {owner && <span className="op-participant-chip__owner-badge">[{owner.name}]</span>}
+                      <span className="op-participant-chip__meta">({tgt.x}|{tgt.y})</span>
+                    </label>
+                    {isSelected && (
+                      <button
+                        type="button"
+                        className={`pill pill--tiny op-target-mode ${isFake ? 'is-fake' : 'is-real'}`}
+                        onClick={() => onToggleTargetFake(tgt.id)}
+                        aria-pressed={isFake}
+                        title="Attack type for this operation only"
+                      >
+                        {isFake ? 'Fake' : 'Real'}
+                      </button>
+                    )}
                   </div>
-                )}
-              </>
+                );
+              })
             )}
           </div>
         </div>

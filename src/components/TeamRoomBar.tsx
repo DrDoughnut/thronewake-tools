@@ -14,6 +14,8 @@ const AUTOSAVE_STORAGE_KEY = 'thronewake.teamroom.autosave';
 
 interface TeamRoomBarProps {
   hasUnsavedChanges?: boolean;
+  serverSpeed?: number;
+  onServerSpeedChange?: (speed: number) => void;
   onRoomDataLoaded: (data: TeamRoomData, session: RoomCryptoSession) => void;
   onRoomDisconnected: () => void;
   onSaveRequested: () => Promise<TeamRoomData>;
@@ -21,6 +23,8 @@ interface TeamRoomBarProps {
 
 export function TeamRoomBar({
   hasUnsavedChanges = false,
+  serverSpeed = 3,
+  onServerSpeedChange,
   onRoomDataLoaded,
   onRoomDisconnected,
   onSaveRequested,
@@ -260,21 +264,28 @@ export function TeamRoomBar({
 
   return (
     <>
-      <section className="op-team-room-bar panel" aria-label="Team Room Cloud Sync">
+      <section className="op-team-room-bar panel op-unified-room-card" aria-label="Team Room Cloud Sync">
+        {/* Top Secret Classified Header Strip */}
+        <div className="op-unified-room-card__classified-strip">
+          <div className="op-v2-classified-banner__left">
+            <span className="op-v2-classified-banner__pulse" />
+            <span className="op-v2-classified-banner__title">🕵️ TOP SECRET CLASSIFIED MODE</span>
+            <span className="op-team-room-badge">
+              <span className="op-team-room-badge__icon">🛡️</span> Team Room
+            </span>
+            <span className="op-v2-classified-banner__tag">v2 Live Collaboration</span>
+          </div>
+          <span
+            className="op-team-room-secure-pill"
+            title="End-to-End Encrypted: Only people with the secret code can decrypt and read your plans."
+          >
+            🔒 Zero-Knowledge AES-256
+          </span>
+        </div>
+
+        {/* Main Content Strip: Room Connection + Server Speed + Live Status */}
         <div className="op-team-room-bar__content">
           <div className="op-team-room-bar__left">
-            <div className="op-team-room-bar__title-wrap">
-              <span className="op-team-room-badge">
-                <span className="op-team-room-badge__icon">🛡️</span> Team Room
-              </span>
-              <span
-                className="op-team-room-secure-pill"
-                title="End-to-End Encrypted: Only people with the secret code can decrypt and read your plans."
-              >
-                🔒 Zero-Knowledge AES-256
-              </span>
-            </div>
-
             {!session ? (
               <div className="op-team-room-form">
                 <input
@@ -351,6 +362,26 @@ export function TeamRoomBar({
           </div>
 
           <div className="op-team-room-bar__right">
+            {/* Global Room Server Speed Control */}
+            {onServerSpeedChange && (
+              <div className="op-room-speed-control">
+                <span className="op-room-speed-label">⚡ Speed:</span>
+                <div className="op-room-speed-buttons" role="group" aria-label="Server Speed">
+                  {[1, 2, 3, 5].map((spd) => (
+                    <button
+                      key={spd}
+                      type="button"
+                      className={`pill pill--tiny ${serverSpeed === spd ? 'is-active pill--primary' : 'pill--secondary'}`}
+                      onClick={() => onServerSpeedChange(spd)}
+                      title={`Set server speed to ${spd}× for all operations in this room`}
+                    >
+                      {spd}×
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {showTransientStatus ? (
               <span className={`op-team-room-status op-team-room-status--${status}`} role="status">
                 {statusMsg}
