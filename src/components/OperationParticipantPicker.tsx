@@ -111,7 +111,7 @@ export function OperationParticipantPicker({
             </div>
           </div>
 
-          <div className="op-participant-chips">
+          <div className="op-participant-chips op-participant-chips--vertical">
             {attackers.length === 0 ? (
               <div className="op-participant-chips__empty">
                 No armies in roster.{' '}
@@ -200,7 +200,7 @@ export function OperationParticipantPicker({
                     <span>Defender: <strong>{group.player ? group.player.name : 'Unassigned Account'}</strong></span>
                   </div>
 
-                  <div className="op-participant-chips">
+                  <div className="op-participant-chips op-participant-chips--vertical">
                     {group.targets.map((tgt) => {
                       const isSelected = assignedTargetIds.includes(tgt.id);
                       const isFake = fakeTargetIds.includes(tgt.id);
