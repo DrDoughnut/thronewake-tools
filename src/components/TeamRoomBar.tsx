@@ -42,6 +42,7 @@ export function TeamRoomBar({
     }
   });
   const [isSyncConfirmOpen, setIsSyncConfirmOpen] = useState(false);
+  const [isConflictModalOpen, setIsConflictModalOpen] = useState(false);
 
   const saveInProgressRef = useRef(false);
   const isConnectingRef = useRef(false);
@@ -169,38 +170,62 @@ export function TeamRoomBar({
     } catch {}
   }, [handleConnect]);
 
-  const handleSave = useCallback(async () => {
-    if (!session || saveInProgressRef.current) return;
-    saveInProgressRef.current = true;
-    setStatus('saving');
-    setStatusMsg('Encrypting & saving plan...');
+  const handleSave = useCallback(
+    async (isAutoSave = false, forceOverwrite = false) => {
+      if (!session || saveInProgressRef.current) return;
+      saveInProgressRef.current = true;
+      setStatus('saving');
+      setStatusMsg('Checking cloud & encrypting plan...');
 
-    try {
-      const currentData = await onSaveRequestedRef.current();
-      const encrypted = await encryptPayload(currentData, session.cryptoKey);
-      const res = await saveToCloud(session.roomId, encrypted);
+      try {
+        // Pre-save conflict check: Verify cloud hasn't been updated by another teammate in the meantime
+        const cloudRes = await loadFromCloud(session.roomId);
+        if (cloudRes.success && cloudRes.data) {
+          try {
+            const pkg = JSON.parse(cloudRes.data) as { ts?: number };
+            if (lastSyncedAt && pkg.ts && pkg.ts > lastSyncedAt.getTime() + 1500) {
+              if (isAutoSave) {
+                setStatus('error');
+                setStatusMsg('⚠️ Cloud has newer updates from a teammate. Auto-save paused.');
+                return;
+              }
+              if (!forceOverwrite) {
+                setIsConflictModalOpen(true);
+                setStatus('error');
+                setStatusMsg('⚠️ Newer cloud version detected from a teammate.');
+                return;
+              }
+            }
+          } catch {}
+        }
 
-      if (!res.success) {
+        const currentData = await onSaveRequestedRef.current();
+        const encrypted = await encryptPayload(currentData, session.cryptoKey);
+        const res = await saveToCloud(session.roomId, encrypted);
+
+        if (!res.success) {
+          setStatus('error');
+          setStatusMsg(res.error || 'Save failed');
+        } else {
+          setStatus('connected');
+          setStatusMsg(`Saved to ${session.roomName}`);
+          setLastSyncedAt(new Date());
+        }
+      } catch (err: unknown) {
         setStatus('error');
-        setStatusMsg(res.error || 'Save failed');
-      } else {
-        setStatus('connected');
-        setStatusMsg(`Saved to ${session.roomName}`);
-        setLastSyncedAt(new Date());
+        setStatusMsg(err instanceof Error ? err.message : 'Save error');
+      } finally {
+        saveInProgressRef.current = false;
       }
-    } catch (err: unknown) {
-      setStatus('error');
-      setStatusMsg(err instanceof Error ? err.message : 'Save error');
-    } finally {
-      saveInProgressRef.current = false;
-    }
-  }, [session]);
+    },
+    [session, lastSyncedAt]
+  );
 
   // Debounced auto-save effect
   useEffect(() => {
     if (!session || !autoSave || !hasUnsavedChanges || isConnectingRef.current || saveInProgressRef.current) return;
     const timer = setTimeout(() => {
-      void handleSave();
+      void handleSave(true);
     }, 2000);
     return () => clearTimeout(timer);
   }, [session, autoSave, hasUnsavedChanges, handleSave]);
@@ -320,7 +345,7 @@ export function TeamRoomBar({
                   <button
                     type="button"
                     className={`pill pill--tiny ${hasUnsavedChanges ? 'pill--primary op-save-btn--dirty' : 'pill--primary'}`}
-                    onClick={handleSave}
+                    onClick={() => handleSave(false, false)}
                     disabled={status === 'saving'}
                     title="Save current plan to this room"
                   >
@@ -438,7 +463,7 @@ export function TeamRoomBar({
                   style={{ padding: '8px 14px', textAlign: 'center', justifyContent: 'center' }}
                   onClick={async () => {
                     setIsSyncConfirmOpen(false);
-                    await handleSave();
+                    await handleSave(false, true);
                     await handleSync();
                   }}
                 >
@@ -456,9 +481,9 @@ export function TeamRoomBar({
                     border: '1px solid #eb5757',
                     color: '#ff6b6b',
                   }}
-                  onClick={() => {
+                  onClick={async () => {
                     setIsSyncConfirmOpen(false);
-                    void handleSync();
+                    await handleSync();
                   }}
                 >
                   ⚠️ Discard Local Edits & Pull Cloud
@@ -471,6 +496,69 @@ export function TeamRoomBar({
                   onClick={() => setIsSyncConfirmOpen(false)}
                 >
                   Cancel (Keep Local Edits)
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cloud Save Conflict Modal */}
+      {isConflictModalOpen && (
+        <div className="op-modal-backdrop" onClick={() => setIsConflictModalOpen(false)} role="dialog" aria-modal="true">
+          <div className="op-modal op-modal--compact" onClick={(e) => e.stopPropagation()}>
+            <div className="op-modal__header">
+              <div className="op-modal__title-wrap">
+                <span className="op-modal__icon">⚠️</span>
+                <div>
+                  <h2 className="op-modal__title">Cloud Conflict Detected</h2>
+                  <p className="op-modal__subtitle">
+                    Another teammate saved newer changes to this room since you last synced.
+                  </p>
+                </div>
+              </div>
+              <button type="button" className="op-modal-close" onClick={() => setIsConflictModalOpen(false)} aria-label="Close modal">
+                ✕
+              </button>
+            </div>
+
+            <div className="op-modal__body" style={{ padding: '16px 20px' }}>
+              <p style={{ margin: '0 0 16px', fontSize: '13px', color: 'var(--text-dim)', lineHeight: '1.5' }}>
+                If you overwrite now, you will replace their changes with your local version.
+              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <button
+                  type="button"
+                  className="pill pill--primary"
+                  style={{ padding: '8px 14px', textAlign: 'center', justifyContent: 'center' }}
+                  onClick={async () => {
+                    setIsConflictModalOpen(false);
+                    await handleSync();
+                  }}
+                >
+                  🔄 Pull Teammate's Changes (Sync)
+                </button>
+
+                <button
+                  type="button"
+                  className="pill"
+                  style={{ padding: '8px 14px', textAlign: 'center', justifyContent: 'center', color: '#ff6b6b' }}
+                  onClick={async () => {
+                    setIsConflictModalOpen(false);
+                    await handleSave(false, true);
+                  }}
+                >
+                  ⚠️ Overwrite Cloud With My Version
+                </button>
+
+                <button
+                  type="button"
+                  className="pill pill--secondary"
+                  style={{ padding: '8px 14px', textAlign: 'center', justifyContent: 'center' }}
+                  onClick={() => setIsConflictModalOpen(false)}
+                >
+                  Cancel
                 </button>
               </div>
             </div>

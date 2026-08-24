@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo } from 'react';
 import type { Attacker, Player, Target } from '../engine/operations';
 
 interface OperationParticipantPickerProps {
@@ -36,38 +36,54 @@ export function OperationParticipantPicker({
   onOpenAttackerModal,
   onOpenTargetModal,
 }: OperationParticipantPickerProps) {
-  const [selectedPlayerFilter, setSelectedPlayerFilter] = useState<string | null>(null);
   const activeAttackerCount = assignedAttackerIds.length;
   const totalAttackerCount = attackers.length;
 
   const activeTargetCount = assignedTargetIds.length;
   const totalTargetCount = targets.length;
 
-  const filteredTargets = selectedPlayerFilter
-    ? targets.filter((t) => t.playerId === selectedPlayerFilter)
-    : targets;
+  // Group targets by player, sorted by player name
+  const playerGroups = useMemo(() => {
+    const groups: { player: Player | null; targets: Target[] }[] = [];
+
+    players.forEach((p) => {
+      const pTargets = targets.filter((t) => t.playerId === p.id);
+      if (pTargets.length > 0) {
+        groups.push({ player: p, targets: pTargets });
+      }
+    });
+
+    const unassigned = targets.filter((t) => !t.playerId || !players.some((p) => p.id === t.playerId));
+    if (unassigned.length > 0) {
+      groups.push({ player: null, targets: unassigned });
+    }
+
+    return groups;
+  }, [players, targets]);
 
   return (
-    <section className="panel op-participant-picker">
+    <section className="panel op-participant-picker" aria-label="Operation Participants">
       <div className="op-participant-picker__summary">
         <div className="op-participant-picker__summary-copy">
           <span className="op-participant-picker__eyebrow">Participants</span>
-          <strong>{activeAttackerCount} of {totalAttackerCount} armies · {activeTargetCount} of {totalTargetCount} targets</strong>
+          <strong>
+            {activeAttackerCount} of {totalAttackerCount} armies · {activeTargetCount} of {totalTargetCount} targets
+          </strong>
           <span>Choose which armies march and which villages are targeted for this operation wave.</span>
         </div>
       </div>
 
-      <div className="op-participant-picker__grid">
-        {/* Left Column: Marching Armies */}
-        <div className="op-participant-col op-participant-col--attackers">
-          <div className="op-participant-col__header">
-            <div className="op-participant-col__title-wrap">
+      <div className="op-participant-sections">
+        {/* Section 1: Marching Armies */}
+        <div className="op-participant-section op-participant-section--attackers">
+          <div className="op-participant-section__header">
+            <div className="op-participant-section__title-wrap">
               <span className="op-participant-col__tag op-participant-col__tag--attacker">Attackers</span>
               <h3 className="op-participant-col__title">
                 Marching Armies ({activeAttackerCount}/{totalAttackerCount})
               </h3>
             </div>
-            <div className="op-participant-col__actions">
+            <div className="op-participant-section__actions">
               <button
                 type="button"
                 className="pill pill--tiny"
@@ -132,16 +148,16 @@ export function OperationParticipantPicker({
           </div>
         </div>
 
-        {/* Right Column: Target Villages */}
-        <div className="op-participant-col op-participant-col--targets">
-          <div className="op-participant-col__header">
-            <div className="op-participant-col__title-wrap">
+        {/* Section 2: Target Villages Top-Down Sorted by Player */}
+        <div className="op-participant-section op-participant-section--targets">
+          <div className="op-participant-section__header">
+            <div className="op-participant-section__title-wrap">
               <span className="op-participant-col__tag op-participant-col__tag--target">Targets</span>
               <h3 className="op-participant-col__title">
                 Target Villages ({activeTargetCount}/{totalTargetCount})
               </h3>
             </div>
-            <div className="op-participant-col__actions">
+            <div className="op-participant-section__actions">
               <button
                 type="button"
                 className="pill pill--tiny"
@@ -169,80 +185,61 @@ export function OperationParticipantPicker({
             </div>
           </div>
 
-          {/* Quick Defender Filter Tabs if 2+ defenders exist */}
-          {players.length > 1 && (
-            <div className="op-participant-filter-bar">
-              <button
-                type="button"
-                className={`op-participant-filter-pill ${selectedPlayerFilter === null ? 'is-active' : ''}`}
-                onClick={() => setSelectedPlayerFilter(null)}
-              >
-                All ({targets.length})
+          {targets.length === 0 ? (
+            <div className="op-participant-chips__empty">
+              No targets found.{' '}
+              <button type="button" className="btn-link" onClick={onOpenTargetModal}>
+                + Add targets
               </button>
-              {players.map((p) => {
-                const count = targets.filter((t) => t.playerId === p.id).length;
-                if (count === 0) return null;
-                return (
-                  <button
-                    key={p.id}
-                    type="button"
-                    className={`op-participant-filter-pill ${selectedPlayerFilter === p.id ? 'is-active' : ''}`}
-                    onClick={() => setSelectedPlayerFilter(selectedPlayerFilter === p.id ? null : p.id)}
-                  >
-                    👤 {p.name} ({count})
-                  </button>
-                );
-              })}
+            </div>
+          ) : (
+            <div className="op-participant-players-list">
+              {playerGroups.map((group, idx) => (
+                <div key={group.player?.id || `unassigned-${idx}`} className="op-participant-player-block">
+                  <div className="op-participant-player-header">
+                    <span>Defender: <strong>{group.player ? group.player.name : 'Unassigned Account'}</strong></span>
+                  </div>
+
+                  <div className="op-participant-chips">
+                    {group.targets.map((tgt) => {
+                      const isSelected = assignedTargetIds.includes(tgt.id);
+                      const isFake = fakeTargetIds.includes(tgt.id);
+
+                      return (
+                        <div key={tgt.id} className="op-target-assignment">
+                          <label
+                            className={`op-participant-chip op-participant-chip--target ${isSelected ? 'is-selected' : ''} ${isFake ? 'is-fake' : ''}`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => onToggleTarget(tgt.id)}
+                            />
+                            <span className="op-participant-chip__check" aria-hidden="true">
+                              {isSelected ? '✓' : ''}
+                            </span>
+                            <span className="op-participant-chip__name">{tgt.name || 'Village'}</span>
+                            <span className="op-participant-chip__meta">({tgt.x}|{tgt.y})</span>
+                          </label>
+                          {isSelected && (
+                            <button
+                              type="button"
+                              className={`pill pill--tiny op-target-mode ${isFake ? 'is-fake' : 'is-real'}`}
+                              onClick={() => onToggleTargetFake(tgt.id)}
+                              aria-pressed={isFake}
+                              title="Attack type for this operation only"
+                            >
+                              {isFake ? 'Fake' : 'Real'}
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
-
-          <div className="op-participant-chips">
-            {filteredTargets.length === 0 ? (
-              <div className="op-participant-chips__empty">
-                No targets found.{' '}
-                <button type="button" className="btn-link" onClick={onOpenTargetModal}>
-                  + Add targets
-                </button>
-              </div>
-            ) : (
-              filteredTargets.map((tgt) => {
-                const isSelected = assignedTargetIds.includes(tgt.id);
-                const isFake = fakeTargetIds.includes(tgt.id);
-                const owner = players.find((p) => p.id === tgt.playerId);
-
-                return (
-                  <div key={tgt.id} className="op-target-assignment">
-                    <label
-                      className={`op-participant-chip op-participant-chip--target ${isSelected ? 'is-selected' : ''} ${isFake ? 'is-fake' : ''}`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => onToggleTarget(tgt.id)}
-                      />
-                      <span className="op-participant-chip__check" aria-hidden="true">
-                        {isSelected ? '✓' : ''}
-                      </span>
-                      <span className="op-participant-chip__name">{tgt.name || 'Village'}</span>
-                      {owner && <span className="op-participant-chip__owner-badge">[{owner.name}]</span>}
-                      <span className="op-participant-chip__meta">({tgt.x}|{tgt.y})</span>
-                    </label>
-                    {isSelected && (
-                      <button
-                        type="button"
-                        className={`pill pill--tiny op-target-mode ${isFake ? 'is-fake' : 'is-real'}`}
-                        onClick={() => onToggleTargetFake(tgt.id)}
-                        aria-pressed={isFake}
-                        title="Attack type for this operation only"
-                      >
-                        {isFake ? 'Fake' : 'Real'}
-                      </button>
-                    )}
-                  </div>
-                );
-              })
-            )}
-          </div>
         </div>
       </div>
     </section>

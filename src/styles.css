@@ -4819,29 +4819,26 @@ select:focus, .select:focus, .text-input:focus {
   background: hsl(220, 20%, 10%);
 }
 
-.op-participant-picker__grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
+.op-participant-picker__grid,
+.op-participant-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
-@media (max-width: 860px) {
-  .op-participant-picker__grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.op-participant-col {
+.op-participant-col,
+.op-participant-section {
   display: flex;
   flex-direction: column;
   background: hsl(220, 22%, 8%);
   border: 1px solid hsl(220, 16%, 18%);
   border-radius: 8px;
   padding: 12px;
-  min-height: 140px;
+  min-height: 100px;
 }
 
-.op-participant-col__header {
+.op-participant-col__header,
+.op-participant-section__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -4852,7 +4849,8 @@ select:focus, .select:focus, .text-input:focus {
   flex-wrap: wrap;
 }
 
-.op-participant-col__title-wrap {
+.op-participant-col__title-wrap,
+.op-participant-section__title-wrap {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -4886,10 +4884,36 @@ select:focus, .select:focus, .text-input:focus {
   margin: 0;
 }
 
-.op-participant-col__actions {
+.op-participant-col__actions,
+.op-participant-section__actions {
   display: flex;
   align-items: center;
   gap: 4px;
+}
+
+.op-participant-players-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.op-participant-player-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.op-participant-player-header {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #72c2dd;
+  padding: 2px 2px;
+  letter-spacing: 0.03em;
+}
+
+.op-participant-player-header strong {
+  color: #fff;
+  font-size: 12.5px;
 }
 
 .op-participant-chips {

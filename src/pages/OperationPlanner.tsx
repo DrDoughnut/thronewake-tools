@@ -1046,11 +1046,7 @@ export function OperationPlanner({
   ]);
 
   const [activeOpId, setActiveOpId] = useState<string | null>(() => {
-    try {
-      if (localStorage.getItem('thronewake.v2.unlocked') === '1') {
-        return null;
-      }
-    } catch {}
+    if (isV2Unlocked) return null;
     return 'op1';
   });
 
@@ -1205,7 +1201,7 @@ export function OperationPlanner({
     setRoomSession(session);
     setRoster(migrated.roster);
     setOperations(migrated.operations);
-    setActiveOpId(null); // No operation open when first entering secret mode
+    setActiveOpId(null);
     setLastSavedSnapshot(
       JSON.stringify({
         roster: migrated.roster,
@@ -1229,7 +1225,7 @@ export function OperationPlanner({
     const payload: TeamRoomData = {
       version: 2,
       roomName: roomSession?.roomName || 'unnamed-room',
-      activeOpId: null,
+      activeOpId,
       roster,
       operations,
       updatedAt: Date.now(),
