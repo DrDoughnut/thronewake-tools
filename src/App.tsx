@@ -93,7 +93,9 @@ const TOOLS: Tool[] = [
 ];
 
 const readTool = (): string => {
-  const key = new URLSearchParams(window.location.hash.replace(/^#/, '')).get('tool');
+  const params = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  if (params.get('room')) return 'operations';
+  const key = params.get('tool');
   if (key === 'cp-optimizer') return 'optimizer';
   if (key === 'building-stats' || key === 'catalog') return 'buildings';
   if (key && TOOLS.some((t) => t.key === key)) return key;
@@ -117,6 +119,38 @@ export default function App() {
   const [opClickCount, setOpClickCount] = useState<number>(0);
   const [secretToast, setSecretToast] = useState<string | null>(null);
   const [isSecretModalOpen, setIsSecretModalOpen] = useState(false);
+  const [roomInviteCode, setRoomInviteCode] = useState<string | null>(() => {
+    try {
+      const params = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+      return params.get('room');
+    } catch {
+      return null;
+    }
+  });
+
+  // Check URL hash for room invites
+  useEffect(() => {
+    const checkRoomParam = () => {
+      try {
+        const params = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+        const room = params.get('room');
+        if (room) {
+          setRoomInviteCode(room);
+          setToolKey('operations');
+          const savedRoom = localStorage.getItem('thronewake.teamroom.session');
+          const isUnlocked = localStorage.getItem(StorageKeys.V2_UNLOCKED) === '1';
+          if (isUnlocked && savedRoom && savedRoom.toLowerCase() === room.toLowerCase()) {
+            setV2Unlocked(true);
+          } else {
+            setIsSecretModalOpen(true);
+          }
+        }
+      } catch {}
+    };
+    checkRoomParam();
+    window.addEventListener('hashchange', checkRoomParam);
+    return () => window.removeEventListener('hashchange', checkRoomParam);
+  }, []);
 
   // Each tool owns its own slice of the fragment, so switching tools clears
   // the previous tool's parameters rather than leaving them to be misread.
@@ -162,8 +196,10 @@ export default function App() {
       localStorage.setItem('thronewake.teamroom.session', passcode);
     } catch {}
     setV2Unlocked(true);
+    setRoomInviteCode(null);
     setSecretToast('🕵️ TOP SECRET V2 PROTOCOL ACTIVATED');
     setTimeout(() => setSecretToast(null), 4000);
+    window.history.replaceState(null, '', `${window.location.pathname}#room=${encodeURIComponent(passcode)}`);
     select('operations');
   };
 
@@ -261,6 +297,7 @@ export default function App() {
 
       <SecretUnlockModal
         isOpen={isSecretModalOpen}
+        initialPasscode={roomInviteCode || ''}
         onClose={() => setIsSecretModalOpen(false)}
         onConnectRoom={handleConnectSecretRoom}
       />

@@ -1147,15 +1147,24 @@ export function OperationPlanner({
   }, [isV2Active, roster.targets, activeOp.assignedTargetIds, activeOp.fakeTargetIds]);
 
   const copyShareLink = async () => {
-    const currentPlannerState: PlannerState = {
-      landing: activeOp.landing,
-      serverSpeed: activeOp.serverSpeed,
-      attackers: marchingAttackers,
-      targets: activeTargets,
-      players: roster.players,
-    };
-    const hash = plannerHash(currentPlannerState);
-    const fullUrl = `${window.location.origin}${window.location.pathname}#${hash}`;
+    let fullUrl = '';
+    let hash = '';
+
+    if (isV2Active && roomSession) {
+      hash = `room=${encodeURIComponent(roomSession.roomName)}`;
+      fullUrl = `${window.location.origin}${window.location.pathname}#${hash}`;
+    } else {
+      const currentPlannerState: PlannerState = {
+        landing: activeOp.landing,
+        serverSpeed: activeOp.serverSpeed,
+        attackers: marchingAttackers,
+        targets: activeTargets,
+        players: roster.players,
+      };
+      hash = plannerHash(currentPlannerState);
+      fullUrl = `${window.location.origin}${window.location.pathname}#${hash}`;
+    }
+
     try {
       await navigator.clipboard.writeText(fullUrl);
       setCopied(true);
@@ -1168,7 +1177,9 @@ export function OperationPlanner({
   };
 
   useEffect(() => {
-    if (!isV2Active || (roomSession && activeOpId)) {
+    if (isV2Active && roomSession) {
+      window.history.replaceState(null, '', `${window.location.pathname}#room=${encodeURIComponent(roomSession.roomName)}`);
+    } else if (!isV2Active) {
       const currentPlannerState: PlannerState = {
         landing: activeOp.landing,
         serverSpeed: activeOp.serverSpeed,
@@ -1178,7 +1189,7 @@ export function OperationPlanner({
       };
       window.history.replaceState(null, '', `${window.location.pathname}#${plannerHash(currentPlannerState)}`);
     }
-  }, [isV2Active, roomSession, activeOpId, activeOp, marchingAttackers, activeTargets, roster.players]);
+  }, [isV2Active, roomSession, activeOp, marchingAttackers, activeTargets, roster.players]);
 
   useEffect(() => {
     writeShowLocal(showLocal);
@@ -1898,14 +1909,26 @@ export function OperationPlanner({
               )}
 
               <div className="op-share-control">
-                <span className="op-command__label">Share Plan</span>
+                <span className="op-command__label">
+                  {isV2Active && roomSession ? 'Share Room' : 'Share Plan'}
+                </span>
                 <button
                   type="button"
                   className={`pill pill--share ${copied ? 'is-copied' : ''}`}
                   onClick={copyShareLink}
-                  title="Copy short shareable link with current plan settings"
+                  title={
+                    isV2Active && roomSession
+                      ? 'Copy Team Room link for teammates (prompts for passcode to enter room)'
+                      : 'Copy short shareable link with current plan settings'
+                  }
                 >
-                  {copied ? '✓ Link Copied!' : '🔗 Copy Share Link'}
+                  {copied
+                    ? isV2Active && roomSession
+                      ? '✓ Room Link Copied!'
+                      : '✓ Link Copied!'
+                    : isV2Active && roomSession
+                    ? '🔗 Copy Room Invite Link'
+                    : '🔗 Copy Share Link'}
                 </button>
               </div>
             </div>

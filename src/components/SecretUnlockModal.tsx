@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 
 interface SecretUnlockModalProps {
   isOpen: boolean;
+  initialPasscode?: string;
   onClose: () => void;
   onConnectRoom: (passcode: string) => void;
 }
@@ -40,18 +41,27 @@ function playUnlockAudio() {
   } catch {}
 }
 
-export function SecretUnlockModal({ isOpen, onClose, onConnectRoom }: SecretUnlockModalProps) {
-  const [passcode, setPasscode] = useState('');
+export function SecretUnlockModal({
+  isOpen,
+  initialPasscode = '',
+  onClose,
+  onConnectRoom,
+}: SecretUnlockModalProps) {
+  const [passcode, setPasscode] = useState(initialPasscode);
 
   useEffect(() => {
     if (isOpen) {
       playUnlockAudio();
-      try {
-        const saved = localStorage.getItem('thronewake.teamroom.session') || '';
-        if (saved) setPasscode(saved);
-      } catch {}
+      if (initialPasscode) {
+        setPasscode(initialPasscode);
+      } else {
+        try {
+          const saved = localStorage.getItem('thronewake.teamroom.session') || '';
+          if (saved) setPasscode(saved);
+        } catch {}
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, initialPasscode]);
 
   if (!isOpen) return null;
 
