@@ -1796,17 +1796,10 @@ export function OperationPlanner({
             <div className="op-workspace-bar">
               <div className="op-workspace-bar__operation">
                 <span className="op-workspace-bar__eyebrow">Active Operation</span>
-                <div className="op-workspace-bar__title-row">
+                <strong className="op-workspace-bar__title">
                   <span className="op-workspace-bar__emoji">{activeOp.icon || '🎯'}</span>
-                  <input
-                    type="text"
-                    className="text-input op-workspace-bar__name-input"
-                    value={activeOp.name}
-                    aria-label="Operation name"
-                    onChange={(e) => handleRenameOp(activeOp.id, e.target.value)}
-                    title="Click to rename operation"
-                  />
-                </div>
+                  {activeOp.name}
+                </strong>
               </div>
               <nav className="op-workspace-nav" aria-label="Planner workspace">
                 <button
@@ -1887,25 +1880,27 @@ export function OperationPlanner({
                 </details>
               </div>
 
-              <div className="op-speed-control">
-                <span className="op-command__label">Server Speed</span>
-                <div className="speed-group" role="group" aria-label="Server speed">
-                  {[1, 3, 10].map((speed) => (
-                    <button
-                      key={speed}
-                      type="button"
-                      className={'pill pill--speed ' + (activeOp.serverSpeed === speed ? 'is-active' : '')}
-                      aria-pressed={activeOp.serverSpeed === speed}
-                      onClick={() => updateServerSpeed(speed)}
-                    >
-                      {speed}×
-                    </button>
-                  ))}
+              {(!isV2Active || !roomSession) && (
+                <div className="op-speed-control">
+                  <span className="op-command__label">Server Speed</span>
+                  <div className="speed-group" role="group" aria-label="Server speed">
+                    {[1, 3, 10].map((speed) => (
+                      <button
+                        key={speed}
+                        type="button"
+                        className={'pill pill--speed ' + (activeOp.serverSpeed === speed ? 'is-active' : '')}
+                        aria-pressed={activeOp.serverSpeed === speed}
+                        onClick={() => updateServerSpeed(speed)}
+                      >
+                        {speed}×
+                      </button>
+                    ))}
+                  </div>
+                  <span className="op-speed-note">
+                    {activeOp.serverSpeed === 1 ? '1× troop speed' : activeOp.serverSpeed === 3 ? '2× troop speed' : '4× troop speed'}
+                  </span>
                 </div>
-                <span className="op-speed-note">
-                  {activeOp.serverSpeed === 1 ? '1× troop speed' : activeOp.serverSpeed === 3 ? '2× troop speed' : '4× troop speed'}
-                </span>
-              </div>
+              )}
 
               <div className="op-share-control">
                 <span className="op-command__label">Share Plan</span>

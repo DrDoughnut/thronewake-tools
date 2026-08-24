@@ -4537,9 +4537,9 @@ select:focus, .select:focus, .text-input:focus {
    ========================================================================== */
 
 .op-plans-strip {
-  margin-bottom: 12px;
-  overflow-x: auto;
-  scrollbar-width: thin;
+  margin-bottom: 8px;
+  overflow: visible;
+  position: relative;
 }
 
 .op-plans-tabs {
@@ -4547,6 +4547,8 @@ select:focus, .select:focus, .text-input:focus {
   align-items: center;
   gap: 6px;
   padding: 2px 0;
+  flex-wrap: wrap;
+  overflow: visible;
 }
 
 .op-plan-tab {
@@ -6344,6 +6346,9 @@ select:focus, .select:focus, .text-input:focus {
 .op-plans-strip-panel {
   margin-bottom: 12px;
   padding: 12px 14px;
+  overflow: visible;
+  position: relative;
+  z-index: 25;
 }
 .op-plans-strip__header {
   display: flex;
@@ -6378,6 +6383,7 @@ select:focus, .select:focus, .text-input:focus {
   position: relative;
   display: flex;
   align-items: center;
+  z-index: 100;
 }
 .op-plan-tab__emoji-btn {
   background: rgba(255, 255, 255, 0.08);
@@ -6397,12 +6403,12 @@ select:focus, .select:focus, .text-input:focus {
   position: absolute;
   top: calc(100% + 6px);
   left: 0;
-  z-index: 60;
+  z-index: 9999;
   background: hsl(220, 24%, 10%);
   border: 1px solid hsl(220, 16%, 28%);
   border-radius: 8px;
   padding: 6px;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.75);
   width: 170px;
 }
 .op-emoji-popover__grid {
