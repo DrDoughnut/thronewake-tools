@@ -1191,8 +1191,8 @@ export function OperationPlanner({
   const [lastSavedSnapshot, setLastSavedSnapshot] = useState<string>('');
 
   const currentSnapshot = useMemo(() => {
-    return JSON.stringify({ roster, operations, activeOpId });
-  }, [roster, operations, activeOpId]);
+    return JSON.stringify({ roster, operations });
+  }, [roster, operations]);
 
   const hasUnsavedChanges = useMemo(() => {
     if (!roomSession || !lastSavedSnapshot) return false;
@@ -1210,7 +1210,6 @@ export function OperationPlanner({
       JSON.stringify({
         roster: migrated.roster,
         operations: migrated.operations,
-        activeOpId: null,
       })
     );
   };
@@ -1230,12 +1229,12 @@ export function OperationPlanner({
     const payload: TeamRoomData = {
       version: 2,
       roomName: roomSession?.roomName || 'unnamed-room',
-      activeOpId,
+      activeOpId: null,
       roster,
       operations,
       updatedAt: Date.now(),
     };
-    setLastSavedSnapshot(JSON.stringify({ roster, operations, activeOpId }));
+    setLastSavedSnapshot(JSON.stringify({ roster, operations }));
     return payload;
   };
 
