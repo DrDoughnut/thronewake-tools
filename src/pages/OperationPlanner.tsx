@@ -26,7 +26,12 @@ import {
   travelHours,
   migrateToMasterRoster,
   importPlanIntoMasterRoster,
+  buildSendTroopsUrl,
+  combatTypeForPreset,
+  presetUnitTotal,
+  sanitizePresetUnits,
   type ImportMode,
+  type TroopPreset,
   type MasterRoster,
   type OperationPlan,
   type ResolvedSafeTime,
@@ -62,6 +67,7 @@ interface Attacker extends SafeTimeOwner {
   artifactMultiplier: 1 | 1.5 | 2;
   bannerfieldLevel: number;
   active?: boolean;
+  troopPreset?: TroopPreset;
 }
 
 /** A targeted defender account. Owns the safe window that all of its villages share. */
@@ -103,9 +109,59 @@ interface PlannedRoute {
   possible: boolean;
 }
 
+/**
+ * Opens the in-game rally point with wave 1 already filled from the attacker's
+ * preset. The game has no way to seed more than one wave from a link, so a
+ * multi-wave preset shows its count and the operator repeats the wave by hand.
+ */
+function SendTroopsLink({ route }: { route: PlannedRoute }) {
+  const preset = route.attacker.troopPreset;
+  const total = presetUnitTotal(preset);
+  if (!preset || total === 0) return null;
+
+  const href = buildSendTroopsUrl({
+    x: route.target.x,
+    y: route.target.y,
+    units: preset.units,
+    combatType: combatTypeForPreset(preset.kind),
+  });
+  const label = preset.kind === 'fake' ? 'Fake' : 'Army';
+
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`op-send-troops-link op-send-troops-link--${preset.kind}`}
+      title={
+        `Open the rally point on (${route.target.x}|${route.target.y}) prefilled with ` +
+        `${total} troop${total === 1 ? '' : 's'} as an attack. Fills wave 1 only — ` +
+        `add any further waves by hand. Switch to ${route.attacker.name} in game first: ` +
+        `the link cannot pick the sending village.`
+      }
+      onClick={(e) => e.stopPropagation()}
+    >
+      ⚔️ {label}
+    </a>
+  );
+}
+
 const defaultCatapultUnit =
   playableFactions[0].units.find((u) => u.role === 'siege') || playableFactions[0].units[0];
 const defaultUnitRef = `${playableFactions[0].key}/${defaultCatapultUnit.key}`;
+
+/**
+ * Presets arrive from links, cloud rooms and pasted JSON, so every field is
+ * re-clamped here. An empty unit map means "no preset" rather than a preset
+ * that would open the in-game form empty.
+ */
+const normalizeTroopPreset = (raw: unknown): TroopPreset | undefined => {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const candidate = raw as Partial<TroopPreset>;
+  const units = sanitizePresetUnits(candidate.units as Record<string, unknown> | undefined);
+  if (Object.keys(units).length === 0) return undefined;
+  return { kind: candidate.kind === 'real' ? 'real' : 'fake', units };
+};
 
 const initialSafeTime = (): SafeTimeOwner => ({
   safeEnabled: false,
@@ -174,6 +230,7 @@ export function decodeState(rawHash?: string): PlannerState {
         safeEnabled: Boolean(atk.safeEnabled),
         safeStart: atk.safeStart || '22:00',
         safeEnd: atk.safeEnd || '04:00',
+        troopPreset: normalizeTroopPreset(atk.troopPreset),
       }));
 
       const cleanPlayers: Player[] = (compactParsed.players.length ? compactParsed.players : []).map((player, idx) => ({
@@ -251,6 +308,7 @@ export function decodeState(rawHash?: string): PlannerState {
             safeEnabled: Boolean(atk?.safeEnabled),
             safeStart: safe.safeStart,
             safeEnd: safe.safeEnd,
+            troopPreset: normalizeTroopPreset(atk?.troopPreset),
           };
         });
 
@@ -852,6 +910,7 @@ function ScheduleTimeline({
             >
               📍 ({route.target.x}|{route.target.y})
             </a>
+            <SendTroopsLink route={route} />
             <span className={`op-hit-tag ${route.target.fake ? 'is-fake' : 'is-real'}`}>
               {route.target.fake ? 'Fake' : 'Real'}
             </span>
@@ -2257,6 +2316,7 @@ export function OperationPlanner({
                               >
                                 📍 ({route.target.x}|{route.target.y})
                               </a>
+                              <SendTroopsLink route={route} />
                             </div>
                           </td>
                           <td data-label="Travel Duration">

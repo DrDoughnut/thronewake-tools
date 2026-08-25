@@ -279,6 +279,19 @@ export function lookup(ref: UnitRef) {
   return found;
 }
 
+/**
+ * Resolves a bare unit key — the game's own id, which doubles as our icon
+ * filename — without needing to know the faction. Keys are globally unique
+ * (there is a test pinning this), so the lookup is unambiguous.
+ */
+export function findUnitByKey(key: string): { faction: Faction; unit: Faction['units'][number] } | undefined {
+  for (const faction of factions) {
+    const unit = faction.units.find((u) => u.key === key);
+    if (unit) return { faction, unit };
+  }
+  return undefined;
+}
+
 export function factionByKey(key: string): Faction {
   const found = factions.find((f) => f.key === key);
   if (!found) throw new Error(`Unknown faction: ${key}`);

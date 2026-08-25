@@ -1,7 +1,14 @@
 import { useState, useEffect } from 'react';
 import type { Attacker, Player, Target } from '../engine/operations';
-import { enforceMaxSafeWindow, safeWindowDurationMinutes, parseClock } from '../engine/operations';
+import {
+  enforceMaxSafeWindow,
+  safeWindowDurationMinutes,
+  parseClock,
+  presetUnitTotal,
+} from '../engine/operations';
+import { findUnitByKey, playableFactions } from '../data/factions';
 import { UnitGridPicker } from './UnitGridPicker';
+import { UnitIcon } from './UnitIcon';
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 
 interface CoordInputProps {
@@ -184,6 +191,136 @@ export function SafeTimeFields({
 
 // ── Alliance Armies Modal ──────────────────────────────────────────────────
 
+/**
+ * Edits the troop composition an army sends. Today every preset is a `fake`,
+ * but the shape is the same one a full-army `real` preset will use once we
+ * track per-player troop counts, so this editor only needs a kind switch then.
+ */
+function TroopPresetEditor({
+  attacker,
+  onPatch,
+}: {
+  attacker: Attacker;
+  onPatch: (patch: Partial<Attacker>) => void;
+}) {
+  const preset = attacker.troopPreset;
+  const units = preset?.units ?? {};
+  const rows = Object.entries(units);
+  const total = presetUnitTotal(preset);
+
+  // Every playable faction is offered rather than one derived from `unitRef`,
+  // which is only the army's travel-speed reference unit and says nothing about
+  // its tribe. Settlers can't join an attack, so they never belong in a preset.
+  const addableByFaction = playableFactions
+    .map((faction) => ({
+      faction,
+      units: faction.units.filter((u) => u.role !== 'settler' && !(u.key in units)),
+    }))
+    .filter((group) => group.units.length > 0);
+
+  const commit = (nextUnits: Record<string, number>) => {
+    const kept = Object.fromEntries(Object.entries(nextUnits).filter(([, n]) => n > 0));
+    onPatch({
+      troopPreset:
+        Object.keys(kept).length === 0 ? undefined : { kind: preset?.kind ?? 'fake', units: kept },
+    });
+  };
+
+  return (
+    <div className="op-preset">
+      <div className="op-preset__head">
+        <span className="op-preset__tag">Fake preset</span>
+        {total > 0 ? (
+          <span className="op-preset__summary">
+            {total} troop{total === 1 ? '' : 's'}
+          </span>
+        ) : (
+          <span className="op-preset__summary op-preset__summary--empty">
+            No troops — the ⚔️ link stays hidden
+          </span>
+        )}
+      </div>
+
+      {rows.length > 0 && (
+        <ul className="op-preset__rows">
+          {rows.map(([unitKey, count]) => {
+            const found = findUnitByKey(unitKey);
+            return (
+              <li className="op-preset__row" key={unitKey}>
+                {found ? (
+                  <UnitIcon unitRef={`${found.faction.key}/${found.unit.key}`} size={22} />
+                ) : (
+                  <span className="op-preset__unknown" title="Unknown unit key">
+                    ⚠️
+                  </span>
+                )}
+                <span className="op-preset__unit-name">{found?.unit.name ?? unitKey}</span>
+                {found && <span className="op-preset__unit-faction">{found.faction.name}</span>}
+                <input
+                  className="text-input op-input-solid-sm op-preset__count"
+                  type="number"
+                  min={1}
+                  aria-label={`${found?.unit.name ?? unitKey} count`}
+                  value={count}
+                  onChange={(e) =>
+                    commit({
+                      ...units,
+                      [unitKey]: Math.max(0, Math.floor(Number(e.target.value) || 0)),
+                    })
+                  }
+                />
+                <button
+                  type="button"
+                  className="op-preset__remove"
+                  aria-label={`Remove ${found?.unit.name ?? unitKey} from preset`}
+                  onClick={() => {
+                    const next = { ...units };
+                    delete next[unitKey];
+                    commit(next);
+                  }}
+                >
+                  ✕
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      <div className="op-preset__controls">
+        <select
+          className="select op-select-solid-sm"
+          aria-label="Add unit to fake preset"
+          value=""
+          disabled={addableByFaction.length === 0}
+          onChange={(e) => {
+            if (!e.target.value) return;
+            commit({ ...units, [e.target.value]: 1 });
+          }}
+        >
+          <option value="">+ Add unit…</option>
+          {addableByFaction.map((group) => (
+            <optgroup key={group.faction.key} label={group.faction.name}>
+              {group.units.map((u) => (
+                <option key={u.key} value={u.key}>
+                  {u.name}
+                </option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
+      </div>
+
+      {rows.length > 0 && (
+        <p className="op-preset__note">
+          The ⚔️ link fills wave 1 only — the game seeds a single wave per link and any wave you
+          add in the Wave Builder starts empty. Further waves are typed by hand.
+        </p>
+      )}
+    </div>
+  );
+}
+
 export interface AttackerCardProps {
   attacker: Attacker;
   index: number;
@@ -298,6 +435,10 @@ export function AttackerCard({
             label="Attacker Safe Hours"
             onChange={(patch) => onPatch(patch)}
           />
+        </div>
+
+        <div className="op-strip-card__bottom">
+          <TroopPresetEditor attacker={attacker} onPatch={onPatch} />
         </div>
       </article>
 
