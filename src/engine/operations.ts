@@ -459,6 +459,7 @@ export function migrateToMasterRoster(raw: any, fallbackState?: CompactPlannerSt
       operations: raw.operations.map((op: any, index: number) => ({
         id: op.id || `op_${index + 1}`,
         name: op.name || `Operation ${index + 1}`,
+        icon: op.icon || undefined,
         landing: op.landing || '2026-08-16T19:00',
         serverSpeed: op.serverSpeed || 3,
         assignedAttackerIds: Array.isArray(op.assignedAttackerIds)
@@ -516,6 +517,7 @@ export function migrateToMasterRoster(raw: any, fallbackState?: CompactPlannerSt
     convertedOps.push({
       id: opId,
       name: op.name || `Operation ${i + 1}`,
+      icon: op.icon || undefined,
       landing: op.landing || '2026-08-16T19:00',
       serverSpeed: op.serverSpeed || 3,
       assignedAttackerIds: opAttackers.filter((a) => a.active !== false).map((a) => a.id),
@@ -530,6 +532,7 @@ export function migrateToMasterRoster(raw: any, fallbackState?: CompactPlannerSt
     convertedOps.push({
       id: 'op1',
       name: 'Operation 1',
+      icon: '🎯',
       landing: '2026-08-16T19:00',
       serverSpeed: 3,
       assignedAttackerIds: Array.from(masterAttackersMap.keys()),

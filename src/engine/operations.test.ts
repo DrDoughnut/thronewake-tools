@@ -446,4 +446,21 @@ describe('operation-level target modes', () => {
     expect(result.roster.targets[0].fake).toBe(false);
     expect(result.operations[0].fakeTargetIds).toEqual(['existing']);
   });
+
+  it('preserves custom operation icons across migrateToMasterRoster loads', () => {
+    const migrated = migrateToMasterRoster({
+      version: 2,
+      roomName: 'test-room',
+      activeOpId: 'op1',
+      roster: { attackers: [], players: [], targets: [] },
+      operations: [
+        { id: 'op1', name: 'Wave 1', icon: '💣', landing: '2026-08-20T12:00', serverSpeed: 3, assignedAttackerIds: [], assignedTargetIds: [] },
+        { id: 'op2', name: 'Wave 2', icon: '🌊', landing: '2026-08-21T12:00', serverSpeed: 3, assignedAttackerIds: [], assignedTargetIds: [] },
+      ],
+      updatedAt: 100,
+    });
+
+    expect(migrated.operations[0].icon).toBe('💣');
+    expect(migrated.operations[1].icon).toBe('🌊');
+  });
 });
