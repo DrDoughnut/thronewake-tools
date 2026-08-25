@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildSendTroopsUrl,
+  combatTypeForPreset,
+  sanitizePresetUnits,
   combineUtcDateAndTime,
   decodeCompactPlan,
   distanceBetween,
@@ -462,5 +465,99 @@ describe('operation-level target modes', () => {
 
     expect(migrated.operations[0].icon).toBe('💣');
     expect(migrated.operations[1].icon).toBe('🌊');
+  });
+});
+
+describe('in-game send-troops links', () => {
+  const attacker = {
+    id: 'a1',
+    name: 'DrDoughnut',
+    x: 17,
+    y: -25,
+    unitRef: 'stormfang_clans/skullthrower',
+    artifactMultiplier: 1 as const,
+    bannerfieldLevel: 9,
+    safeEnabled: false,
+    safeStart: '22:00',
+    safeEnd: '04:00',
+  };
+
+  it('reproduces a prefill URL confirmed to work in the live client', () => {
+    // Pinned against a link that was pasted into the game and prefilled
+    // correctly. The payload is byte-for-byte what the client itself emits,
+    // so a change here means the contract with the game has been altered.
+    expect(
+      buildSendTroopsUrl({ x: -34, y: -31, units: { raider: 35, skullthrower: 1 } }),
+    ).toBe(
+      'https://www.thronewake.com/map/village/14?tab=send-troops&targetX=-34&targetY=-31' +
+        '&prefill=eyJ2IjoxLCJraW5kIjoidW5pdHMiLCJ4IjotMzQsInkiOi0zMSwidW5pdHMiOnsicmFpZGVyIjozNSwic2t1bGx0aHJvd2VyIjoxfX0',
+    );
+  });
+
+  it('round-trips the decoded payload through the client validator shape', () => {
+    const url = buildSendTroopsUrl({
+      x: 9,
+      y: -31,
+      units: { raider: 35 },
+      combatType: 'attack',
+    });
+    const prefill = new URL(url).searchParams.get('prefill') ?? '';
+    const padded = prefill.replace(/-/g, '+').replace(/_/g, '/');
+    const payload = JSON.parse(atob(padded + '='.repeat((4 - (padded.length % 4)) % 4)));
+
+    expect(payload).toEqual({
+      v: 1,
+      kind: 'units',
+      x: 9,
+      y: -31,
+      combatType: 'attack',
+      units: { raider: 35 },
+    });
+  });
+
+  it('drops entries the client validator would reject, rather than voiding the prefill', () => {
+    // One bad entry makes the game discard the whole payload and open an empty
+    // form, so zero, fractional, negative and malformed keys are stripped here.
+    expect(
+      sanitizePresetUnits({ raider: 35, axeborn: 0, war_brute: -3, pathstalker: 2.7, 'Bad Key': 5 }),
+    ).toEqual({ raider: 35, pathstalker: 2 });
+  });
+
+  it('always sends fakes as an attack, so catapults are honoured', () => {
+    expect(combatTypeForPreset('fake')).toBe('attack');
+  });
+
+  it('carries a troop preset through the compact codec', () => {
+    const encoded = encodeCompactPlan({
+      landing: '2026-08-16T19:00',
+      serverSpeed: 3,
+      attackers: [
+        { ...attacker, troopPreset: { kind: 'fake', units: { raider: 35, skullthrower: 1 } } },
+      ],
+      targets: [],
+      players: [],
+    });
+
+    expect(encoded).toContain('fake:raider.35.skullthrower.1');
+    expect(decodeCompactPlan(encoded)?.attackers[0].troopPreset).toEqual({
+      kind: 'fake',
+      units: { raider: 35, skullthrower: 1 },
+    });
+  });
+
+  it('decodes links written before presets existed', () => {
+    const legacy = 'v1_2026-08-16T19:00_3~a:DrDoughnut,17,-25,stormfang_clans/skullthrower,1,9,0,22:00-04:00,1';
+
+    expect(decodeCompactPlan(legacy)?.attackers[0].troopPreset).toBeUndefined();
+  });
+
+  it('still decodes presets written with the dropped wave count', () => {
+    const withWaveCount =
+      'v1_2026-08-16T19:00_3~a:DrDoughnut,17,-25,stormfang_clans/skullthrower,1,9,0,22:00-04:00,1,fake:4:raider.35';
+
+    expect(decodeCompactPlan(withWaveCount)?.attackers[0].troopPreset).toEqual({
+      kind: 'fake',
+      units: { raider: 35 },
+    });
   });
 });

@@ -6569,3 +6569,105 @@ select:focus, .select:focus, .text-input:focus {
     justify-content: flex-start;
   }
 }
+
+/* ── Troop presets & in-game send links ─────────────────────────────────── */
+
+.op-send-troops-link {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-sunken);
+  color: var(--text-dim);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.op-send-troops-link:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.op-preset {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.op-preset__head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.op-preset__tag {
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.op-preset__summary {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.op-preset__summary--empty {
+  color: var(--text-faint);
+  font-style: italic;
+}
+
+.op-preset__rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.op-preset__row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-sunken);
+}
+.op-preset__unit-name {
+  font-size: 12px;
+  color: var(--text);
+}
+.op-preset__count {
+  width: 62px;
+}
+.op-preset__remove {
+  border: 0;
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  padding: 2px;
+}
+.op-preset__remove:hover {
+  color: var(--danger);
+}
+.op-preset__unknown {
+  font-size: 14px;
+}
+
+.op-preset__controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.op-preset__note {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+.op-preset__unit-faction {
+  font-size: 10px;
+  color: var(--text-faint);
+  white-space: nowrap;
+}

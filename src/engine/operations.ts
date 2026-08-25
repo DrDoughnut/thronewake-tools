@@ -294,6 +294,115 @@ export interface CompactAttacker extends CompactSafeTimeOwner {
   artifactMultiplier: 1 | 1.5 | 2;
   bannerfieldLevel: number;
   active?: boolean;
+  /** Troop composition this army sends, used to prefill the in-game send form. */
+  troopPreset?: TroopPreset;
+}
+
+// ── In-game "send troops" deep links ───────────────────────────────────────
+//
+// The game's rally point accepts a `prefill` query parameter: base64url of a
+// small JSON document. It seeds *wave 1* of the Wave Builder with troop counts,
+// catapult targets and the combat type. Everything below mirrors the client's
+// own validator, because that validator is all-or-nothing: a single unknown
+// unit key, negative number or non-integer voids the entire prefill and the
+// form opens empty with no error shown.
+
+/**
+ * The rally point's slot in the village building grid. The game's route is
+ * `/map/village/<buildingPosition>` and carries no village id at all, so the
+ * link always targets whichever village is currently active in the client.
+ */
+export const RALLY_POINT_BUILDING_POSITION = 14;
+
+export type SendTroopsCombatType =
+  | 'attack'
+  | 'raid'
+  | 'reinforcement'
+  | 'scout_resources'
+  | 'scout_defences';
+
+/**
+ * What a preset represents. `fake` is a small decoy stack; `real` is reserved
+ * for full-army presets, which need per-player troop counts we do not track
+ * yet. Both share this shape and the same link builder, so adding `real` later
+ * is a data change rather than a new code path.
+ */
+export type TroopPresetKind = 'fake' | 'real';
+
+export interface TroopPreset {
+  kind: TroopPresetKind;
+  /** Game unit key (`raider`, `skullthrower`, …) → count. Zeroes are dropped. */
+  units: Record<string, number>;
+}
+
+/**
+ * A fake is only convincing if it can carry catapults, and catapults are
+ * ignored on anything but an attack — so fakes are always sent as `attack`.
+ */
+const COMBAT_TYPE_BY_PRESET_KIND: Record<TroopPresetKind, SendTroopsCombatType> = {
+  fake: 'attack',
+  real: 'attack',
+};
+
+export function combatTypeForPreset(kind: TroopPresetKind): SendTroopsCombatType {
+  return COMBAT_TYPE_BY_PRESET_KIND[kind] ?? 'attack';
+}
+
+/** Unit keys are the game's own ids; anything else would void the prefill. */
+const UNIT_KEY_PATTERN = /^[a-z0-9_]+$/;
+
+/** Drops anything the game's validator would reject, so a link never opens empty. */
+export function sanitizePresetUnits(units: Record<string, unknown> | undefined): Record<string, number> {
+  const clean: Record<string, number> = {};
+  for (const [key, raw] of Object.entries(units ?? {})) {
+    const count = Math.floor(Number(raw) || 0);
+    if (count > 0 && UNIT_KEY_PATTERN.test(key)) {
+      clean[key] = count;
+    }
+  }
+  return clean;
+}
+
+export function presetUnitTotal(preset: TroopPreset | undefined): number {
+  if (!preset) return 0;
+  return Object.values(sanitizePresetUnits(preset.units)).reduce((sum, n) => sum + n, 0);
+}
+
+function base64Url(json: string): string {
+  const bytes = new TextEncoder().encode(json);
+  let binary = '';
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+}
+
+/**
+ * Builds a rally-point link that opens the send form on `x|y` with wave 1
+ * already filled in. The source village is whatever the player has selected in
+ * the client — the route has no slot for it.
+ */
+export function buildSendTroopsUrl(params: {
+  x: number;
+  y: number;
+  units?: Record<string, number>;
+  combatType?: SendTroopsCombatType;
+}): string {
+  const x = Math.trunc(Number(params.x)) || 0;
+  const y = Math.trunc(Number(params.y)) || 0;
+  const payload = {
+    v: 1,
+    kind: 'units',
+    x,
+    y,
+    ...(params.combatType ? { combatType: params.combatType } : {}),
+    units: sanitizePresetUnits(params.units),
+  };
+  const prefill = base64Url(JSON.stringify(payload));
+  return (
+    `https://www.thronewake.com/map/village/${RALLY_POINT_BUILDING_POSITION}` +
+    `?tab=send-troops&targetX=${x}&targetY=${y}&prefill=${prefill}`
+  );
 }
 
 export interface CompactPlayer extends CompactSafeTimeOwner {
@@ -827,6 +936,42 @@ export function resolveSafeTime(
 }
 
 /** Encodes operation planner state into an ultra-compact, URL-safe delimited string. */
+/**
+ * Serialises a preset into one `a:` field as `kind:unit.count.unit.count`.
+ *
+ * `:` and `.` are already proven safe in this codec (safe-time fields carry
+ * `22:00`), and unit keys plus counts cannot contain a delimiter, so nothing
+ * here needs the name sanitiser. Returns '' when there is nothing to send.
+ */
+export function encodeTroopPreset(preset: TroopPreset | undefined): string {
+  if (!preset) return '';
+  const units = sanitizePresetUnits(preset.units);
+  const pairs = Object.entries(units).map(([key, count]) => `${key}.${count}`);
+  if (pairs.length === 0) return '';
+  const kind: TroopPresetKind = preset.kind === 'real' ? 'real' : 'fake';
+  return `${kind}:${pairs.join('.')}`;
+}
+
+export function decodeTroopPreset(raw: string | undefined): TroopPreset | undefined {
+  if (!raw) return undefined;
+  const segments = raw.split(':');
+  const kindStr = segments[0];
+  // An early build carried a wave count between the kind and the units. The
+  // game only ever seeds one wave, so the count is dropped — but skipping past
+  // it here keeps those links decoding instead of silently losing the preset.
+  const unitsStr = /^\d+$/.test(segments[1] ?? '') && segments.length > 2 ? segments[2] : segments[1];
+  const tokens = (unitsStr || '').split('.');
+  const units: Record<string, number> = {};
+  for (let i = 0; i + 1 < tokens.length; i += 2) {
+    const count = Math.floor(Number(tokens[i + 1]) || 0);
+    if (count > 0 && UNIT_KEY_PATTERN.test(tokens[i])) {
+      units[tokens[i]] = count;
+    }
+  }
+  if (Object.keys(units).length === 0) return undefined;
+  return { kind: kindStr === 'real' ? 'real' : 'fake', units };
+}
+
 export function encodeCompactPlan(state: CompactPlannerState): string {
   const parts: string[] = [];
   const landingClean = state.landing || '2026-08-16T19:00';
@@ -853,7 +998,10 @@ export function encodeCompactPlan(state: CompactPlannerState): string {
     const sStart = atk.safeStart || '22:00';
     const sEnd = atk.safeEnd || '04:00';
     const active = atk.active === false ? 0 : 1;
-    parts.push(`a:${cleanName},${x},${y},${unit},${art},${banner},${safeOn},${sStart}-${sEnd},${active}`);
+    // The preset is appended last and is always emitted, empty or not, so that
+    // the next field to be added still lands at a fixed position.
+    const preset = encodeTroopPreset(atk.troopPreset);
+    parts.push(`a:${cleanName},${x},${y},${unit},${art},${banner},${safeOn},${sStart}-${sEnd},${active},${preset}`);
   }
 
   // Players are emitted before the villages that reference them, and a village
@@ -932,7 +1080,7 @@ export function decodeCompactPlan(compactStr: string): CompactPlannerState | nul
     if (seg.startsWith('a:')) {
       const body = seg.slice(2);
       const fields = body.split(',');
-      const [name, xStr, yStr, unitRef, artStr, bannerStr, safeOnStr, timesStr, activeStr] = fields;
+      const [name, xStr, yStr, unitRef, artStr, bannerStr, safeOnStr, timesStr, activeStr, presetStr] = fields;
       const safeEnabled = safeOnStr === '1' || safeOnStr === 'true';
       let safeStart = '22:00';
       let safeEnd = '04:00';
@@ -958,6 +1106,7 @@ export function decodeCompactPlan(compactStr: string): CompactPlannerState | nul
         safeStart: safe.safeStart,
         safeEnd: safe.safeEnd,
         active,
+        troopPreset: decodeTroopPreset(presetStr),
       });
     } else if (seg.startsWith('t:')) {
       const body = seg.slice(2);
