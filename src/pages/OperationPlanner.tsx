@@ -1212,7 +1212,12 @@ export function OperationPlanner({
     setRoomSession(session);
     setRoster(migrated.roster);
     setOperations(migrated.operations);
-    setActiveOpId(null);
+    setActiveOpId((prev) => {
+      if (prev && migrated.operations.some((o) => o.id === prev)) {
+        return prev;
+      }
+      return null;
+    });
     setLastSavedSnapshot(
       JSON.stringify({
         roster: migrated.roster,
@@ -1251,11 +1256,12 @@ export function OperationPlanner({
     if (opId) setWorkspaceView('setup');
   };
 
-  const handleCreateOp = (name: string) => {
+  const handleCreateOp = (name: string, icon?: string) => {
     const newId = 'op_' + Date.now();
     const newOp: OperationPlan = {
       id: newId,
       name,
+      icon: icon || '🎯',
       landing: activeOp.landing,
       serverSpeed: activeOp.serverSpeed,
       assignedAttackerIds: roster.attackers.map((a) => a.id),
@@ -1318,9 +1324,10 @@ export function OperationPlanner({
 
   // Operation March Assignment Toggles
   const handleToggleAttacker = (attackerId: string) => {
+    const currentOpId = activeOpId || activeOp.id;
     setOperations((prev) =>
       prev.map((o) => {
-        if (o.id !== activeOpId) return o;
+        if (o.id !== currentOpId) return o;
         const current = o.assignedAttackerIds || [];
         const next = current.includes(attackerId)
           ? current.filter((id) => id !== attackerId)
@@ -1331,9 +1338,10 @@ export function OperationPlanner({
   };
 
   const handleToggleTarget = (targetId: string) => {
+    const currentOpId = activeOpId || activeOp.id;
     setOperations((prev) =>
       prev.map((operation) => {
-        if (operation.id !== activeOpId) return operation;
+        if (operation.id !== currentOpId) return operation;
         const assignedTargetIds = operation.assignedTargetIds || [];
         const fakeTargetIds = operation.fakeTargetIds || [];
         const nextAssigned = assignedTargetIds.includes(targetId)
@@ -1352,9 +1360,10 @@ export function OperationPlanner({
   };
 
   const handleToggleTargetFake = (targetId: string) => {
+    const currentOpId = activeOpId || activeOp.id;
     setOperations((prev) =>
       prev.map((operation) => {
-        if (operation.id !== activeOpId) return operation;
+        if (operation.id !== currentOpId) return operation;
         const current = operation.fakeTargetIds || [];
         const fakeTargetIds = current.includes(targetId)
           ? current.filter((id) => id !== targetId)
@@ -1365,9 +1374,10 @@ export function OperationPlanner({
   };
 
   const handleSelectAllAttackers = () => {
+    const currentOpId = activeOpId || activeOp.id;
     setOperations((prev) =>
       prev.map((o) =>
-        o.id === activeOpId
+        o.id === currentOpId
           ? { ...o, assignedAttackerIds: roster.attackers.map((a) => a.id), updatedAt: Date.now() }
           : o,
       ),
@@ -1375,17 +1385,19 @@ export function OperationPlanner({
   };
 
   const handleDeselectAllAttackers = () => {
+    const currentOpId = activeOpId || activeOp.id;
     setOperations((prev) =>
       prev.map((o) =>
-        o.id === activeOpId ? { ...o, assignedAttackerIds: [], updatedAt: Date.now() } : o,
+        o.id === currentOpId ? { ...o, assignedAttackerIds: [], updatedAt: Date.now() } : o,
       ),
     );
   };
 
   const handleSelectAllTargets = () => {
+    const currentOpId = activeOpId || activeOp.id;
     setOperations((prev) =>
       prev.map((o) =>
-        o.id === activeOpId
+        o.id === currentOpId
           ? { ...o, assignedTargetIds: roster.targets.map((t) => t.id), updatedAt: Date.now() }
           : o,
       ),
@@ -1393,9 +1405,10 @@ export function OperationPlanner({
   };
 
   const handleDeselectAllTargets = () => {
+    const currentOpId = activeOpId || activeOp.id;
     setOperations((prev) =>
       prev.map((o) =>
-        o.id === activeOpId ? { ...o, assignedTargetIds: [], fakeTargetIds: [], updatedAt: Date.now() } : o,
+        o.id === currentOpId ? { ...o, assignedTargetIds: [], fakeTargetIds: [], updatedAt: Date.now() } : o,
       ),
     );
   };
@@ -1420,7 +1433,7 @@ export function OperationPlanner({
     // Auto-assign to current op
     setOperations((prev) =>
       prev.map((o) =>
-        o.id === activeOpId
+        o.id === (activeOpId || activeOp.id)
           ? { ...o, assignedAttackerIds: [...(o.assignedAttackerIds || []), newId] }
           : o,
       ),
@@ -1434,15 +1447,15 @@ export function OperationPlanner({
     }));
   };
 
-  const handleRemoveAttacker = (id: string) => {
+  const handleRemoveAttacker = (attackerId: string) => {
     setRoster((prev) => ({
       ...prev,
-      attackers: prev.attackers.filter((a) => a.id !== id),
+      attackers: prev.attackers.filter((a) => a.id !== attackerId),
     }));
     setOperations((prev) =>
       prev.map((o) => ({
         ...o,
-        assignedAttackerIds: (o.assignedAttackerIds || []).filter((atkId) => atkId !== id),
+        assignedAttackerIds: (o.assignedAttackerIds || []).filter((id) => id !== attackerId),
       })),
     );
   };
@@ -1462,26 +1475,10 @@ export function OperationPlanner({
   };
 
   const handlePatchPlayer = (id: string, patch: Partial<Player>) => {
-    setRoster((prev) => {
-      const updatedPlayers = prev.players.map((p) => (p.id === id ? { ...p, ...patch } : p));
-      const targetPlayer = updatedPlayers.find((p) => p.id === id);
-      const updatedTargets = prev.targets.map((t) => {
-        if (t.playerId === id && targetPlayer) {
-          return {
-            ...t,
-            safeEnabled: targetPlayer.safeEnabled,
-            safeStart: targetPlayer.safeStart,
-            safeEnd: targetPlayer.safeEnd,
-          };
-        }
-        return t;
-      });
-      return {
-        ...prev,
-        players: updatedPlayers,
-        targets: updatedTargets,
-      };
-    });
+    setRoster((prev) => ({
+      ...prev,
+      players: prev.players.map((p) => (p.id === id ? { ...p, ...patch } : p)),
+    }));
   };
 
   const handleRemovePlayer = (playerId: string) => {
@@ -1524,7 +1521,7 @@ export function OperationPlanner({
     }));
     setOperations((prev) =>
       prev.map((o) =>
-        o.id === activeOpId
+        o.id === (activeOpId || activeOp.id)
           ? { ...o, assignedTargetIds: [...(o.assignedTargetIds || []), newId] }
           : o,
       ),
@@ -1570,8 +1567,9 @@ export function OperationPlanner({
     const combined = combineUtcDateAndTime(newDate, newTime);
     if (combined) {
       const nextLanding = toUtcDatetimeInput(combined);
+      const currentOpId = activeOpId || activeOp.id;
       setOperations((prev) =>
-        prev.map((o) => (o.id === activeOpId ? { ...o, landing: nextLanding, updatedAt: Date.now() } : o)),
+        prev.map((o) => (o.id === currentOpId ? { ...o, landing: nextLanding, updatedAt: Date.now() } : o)),
       );
     }
   };
@@ -1579,22 +1577,25 @@ export function OperationPlanner({
   const shiftLandingHours = (hoursToAdd: number) => {
     const next = new Date(parsedLanding.getTime() + hoursToAdd * 3_600_000);
     const nextLanding = toUtcDatetimeInput(next);
+    const currentOpId = activeOpId || activeOp.id;
     setOperations((prev) =>
-      prev.map((o) => (o.id === activeOpId ? { ...o, landing: nextLanding, updatedAt: Date.now() } : o)),
+      prev.map((o) => (o.id === currentOpId ? { ...o, landing: nextLanding, updatedAt: Date.now() } : o)),
     );
   };
 
   const setLandingNow = () => {
     const now = new Date();
     const nextLanding = toUtcDatetimeInput(now);
+    const currentOpId = activeOpId || activeOp.id;
     setOperations((prev) =>
-      prev.map((o) => (o.id === activeOpId ? { ...o, landing: nextLanding, updatedAt: Date.now() } : o)),
+      prev.map((o) => (o.id === currentOpId ? { ...o, landing: nextLanding, updatedAt: Date.now() } : o)),
     );
   };
 
   const updateServerSpeed = (speed: number) => {
+    const currentOpId = activeOpId || activeOp.id;
     setOperations((prev) =>
-      prev.map((o) => (o.id === activeOpId ? { ...o, serverSpeed: speed, updatedAt: Date.now() } : o)),
+      prev.map((o) => (o.id === currentOpId ? { ...o, serverSpeed: speed, updatedAt: Date.now() } : o)),
     );
   };
 
