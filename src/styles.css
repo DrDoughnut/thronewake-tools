@@ -6414,67 +6414,11 @@ select:focus, .select:focus, .text-input:focus {
   color: var(--text-faint);
 }
 
-/* ── Operation Emoji & Inline Rename ─────────────────────────────────── */
+/* ── Operation Tab Content & Inline Rename ────────────────────────── */
 .op-plan-tab__content {
   display: flex;
   align-items: center;
   gap: 7px;
-}
-.op-plan-tab__emoji-wrap {
-  position: relative;
-  display: flex;
-  align-items: center;
-  z-index: 100;
-}
-.op-plan-tab__emoji-btn {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 4px;
-  font-size: 14px;
-  line-height: 1;
-  padding: 2px 4px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-.op-plan-tab__emoji-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-  transform: scale(1.15);
-}
-.op-emoji-popover {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  z-index: 9999;
-  background: hsl(220, 24%, 10%);
-  border: 1px solid hsl(220, 16%, 28%);
-  border-radius: 8px;
-  padding: 6px;
-  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.75);
-  width: 170px;
-}
-.op-emoji-popover__grid {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 4px;
-}
-.op-emoji-popover__item {
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 4px;
-  font-size: 15px;
-  padding: 4px 2px;
-  cursor: pointer;
-  transition: all 0.12s ease;
-  line-height: 1;
-}
-.op-emoji-popover__item:hover {
-  background: rgba(84, 160, 255, 0.2);
-  border-color: rgba(84, 160, 255, 0.4);
-  transform: scale(1.2);
-}
-.op-emoji-popover__item.is-active {
-  background: rgba(46, 204, 113, 0.2);
-  border-color: #2ecc71;
 }
 
 /* ── Workspace Bar Editable Name ─────────────────────────────────────── */

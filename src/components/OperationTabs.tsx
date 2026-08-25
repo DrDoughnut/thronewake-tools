@@ -1,17 +1,14 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import type { OperationPlan } from '../engine/operations';
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
-
-const PRESET_EMOJIS = ['🎯', '⚔️', '💣', '🛡️', '🌊', '🔥', '⚡', '🏹', '🏰', '🦅', '👑', '💥', '🌟', '🏴‍☠️', '🐎', '🐺', '🌪️', '🚀'];
 
 interface OperationTabsProps {
   operations: OperationPlan[];
   activeOpId: string | null;
   onSelectOp: (opId: string) => void;
-  onCreateOp: (name: string, icon?: string) => void;
+  onCreateOp: (name: string) => void;
   onDuplicateOp: (opId: string) => void;
   onRenameOp: (opId: string, newName: string) => void;
-  onChangeIconOp?: (opId: string, newIcon: string) => void;
   onDeleteOp: (opId: string) => void;
 }
 
@@ -22,32 +19,13 @@ export function OperationTabs({
   onCreateOp,
   onDuplicateOp,
   onRenameOp,
-  onChangeIconOp,
   onDeleteOp,
 }: OperationTabsProps) {
   const [isRenamingId, setIsRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [newOpName, setNewOpName] = useState('');
-  const [emojiPickerOpId, setEmojiPickerOpId] = useState<string | null>(null);
   const [deleteConfirmOp, setDeleteConfirmOp] = useState<OperationPlan | null>(null);
-
-  const emojiPickerRef = useRef<HTMLDivElement>(null);
-
-  // Close emoji picker when clicking outside
-  useEffect(() => {
-    const handleDocumentClick = (e: MouseEvent) => {
-      if (emojiPickerRef.current && !emojiPickerRef.current.contains(e.target as Node)) {
-        setEmojiPickerOpId(null);
-      }
-    };
-    if (emojiPickerOpId) {
-      document.addEventListener('mousedown', handleDocumentClick);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleDocumentClick);
-    };
-  }, [emojiPickerOpId]);
 
   const handleStartRename = (op: OperationPlan) => {
     setIsRenamingId(op.id);
@@ -63,7 +41,7 @@ export function OperationTabs({
 
   const handleCommitCreate = () => {
     const name = newOpName.trim() || `Operation ${operations.length + 1}`;
-    onCreateOp(name, '🎯');
+    onCreateOp(name);
     setNewOpName('');
     setIsCreating(false);
   };
@@ -93,12 +71,10 @@ export function OperationTabs({
             {operations.map((op) => {
               const isActive = op.id === activeOpId;
               const isRenaming = isRenamingId === op.id;
-              const opIcon = op.icon || '🎯';
 
               if (isRenaming) {
                 return (
                   <div key={op.id} className="op-plan-tab is-renaming">
-                    <span className="op-plan-tab__emoji">{opIcon}</span>
                     <input
                       type="text"
                       className="text-input op-plan-rename-input"
@@ -126,37 +102,6 @@ export function OperationTabs({
                   title={isActive ? 'Click to close this operation wave' : `Click to open ${op.name}`}
                 >
                   <div className="op-plan-tab__content">
-                    <div className="op-plan-tab__emoji-wrap" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        type="button"
-                        className="op-plan-tab__emoji-btn"
-                        onClick={() => setEmojiPickerOpId(emojiPickerOpId === op.id ? null : op.id)}
-                        title="Change operation emoji"
-                      >
-                        {opIcon}
-                      </button>
-
-                      {emojiPickerOpId === op.id && (
-                        <div className="op-emoji-popover" ref={emojiPickerRef}>
-                          <div className="op-emoji-popover__grid">
-                            {PRESET_EMOJIS.map((emoji) => (
-                              <button
-                                key={emoji}
-                                type="button"
-                                className={`op-emoji-popover__item ${opIcon === emoji ? 'is-active' : ''}`}
-                                onClick={() => {
-                                  if (onChangeIconOp) onChangeIconOp(op.id, emoji);
-                                  setEmojiPickerOpId(null);
-                                }}
-                              >
-                                {emoji}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
                     <strong
                       className="op-plan-tab__name"
                       onDoubleClick={(e) => {
@@ -213,7 +158,6 @@ export function OperationTabs({
 
             {isCreating ? (
               <div className="op-plan-tab is-creating">
-                <span className="op-plan-tab__emoji">🎯</span>
                 <input
                   type="text"
                   className="text-input op-plan-rename-input"

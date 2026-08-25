@@ -1694,12 +1694,6 @@ export function OperationPlanner({
     );
   };
 
-  const handleChangeOpIcon = (opId: string, icon: string) => {
-    setOperations((prev) =>
-      prev.map((o) => (o.id === opId ? { ...o, icon, updatedAt: Date.now() } : o))
-    );
-  };
-
   const isOperationOpen = !isV2Active || Boolean(roomSession && activeOpId);
 
   return (
@@ -1754,7 +1748,6 @@ export function OperationPlanner({
                 onCreateOp={handleCreateOp}
                 onDuplicateOp={handleDuplicateOp}
                 onRenameOp={handleRenameOp}
-                onChangeIconOp={handleChangeOpIcon}
                 onDeleteOp={handleDeleteOp}
               />
             </>
@@ -1810,7 +1803,6 @@ export function OperationPlanner({
               <div className="op-workspace-bar__operation">
                 <span className="op-workspace-bar__eyebrow">Active Operation</span>
                 <strong className="op-workspace-bar__title">
-                  <span className="op-workspace-bar__emoji">{activeOp.icon || '🎯'}</span>
                   {activeOp.name}
                 </strong>
               </div>
