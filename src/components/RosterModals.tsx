@@ -345,15 +345,15 @@ export function AllianceArmiesModal({
           <div className="op-modal__title-wrap">
             <span className="op-modal__icon">🛡️</span>
             <div>
-              <h2 className="op-modal__title">Alliance Army Roster ({attackers.length})</h2>
+              <h2 className="op-modal__title">Alliance Hammer Directory ({attackers.length} Registered)</h2>
               <p className="op-modal__subtitle">
-                Armies added here live in the master roster and can be selected across all operations.
+                Register all available alliance hammers here. Any hammer saved in this master directory can be deployed into any operation wave.
               </p>
             </div>
           </div>
           <div className="op-modal__header-actions">
             <button type="button" className="pill pill--primary" onClick={onAddAttacker}>
-              + Add Army
+              + Register Army
             </button>
             <button type="button" className="op-modal-close" onClick={onClose} aria-label="Close roster modal">
               ✕
@@ -363,7 +363,7 @@ export function AllianceArmiesModal({
 
         <div className="op-modal__body">
           {attackers.length === 0 ? (
-            <div className="op-modal__empty">No armies in roster. Click "+ Add Army" above to create one.</div>
+            <div className="op-modal__empty">No armies registered in master directory. Click "+ Register Army" above.</div>
           ) : (
             <div className="op-strip-list">
               {attackers.map((attacker, index) => (
@@ -381,7 +381,7 @@ export function AllianceArmiesModal({
 
         <div className="op-modal__footer">
           <button type="button" className="pill pill--primary" onClick={onClose}>
-            Done / Save Roster
+            Done / Save Directory
           </button>
         </div>
       </div>
@@ -450,12 +450,20 @@ export function PlayerGroupCard({
             </button>
             <button
               type="button"
-              className="op-remove-danger op-remove-danger--sm"
-              aria-label={`Delete ${player.name} and all attached villages`}
-              onClick={() => setIsConfirmingDeletePlayer(true)}
-              title="Delete entire defender account"
+              className="pill pill--tiny pill--secondary"
+              onClick={() => setIsExpanded(!isExpanded)}
+              aria-expanded={isExpanded}
             >
-              🗑️ Delete Account
+              {isExpanded ? '▲ Hide' : `▼ (${playerVillages.length})`}
+            </button>
+            <button
+              type="button"
+              className="op-remove-danger op-remove-danger--sm"
+              aria-label={`Delete defender ${player.name}`}
+              onClick={() => setIsConfirmingDeletePlayer(true)}
+              title="Delete defender account"
+            >
+              🗑️
             </button>
           </div>
         </div>
@@ -487,7 +495,7 @@ export function PlayerGroupCard({
           <div className="op-strip-list">
             {playerVillages.length === 0 ? (
               <div className="op-villages-empty">
-                No villages yet. Click "+ Add Village" above to add one.
+                No villages for this defender. Click "+ Add Village" above to add one.
               </div>
             ) : (
               playerVillages.map((target, vIdx) => (
@@ -612,10 +620,10 @@ export function TargetDatabaseModal({
             <span className="op-modal__icon">🎯</span>
             <div>
               <h2 className="op-modal__title">
-                Enemy Target Database ({players.length} Accounts · {targets.length} Villages)
+                Enemy Target Directory ({players.length} Accounts · {targets.length} Villages)
               </h2>
               <p className="op-modal__subtitle">
-                Defender accounts & villages defined here can be targeted across multiple operations.
+                Register defender accounts and target villages here. Any village saved in this master directory can be targeted across multiple operation waves.
               </p>
             </div>
           </div>
@@ -641,7 +649,7 @@ export function TargetDatabaseModal({
 
         <div className="op-modal__body">
           {players.length === 0 ? (
-            <div className="op-modal__empty">No defender accounts. Click "+ Add Defender" above.</div>
+            <div className="op-modal__empty">No defender accounts in directory. Click "+ Add Defender" above.</div>
           ) : (
             <div className="op-defenders-list">
               {players.map((player, pIdx) => (
@@ -664,7 +672,7 @@ export function TargetDatabaseModal({
 
         <div className="op-modal__footer">
           <button type="button" className="pill pill--primary" onClick={onClose}>
-            Done / Save Targets
+            Done / Save Directory
           </button>
         </div>
       </div>

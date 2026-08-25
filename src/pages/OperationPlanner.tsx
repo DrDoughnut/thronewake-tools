@@ -1717,23 +1717,29 @@ export function OperationPlanner({
 
           {roomSession && (
             <>
-              <section className="panel op-v2-roster" aria-label="Hammer and Target Management">
+              <section className="panel op-v2-roster" aria-label="Master Directory (Alliance Roster and Targets)">
                 <div className="op-v2-roster__head">
                   <div>
-                    <h2 className="op-section-title">Hammer and Target Management</h2>
-                    <p>Manage the alliance armies, defender accounts, and target villages.</p>
+                    <h2 className="op-section-title">📚 Master Directory (Alliance Roster & Targets)</h2>
+                    <p>Shared room library. Register all alliance armies and defender targets here once, then assign them to specific operation waves below.</p>
                   </div>
                   <button type="button" className="pill pill--tiny pill--import-btn" onClick={() => setIsImportModalOpen(true)}>📥 Import</button>
                 </div>
                 <div className="op-v2-roster__cards">
                   <button type="button" className="op-v2-roster-card op-v2-roster-card--hammers" onClick={() => setIsArmiesModalOpen(true)}>
                     <span className="op-v2-roster-card__icon" aria-hidden="true">⚔️</span>
-                    <span className="op-v2-roster-card__copy"><strong>Alliance Hammers</strong><span>{roster.attackers.length} armies · {marchingAttackers.length} in this operation</span></span>
+                    <span className="op-v2-roster-card__copy">
+                      <strong>Alliance Hammer Directory</strong>
+                      <span>{roster.attackers.length} registered hammers · {marchingAttackers.length} deployed in active wave</span>
+                    </span>
                     <span className="op-v2-roster-card__action">Manage <span aria-hidden="true">→</span></span>
                   </button>
                   <button type="button" className="op-v2-roster-card op-v2-roster-card--targets" onClick={() => setIsTargetsModalOpen(true)}>
                     <span className="op-v2-roster-card__icon" aria-hidden="true">🎯</span>
-                    <span className="op-v2-roster-card__copy"><strong>Targets</strong><span>{roster.targets.length} villages · {roster.players.length} defender accounts</span></span>
+                    <span className="op-v2-roster-card__copy">
+                      <strong>Enemy Target Directory</strong>
+                      <span>{roster.targets.length} registered villages across {roster.players.length} defender accounts</span>
+                    </span>
                     <span className="op-v2-roster-card__action">Manage <span aria-hidden="true">→</span></span>
                   </button>
                 </div>
@@ -1762,7 +1768,7 @@ export function OperationPlanner({
             <span className="op-standby-panel__icon">🗺️</span>
             <h3 className="op-standby-panel__title">No Operation Wave Open</h3>
             <p className="op-standby-panel__desc">
-              Select an operation wave from the list above or click <strong>+ New Operation</strong> to plan launch timings, assign armies, and view route plans.
+              Select an operation wave from the list above or click <strong>+ New Operation</strong> to plan launch timings, deploy registered alliance armies, and view coordinated route plans.
             </p>
             <div className="op-standby-panel__actions">
               <button
@@ -1778,18 +1784,18 @@ export function OperationPlanner({
                 className="pill pill--secondary"
                 onClick={() => setIsArmiesModalOpen(true)}
               >
-                👥 Manage Armies
+                👥 Alliance Hammer Directory
               </button>
               <button
                 type="button"
                 className="pill pill--secondary"
                 onClick={() => setIsTargetsModalOpen(true)}
               >
-                🎯 Manage Targets
+                🎯 Enemy Target Directory
               </button>
             </div>
             <p className="op-standby-panel__hint">
-              Tip: You can manage your Alliance Armies and Defender Targets anytime using the Hammer and Target Management cards above.
+              Tip: Manage your Alliance Armies and Defender Targets anytime using the Master Directory cards above.
             </p>
           </div>
         </section>

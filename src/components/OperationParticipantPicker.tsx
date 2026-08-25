@@ -65,11 +65,11 @@ export function OperationParticipantPicker({
     <section className="panel op-participant-picker" aria-label="Operation Participants">
       <div className="op-participant-picker__summary">
         <div className="op-participant-picker__summary-copy">
-          <span className="op-participant-picker__eyebrow">Participants</span>
+          <span className="op-participant-picker__eyebrow">Wave Deployment</span>
           <strong>
-            {activeAttackerCount} of {totalAttackerCount} armies · {activeTargetCount} of {totalTargetCount} targets
+            {activeAttackerCount} of {totalAttackerCount} armies deployed · {activeTargetCount} of {totalTargetCount} targets assigned
           </strong>
-          <span>Choose which armies march and which villages are targeted for this operation wave.</span>
+          <span>Select which registered alliance armies march and which enemy villages are targeted for this operation wave. Unchecked armies stay benched in reserve.</span>
         </div>
       </div>
 
@@ -78,9 +78,9 @@ export function OperationParticipantPicker({
         <div className="op-participant-col op-participant-col--attackers">
           <div className="op-participant-col__header">
             <div className="op-participant-col__title-wrap">
-              <span className="op-participant-col__tag op-participant-col__tag--attacker">Attackers</span>
+              <span className="op-participant-col__tag op-participant-col__tag--attacker">Marching</span>
               <h3 className="op-participant-col__title">
-                Marching Armies ({activeAttackerCount}/{totalAttackerCount})
+                Deployed Armies ({activeAttackerCount}/{totalAttackerCount})
               </h3>
             </div>
             <div className="op-participant-col__actions">
@@ -88,7 +88,7 @@ export function OperationParticipantPicker({
                 type="button"
                 className="pill pill--tiny"
                 onClick={onSelectAllAttackers}
-                title="Select all alliance armies for this operation"
+                title="Deploy all registered alliance armies for this operation"
               >
                 ✓ All
               </button>
@@ -96,7 +96,7 @@ export function OperationParticipantPicker({
                 type="button"
                 className="pill pill--tiny"
                 onClick={onDeselectAllAttackers}
-                title="Clear all armies from this operation"
+                title="Bench all armies for this operation"
               >
                 ⏸ None
               </button>
@@ -104,9 +104,9 @@ export function OperationParticipantPicker({
                 type="button"
                 className="pill pill--tiny pill--primary"
                 onClick={onOpenAttackerModal}
-                title="Add or edit armies in master roster"
+                title="Open Master Alliance Hammer Directory to add or edit armies"
               >
-                👥 Edit Roster
+                👥 Master Directory
               </button>
             </div>
           </div>
@@ -114,9 +114,9 @@ export function OperationParticipantPicker({
           <div className="op-participant-chips op-participant-chips--vertical">
             {attackers.length === 0 ? (
               <div className="op-participant-chips__empty">
-                No armies in roster.{' '}
+                No armies registered in master directory.{' '}
                 <button type="button" className="btn-link" onClick={onOpenAttackerModal}>
-                  + Add armies
+                  + Register armies
                 </button>
               </div>
             ) : (
@@ -128,6 +128,7 @@ export function OperationParticipantPicker({
                   <label
                     key={atk.id}
                     className={`op-participant-chip op-participant-chip--attacker ${isSelected ? 'is-selected' : ''}`}
+                    title={isSelected ? 'Deployed in this operation wave (Click to bench)' : 'Benched in reserve (Click to deploy)'}
                   >
                     <input
                       type="checkbox"
@@ -152,9 +153,9 @@ export function OperationParticipantPicker({
         <div className="op-participant-col op-participant-col--targets">
           <div className="op-participant-col__header">
             <div className="op-participant-col__title-wrap">
-              <span className="op-participant-col__tag op-participant-col__tag--target">Targets</span>
+              <span className="op-participant-col__tag op-participant-col__tag--target">Targeted</span>
               <h3 className="op-participant-col__title">
-                Target Villages ({activeTargetCount}/{totalTargetCount})
+                Targeted Villages ({activeTargetCount}/{totalTargetCount})
               </h3>
             </div>
             <div className="op-participant-col__actions">
@@ -162,7 +163,7 @@ export function OperationParticipantPicker({
                 type="button"
                 className="pill pill--tiny"
                 onClick={onSelectAllTargets}
-                title="Select all targets for this operation"
+                title="Assign all registered targets to this operation"
               >
                 ✓ All
               </button>
@@ -178,9 +179,9 @@ export function OperationParticipantPicker({
                 type="button"
                 className="pill pill--tiny pill--primary"
                 onClick={onOpenTargetModal}
-                title="Add or edit defender accounts and villages"
+                title="Open Master Enemy Target Directory to add or edit defenders"
               >
-                🎯 Edit Targets
+                🎯 Master Directory
               </button>
             </div>
           </div>
