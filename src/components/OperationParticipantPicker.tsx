@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import type { Attacker, Player, Target } from '../engine/operations';
-import { playableFactions, lookup, type UnitRef } from '../data/factions';
-import { UnitIcon } from './UnitIcon';
+import { lookup, type UnitRef } from '../data/factions';
+import { UnitGridPicker } from './UnitGridPicker';
 
 interface OperationParticipantPickerProps {
   attackers: Attacker[];
@@ -15,7 +15,6 @@ interface OperationParticipantPickerProps {
   onToggleTarget: (targetId: string) => void;
   onToggleTargetFake: (targetId: string) => void;
   onUpdateAttackerUnit?: (attackerId: string, unitRef: string) => void;
-  onBatchSetAttackerUnits?: (roleOrUnitKey: string) => void;
   onSelectAllAttackers: () => void;
   onDeselectAllAttackers: () => void;
   onSelectAllTargets: () => void;
@@ -36,7 +35,6 @@ export function OperationParticipantPicker({
   onToggleTarget,
   onToggleTargetFake,
   onUpdateAttackerUnit,
-  onBatchSetAttackerUnits,
   onSelectAllAttackers,
   onDeselectAllAttackers,
   onSelectAllTargets,
@@ -119,47 +117,6 @@ export function OperationParticipantPicker({
             </div>
           </div>
 
-          {/* Quick Wave Troop Presets */}
-          {activeAttackerCount > 0 && onBatchSetAttackerUnits && (
-            <div className="op-wave-speed-presets" aria-label="Wave speed presets">
-              <span className="op-wave-speed-presets__label">Wave Troop:</span>
-              <div className="op-wave-speed-presets__buttons">
-                <button
-                  type="button"
-                  className="pill pill--tiny op-wave-preset-btn"
-                  onClick={() => onBatchSetAttackerUnits('catapult')}
-                  title="Set all deployed armies in this wave to Catapults (3 fields/h)"
-                >
-                  🎯 Catapults (3 f/h)
-                </button>
-                <button
-                  type="button"
-                  className="pill pill--tiny op-wave-preset-btn"
-                  onClick={() => onBatchSetAttackerUnits('ram')}
-                  title="Set all deployed armies in this wave to Rams (4 fields/h)"
-                >
-                  🪵 Rams (4 f/h)
-                </button>
-                <button
-                  type="button"
-                  className="pill pill--tiny op-wave-preset-btn"
-                  onClick={() => onBatchSetAttackerUnits('chief')}
-                  title="Set all deployed armies in this wave to Chiefs / Leaders (4 fields/h)"
-                >
-                  👑 Chiefs (4 f/h)
-                </button>
-                <button
-                  type="button"
-                  className="pill pill--tiny op-wave-preset-btn op-wave-preset-btn--reset"
-                  onClick={() => onBatchSetAttackerUnits('reset')}
-                  title="Reset all armies to their Master Directory base troop"
-                >
-                  ↺ Reset
-                </button>
-              </div>
-            </div>
-          )}
-
           <div className="op-participant-chips op-participant-chips--vertical">
             {attackers.length === 0 ? (
               <div className="op-participant-chips__empty">
@@ -173,9 +130,6 @@ export function OperationParticipantPicker({
                 const isSelected = assignedAttackerIds.includes(atk.id);
                 const currentUnitRef = (attackerUnitOverrides[atk.id] || atk.unitRef) as UnitRef;
                 const unitInfo = lookup(currentUnitRef);
-                const faction = unitInfo.faction;
-                const unit = unitInfo.unit;
-                const isOverridden = Boolean(attackerUnitOverrides[atk.id] && attackerUnitOverrides[atk.id] !== atk.unitRef);
 
                 return (
                   <div
@@ -201,36 +155,12 @@ export function OperationParticipantPicker({
                     </label>
 
                     {isSelected && (
-                      <div className="op-wave-troop-picker" title={`Slowest troop for this wave: ${unit.name} (${unit.speed} fields/h)`}>
-                        <div className="op-wave-troop-icon">
-                          <UnitIcon unitRef={currentUnitRef} size={20} />
-                        </div>
-                        <select
-                          className={`select op-wave-troop-select ${isOverridden ? 'is-overridden' : ''}`}
-                          value={currentUnitRef}
-                          onChange={(e) => onUpdateAttackerUnit?.(atk.id, e.target.value)}
-                          aria-label={`Troop for ${atk.name || 'Attacker'}`}
-                        >
-                          <optgroup label={`${faction.name} (Hammer Race)`}>
-                            {faction.units.map((u) => (
-                              <option key={u.key} value={`${faction.key}/${u.key}`}>
-                                {u.name} ({u.speed} f/h)
-                              </option>
-                            ))}
-                          </optgroup>
-                          {playableFactions
-                            .filter((f) => f.key !== faction.key)
-                            .map((otherFaction) => (
-                              <optgroup key={otherFaction.key} label={otherFaction.name}>
-                                {otherFaction.units.map((u) => (
-                                  <option key={u.key} value={`${otherFaction.key}/${u.key}`}>
-                                    {u.name} ({u.speed} f/h)
-                                  </option>
-                                ))}
-                              </optgroup>
-                            ))}
-                        </select>
-                        <span className="op-wave-speed-tag">{unit.speed} f/h</span>
+                      <div className="op-wave-troop-picker" title={`Slowest troop for this wave: ${unitInfo.unit.name} (${unitInfo.unit.speed} fields/h)`}>
+                        <UnitGridPicker
+                          unitRef={currentUnitRef}
+                          onChange={(newRef) => onUpdateAttackerUnit?.(atk.id, newRef)}
+                          compact={true}
+                        />
                       </div>
                     )}
                   </div>

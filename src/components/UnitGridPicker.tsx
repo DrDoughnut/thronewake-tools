@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { playableFactions, lookup, type UnitRef } from '../data/factions';
 import { UnitIcon } from './UnitIcon';
@@ -7,15 +7,24 @@ interface UnitGridPickerProps {
   unitRef: UnitRef;
   onChange: (unitRef: UnitRef) => void;
   disabled?: boolean;
+  compact?: boolean;
 }
 
-export function UnitGridPicker({ unitRef, onChange, disabled = false }: UnitGridPickerProps) {
+export function UnitGridPicker({ unitRef, onChange, disabled = false, compact = false }: UnitGridPickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
 
   const current = lookup(unitRef);
+
+  const sortedFactions = useMemo(() => {
+    const currentFactionKey = current.faction.key;
+    return [
+      ...playableFactions.filter((f) => f.key === currentFactionKey),
+      ...playableFactions.filter((f) => f.key !== currentFactionKey),
+    ];
+  }, [current.faction.key]);
 
   useEffect(() => {
     if (!isOpen || !triggerRef.current) return;
@@ -86,11 +95,11 @@ export function UnitGridPicker({ unitRef, onChange, disabled = false }: UnitGrid
   };
 
   return (
-    <div className="unit-grid-picker">
+    <div className={`unit-grid-picker ${compact ? 'unit-grid-picker--compact' : ''}`}>
       <button
         ref={triggerRef}
         type="button"
-        className={`unit-grid-picker__trigger ${isOpen ? 'is-open' : ''}`}
+        className={`unit-grid-picker__trigger ${compact ? 'unit-grid-picker__trigger--compact' : ''} ${isOpen ? 'is-open' : ''}`}
         onClick={() => setIsOpen((prev) => !prev)}
         disabled={disabled}
         aria-haspopup="dialog"
@@ -98,15 +107,15 @@ export function UnitGridPicker({ unitRef, onChange, disabled = false }: UnitGrid
         aria-label={`Slowest troop: ${current.unit.name}, ${current.unit.speed} fields per hour. Click to change.`}
       >
         <div className="unit-grid-picker__preview">
-          <UnitIcon unitRef={unitRef} size={32} />
+          <UnitIcon unitRef={unitRef} size={compact ? 22 : 32} />
           <div className="unit-grid-picker__summary">
             <span className="unit-grid-picker__name">{current.unit.name}</span>
-            <span className="unit-grid-picker__faction">{current.faction.name}</span>
+            {!compact && <span className="unit-grid-picker__faction">{current.faction.name}</span>}
           </div>
         </div>
         <div className="unit-grid-picker__speed-badge">
           <span className="unit-grid-picker__speed-val">{current.unit.speed}</span>
-          <span className="unit-grid-picker__speed-unit">fields/h</span>
+          <span className="unit-grid-picker__speed-unit">{compact ? 'f/h' : 'fields/h'}</span>
         </div>
       </button>
 
@@ -133,14 +142,14 @@ export function UnitGridPicker({ unitRef, onChange, disabled = false }: UnitGrid
             </div>
 
             <div className="unit-grid-popover__content">
-              {playableFactions.map((faction) => (
+              {sortedFactions.map((faction) => (
                 <div key={faction.key} className="unit-grid-faction">
                   <div
                     className="unit-grid-faction__title"
                     style={{ '--faction-color': faction.color } as React.CSSProperties}
                   >
                     <span className="unit-grid-faction__badge" />
-                    <span>{faction.name}</span>
+                    <span>{faction.name}{faction.key === current.faction.key ? ' (Hammer Faction)' : ''}</span>
                   </div>
                   <div className="unit-grid-faction__units">
                     {faction.units.map((unit) => {
@@ -167,7 +176,7 @@ export function UnitGridPicker({ unitRef, onChange, disabled = false }: UnitGrid
               ))}
             </div>
           </div>,
-          document.body,
+          document.body
         )}
     </div>
   );

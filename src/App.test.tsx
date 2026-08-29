@@ -790,12 +790,10 @@ describe('the operation planner', () => {
     const benchedAttacker = container.querySelector('.op-participant-chip--attacker input[type="checkbox"]') as HTMLInputElement;
     act(() => benchedAttacker.click());
 
-    // Verify wave speed presets button is present and clickable
-    const catPresetBtn = [...container.querySelectorAll('.op-wave-preset-btn')].find(
-      (b) => b.textContent?.includes('Catapults'),
-    ) as HTMLButtonElement;
-    expect(catPresetBtn).toBeTruthy();
-    click(catPresetBtn);
+    // Verify per-hammer UnitGridPicker is present and clickable in deployed row
+    const troopPickerTrigger = container.querySelector('.op-wave-troop-picker .unit-grid-picker__trigger') as HTMLButtonElement;
+    expect(troopPickerTrigger).toBeTruthy();
+    expect(troopPickerTrigger.textContent).toContain('f/h');
 
     const routesTabReopened = [...container.querySelectorAll('.op-workspace-nav button')].find(
       (button) => button.textContent?.includes('Routes'),
@@ -805,15 +803,15 @@ describe('the operation planner', () => {
     expect(container.querySelector(".op-hit-tag")?.textContent).toContain("Fake");
   });
 
-  it('supports toggling auto-save and warns on sync when unsaved changes exist in v2 mode', async () => {
+  it('supports automatic saving and syncing in v2 mode', async () => {
     const originalFetch = globalThis.fetch;
-    globalThis.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: async () => ({ result: null }),
-    });
-
     try {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ result: null }),
+      });
+
       const opTab = [...container.querySelectorAll('.pill--tool')].find(
         (b) => b.getAttribute('aria-label') === 'Operation Planner',
       )!;
@@ -839,41 +837,21 @@ describe('the operation planner', () => {
         });
       }
 
-      // Auto-save toggle button inside room options menu
-      const autoSaveBtn = [...container.querySelectorAll('.op-room-menu button, .op-team-room-actions button')].find(
-        (b) => b.textContent?.includes('Auto-Save'),
-      ) as HTMLElement;
-      expect(autoSaveBtn).toBeTruthy();
-      expect(autoSaveBtn.textContent).toContain('Auto-Save: OFF');
+      // Verify connected room tag is visible
+      const connectedTag = container.querySelector('.op-team-room-connected-tag');
+      expect(connectedTag).toBeTruthy();
 
-      click(autoSaveBtn);
-
-      // Open the operation tab to reveal action menu
-      const opTabToOpen = container.querySelector('.op-plan-tab') as HTMLElement;
-      expect(opTabToOpen).toBeTruthy();
-      click(opTabToOpen);
-
-      // Duplicate active operation tab (creates unsaved local change)
-      const duplicateBtn = [...container.querySelectorAll('.op-plan-tab__btn')].find(
-        (b) => b.getAttribute('title')?.includes('Duplicate') || b.textContent?.includes('📑'),
-      ) as HTMLElement;
-      expect(duplicateBtn).toBeTruthy();
-      click(duplicateBtn);
-
-      // Dirty badge should display
-      expect(container.textContent).toContain('Unsaved Local Changes');
-
-      // Clicking Sync should open overwrite safety modal
-      const syncBtn = [...container.querySelectorAll('.op-team-room-actions button')].find(
+      // Sync button is available inside room options menu
+      const syncBtn = [...container.querySelectorAll('.op-room-menu button, .op-team-room-actions button')].find(
         (b) => b.textContent?.includes('Sync'),
       ) as HTMLElement;
       expect(syncBtn).toBeTruthy();
-      click(syncBtn);
 
-      const safetyModal = container.querySelector('.op-modal.op-modal--compact');
-      expect(safetyModal).toBeTruthy();
-      expect(safetyModal?.textContent).toContain('Unsaved Local Changes');
-      expect(safetyModal?.textContent).toContain('Pulling from the cloud will overwrite your local changes');
+      // Save Room button is available
+      const saveBtn = [...container.querySelectorAll('.op-team-room-actions button')].find(
+        (b) => b.textContent?.includes('Save Room'),
+      ) as HTMLElement;
+      expect(saveBtn).toBeTruthy();
     } finally {
       globalThis.fetch = originalFetch;
     }

@@ -571,6 +571,50 @@ export function migrateToMasterRoster(raw: any, fallbackState?: CompactPlannerSt
   };
 }
 
+/**
+ * Merges two TeamRoomData instances (e.g. cloud vs local concurrent edits)
+ * into a single unified state without losing entities or waves.
+ */
+export function mergeTeamRoomData(cloud: TeamRoomData, local: TeamRoomData): TeamRoomData {
+  // 1. Merge Master Attackers (Union by ID)
+  const attackerMap = new Map<string, CompactAttacker>();
+  cloud.roster.attackers.forEach((a) => attackerMap.set(a.id, a));
+  local.roster.attackers.forEach((a) => attackerMap.set(a.id, a));
+
+  // 2. Merge Master Players (Union by ID)
+  const playerMap = new Map<string, CompactPlayer>();
+  cloud.roster.players.forEach((p) => playerMap.set(p.id, p));
+  local.roster.players.forEach((p) => playerMap.set(p.id, p));
+
+  // 3. Merge Master Targets (Union by ID)
+  const targetMap = new Map<string, CompactTarget>();
+  cloud.roster.targets.forEach((t) => targetMap.set(t.id, t));
+  local.roster.targets.forEach((t) => targetMap.set(t.id, t));
+
+  // 4. Merge Operations (Union by ID, taking latest modified)
+  const opMap = new Map<string, OperationPlan>();
+  cloud.operations.forEach((op) => opMap.set(op.id, op));
+  local.operations.forEach((op) => {
+    const existing = opMap.get(op.id);
+    if (!existing || (op.updatedAt || 0) >= (existing.updatedAt || 0)) {
+      opMap.set(op.id, op);
+    }
+  });
+
+  return {
+    version: 2,
+    roomName: local.roomName || cloud.roomName,
+    activeOpId: local.activeOpId || cloud.activeOpId,
+    roster: {
+      attackers: Array.from(attackerMap.values()),
+      players: Array.from(playerMap.values()),
+      targets: Array.from(targetMap.values()),
+    },
+    operations: Array.from(opMap.values()),
+    updatedAt: Date.now(),
+  };
+}
+
 export type ImportMode = 'new_wave' | 'merge_only' | 'replace';
 
 export interface ImportResult {

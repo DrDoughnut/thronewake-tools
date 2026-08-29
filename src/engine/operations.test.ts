@@ -10,6 +10,7 @@ import {
   formatLocalDateTime,
   isInSafeWindow,
   importPlanIntoMasterRoster,
+  mergeTeamRoomData,
   migrateToMasterRoster,
   resolveSafeTime,
   routeIsPossible,
@@ -501,5 +502,117 @@ describe('operation-level target modes', () => {
 
     expect(migrated.operations[0].attackerUnitOverrides?.a1).toBe('embermark_dominion/dominion_catapult');
     expect(migrated.operations[1].attackerUnitOverrides?.a1).toBe('embermark_dominion/iron_ram');
+  });
+
+  it('seamlessly merges concurrent team room states without losing attackers, targets, or waves', () => {
+    const cloudState = {
+      version: 2 as const,
+      roomName: 'test-room',
+      activeOpId: 'op1',
+      roster: {
+        attackers: [
+          {
+            id: 'a1',
+            name: 'Hammer 1 (Cloud)',
+            x: 10,
+            y: 20,
+            unitRef: 'embermark_dominion/dominion_catapult',
+            artifactMultiplier: 1 as const,
+            bannerfieldLevel: 0,
+            safeEnabled: false,
+            safeStart: '00:00',
+            safeEnd: '00:00',
+          },
+        ],
+        players: [],
+        targets: [
+          {
+            id: 't1',
+            name: 'Target 1 (Cloud)',
+            x: 30,
+            y: 40,
+            fake: false,
+            playerId: '',
+            safeEnabled: false,
+            safeStart: '00:00',
+            safeEnd: '00:00',
+          },
+        ],
+      },
+      operations: [
+        {
+          id: 'op1',
+          name: 'Op 1',
+          landing: '2026-08-20T12:00',
+          serverSpeed: 3,
+          assignedAttackerIds: ['a1'],
+          assignedTargetIds: ['t1'],
+          fakeTargetIds: [],
+          updatedAt: 100,
+        },
+      ],
+      updatedAt: 100,
+    };
+
+    const localState = {
+      version: 2 as const,
+      roomName: 'test-room',
+      activeOpId: 'op2',
+      roster: {
+        attackers: [
+          {
+            id: 'a2',
+            name: 'Hammer 2 (Local Added)',
+            x: 50,
+            y: 60,
+            unitRef: 'stormfang_clans/iron_ram',
+            artifactMultiplier: 1 as const,
+            bannerfieldLevel: 0,
+            safeEnabled: false,
+            safeStart: '00:00',
+            safeEnd: '00:00',
+          },
+        ],
+        players: [],
+        targets: [
+          {
+            id: 't2',
+            name: 'Target 2 (Local Added)',
+            x: 70,
+            y: 80,
+            fake: true,
+            playerId: '',
+            safeEnabled: false,
+            safeStart: '00:00',
+            safeEnd: '00:00',
+          },
+        ],
+      },
+      operations: [
+        {
+          id: 'op2',
+          name: 'Op 2 (Local Added Wave)',
+          landing: '2026-08-20T14:00',
+          serverSpeed: 3,
+          assignedAttackerIds: ['a2'],
+          assignedTargetIds: ['t2'],
+          fakeTargetIds: [],
+          updatedAt: 200,
+        },
+      ],
+      updatedAt: 200,
+    };
+
+    const merged = mergeTeamRoomData(cloudState, localState);
+
+    // Both attackers and targets are preserved in master directory
+    expect(merged.roster.attackers).toHaveLength(2);
+    expect(merged.roster.targets).toHaveLength(2);
+    expect(merged.roster.attackers.map((a) => a.id)).toEqual(['a1', 'a2']);
+    expect(merged.roster.targets.map((t) => t.id)).toEqual(['t1', 't2']);
+
+    // Both operation waves are preserved
+    expect(merged.operations).toHaveLength(2);
+    expect(merged.operations.map((o) => o.id)).toEqual(['op1', 'op2']);
   });
 });
