@@ -171,8 +171,8 @@ export async function decryptPayload<T = unknown>(
   }
 }
 
-const UPSTASH_REST_URL = 'https://awaited-macaw-144559.upstash.io';
-const UPSTASH_REST_TOKEN = 'gQAAAAAAAjSvAQIgcDIxMzZhZDY4NjkxMzM0YWU1YjI5ZDcwYjZjNDhkYzYxYg';
+const UPSTASH_REST_URL = 'https://capable-firefly-231120.upstash.io';
+const UPSTASH_REST_TOKEN = 'gQAAAAAAA4bQAAIgcDFhZTI5MzNmNjFmNjE0MzUyYjBmNzhjYmMwMzlmOWZkMQ';
 
 /**
  * Saves encrypted ciphertext to the cloud store and local cache.
@@ -186,19 +186,10 @@ export async function saveToCloud(
     localStorage.setItem(`thronewake.room_cache.${roomId}`, encryptedCiphertext);
   } catch {}
 
-  // If fetch is unmocked and domain is the placeholder, avoid Windows DNS stall
-  if (
-    typeof globalThis.fetch === 'function' &&
-    UPSTASH_REST_URL.includes('awaited-macaw-144559') &&
-    !('mock' in (globalThis.fetch as unknown as Record<string, unknown>))
-  ) {
-    return { success: true };
-  }
-
   try {
     const key = `tw_${roomId.slice(0, 32)}`;
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 200);
+    const timeoutId = setTimeout(() => controller.abort(), 3500);
     const res = await fetch(UPSTASH_REST_URL, {
       method: 'POST',
       headers: {
@@ -232,18 +223,10 @@ export async function loadFromCloud(
     localCached = localStorage.getItem(`thronewake.room_cache.${roomId}`);
   } catch {}
 
-  if (
-    typeof globalThis.fetch === 'function' &&
-    UPSTASH_REST_URL.includes('awaited-macaw-144559') &&
-    !('mock' in (globalThis.fetch as unknown as Record<string, unknown>))
-  ) {
-    return { success: true, data: localCached };
-  }
-
   try {
     const key = `tw_${roomId.slice(0, 32)}`;
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 200);
+    const timeoutId = setTimeout(() => controller.abort(), 3500);
     const res = await fetch(UPSTASH_REST_URL, {
       method: 'POST',
       headers: {
