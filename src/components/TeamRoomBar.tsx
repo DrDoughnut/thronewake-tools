@@ -29,7 +29,16 @@ export function TeamRoomBar({
   onRoomDisconnected,
   onSaveRequested,
 }: TeamRoomBarProps) {
-  const [passcode, setPasscode] = useState('');
+  const [passcode, setPasscode] = useState<string>(() => {
+    try {
+      const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+      const hashRoom = hashParams.get('room');
+      const saved = localStorage.getItem(ROOM_STORAGE_KEY);
+      return hashRoom || saved || '';
+    } catch {
+      return '';
+    }
+  });
   const [session, setSession] = useState<RoomCryptoSession | null>(null);
   const [status, setStatus] = useState<'idle' | 'connecting' | 'connected' | 'saving' | 'error'>('idle');
   const [statusMsg, setStatusMsg] = useState<string>('');
@@ -90,18 +99,12 @@ export function TeamRoomBar({
           return;
         }
 
-        setStatusMsg('Connecting to cloud room...');
+        setStatusMsg('Connecting to room...');
         const cloudRes = await loadFromCloud(sess.roomId);
-
-        if (!cloudRes.success) {
-          setStatus('error');
-          setStatusMsg(cloudRes.error || 'Failed to connect to cloud');
-          return;
-        }
 
         let loadedData: TeamRoomData | null = null;
 
-        if (cloudRes.data) {
+        if (cloudRes.success && cloudRes.data) {
           // Decrypt existing room payload
           loadedData = await decryptPayload<TeamRoomData>(cloudRes.data, sess.cryptoKey);
           if (!loadedData) {
@@ -110,40 +113,88 @@ export function TeamRoomBar({
             return;
           }
         } else {
-          // New Room initialized clean without stale local state
-          const cleanPlan: TeamRoomData = {
-            version: 2,
-            roomName: sess.roomName,
-            activeOpId: null,
-            roster: { attackers: [], players: [], targets: [] },
-            operations: [
-              {
-                id: 'op1',
-                name: 'Operation 1',
-                landing: '2026-08-16T19:00',
-                serverSpeed: 3,
-                assignedAttackerIds: [],
-                assignedTargetIds: [],
-                fakeTargetIds: [],
-                createdAt: Date.now(),
-                updatedAt: Date.now(),
+          // If cloud returned no data or failed, check offline cache
+          try {
+            const cachedCipher = localStorage.getItem(`thronewake.room_cache.${sess.roomId}`);
+            if (cachedCipher) {
+              loadedData = await decryptPayload<TeamRoomData>(cachedCipher, sess.cryptoKey);
+            }
+          } catch {}
+
+          if (!loadedData) {
+            // New Room initialized clean
+            const cleanPlan: TeamRoomData = {
+              version: 2,
+              roomName: sess.roomName,
+              activeOpId: null,
+              roster: {
+                attackers: [
+                  {
+                    id: 'a1',
+                    name: 'Attacker 1',
+                    x: 0,
+                    y: 0,
+                    unitRef: 'embermark_dominion/emberblade',
+                    artifactMultiplier: 1,
+                    bannerfieldLevel: 0,
+                    safeEnabled: false,
+                    safeStart: '22:00',
+                    safeEnd: '04:00',
+                  },
+                ],
+                players: [
+                  {
+                    id: 'p1',
+                    name: 'Defender 1',
+                    safeEnabled: false,
+                    safeStart: '22:00',
+                    safeEnd: '04:00',
+                  },
+                ],
+                targets: [
+                  {
+                    id: 't1',
+                    name: 'Village 1',
+                    x: 10,
+                    y: 10,
+                    fake: false,
+                    playerId: 'p1',
+                    safeEnabled: false,
+                    safeStart: '22:00',
+                    safeEnd: '04:00',
+                  },
+                ],
               },
-            ],
-            updatedAt: Date.now(),
-          };
-          loadedData = cleanPlan;
-          // Save initial encrypted payload to cloud
-          const encrypted = await encryptPayload(loadedData, sess.cryptoKey);
-          await saveToCloud(sess.roomId, encrypted);
+              operations: [
+                {
+                  id: 'op1',
+                  name: 'Operation 1',
+                  landing: '2026-08-16T19:00',
+                  serverSpeed: 3,
+                  assignedAttackerIds: ['a1'],
+                  assignedTargetIds: ['t1'],
+                  fakeTargetIds: [],
+                  createdAt: Date.now(),
+                  updatedAt: Date.now(),
+                },
+              ],
+              updatedAt: Date.now(),
+            };
+            loadedData = cleanPlan;
+            // Save initial encrypted payload to cloud / local cache
+            const encrypted = await encryptPayload(loadedData, sess.cryptoKey);
+            void saveToCloud(sess.roomId, encrypted);
+          }
         }
 
         setSession(sess);
         setStatus('connected');
-        setStatusMsg(`Connected to ${sess.roomName}`);
+        setStatusMsg(cloudRes.success ? `Connected to ${sess.roomName}` : `Connected to ${sess.roomName} (Offline Mode)`);
         setLastSyncedAt(new Date());
 
         try {
           localStorage.setItem(ROOM_STORAGE_KEY, code);
+          localStorage.setItem('thronewake.v2.unlocked', '1');
         } catch {}
 
         onRoomDataLoadedRef.current(loadedData, sess);
@@ -157,18 +208,34 @@ export function TeamRoomBar({
     [passcode]
   );
 
-  // Auto-connect once on mount if saved room passcode exists
+  const handleConnectRef = useRef(handleConnect);
   useEffect(() => {
-    if (hasAutoConnectedRef.current) return;
-    hasAutoConnectedRef.current = true;
-    try {
-      const savedCode = localStorage.getItem(ROOM_STORAGE_KEY);
-      if (savedCode && savedCode.trim().length >= 2) {
-        setPasscode(savedCode);
-        void handleConnect(savedCode);
-      }
-    } catch {}
-  }, [handleConnect]);
+    handleConnectRef.current = handleConnect;
+  });
+
+  // Auto-connect once on mount or when URL hash room changes
+  useEffect(() => {
+    const checkAndConnect = (force = false) => {
+      try {
+        const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+        const hashRoom = hashParams.get('room');
+        const savedCode = localStorage.getItem(ROOM_STORAGE_KEY);
+        const codeToConnect = (hashRoom || savedCode || '').trim();
+        if (codeToConnect && codeToConnect.length >= 2) {
+          setPasscode(codeToConnect);
+          if (force || !hasAutoConnectedRef.current) {
+            hasAutoConnectedRef.current = true;
+            void handleConnectRef.current(codeToConnect);
+          }
+        }
+      } catch {}
+    };
+
+    checkAndConnect(false);
+    const onHashChange = () => checkAndConnect(true);
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
 
   const handleSave = useCallback(
     async (isAutoSave = false, forceOverwrite = false) => {

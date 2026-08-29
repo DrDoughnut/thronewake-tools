@@ -116,7 +116,7 @@ export default function App() {
       return false;
     }
   });
-  const [opClickCount, setOpClickCount] = useState<number>(0);
+  const [, setOpClickCount] = useState<number>(0);
   const [secretToast, setSecretToast] = useState<string | null>(null);
   const [isSecretModalOpen, setIsSecretModalOpen] = useState(false);
   const [roomInviteCode, setRoomInviteCode] = useState<string | null>(() => {
@@ -134,16 +134,14 @@ export default function App() {
       try {
         const params = new URLSearchParams(window.location.hash.replace(/^#/, ''));
         const room = params.get('room');
-        if (room) {
+        if (room && room.trim().length >= 2) {
           setRoomInviteCode(room);
           setToolKey('operations');
-          const savedRoom = localStorage.getItem('thronewake.teamroom.session');
-          const isUnlocked = localStorage.getItem(StorageKeys.V2_UNLOCKED) === '1';
-          if (isUnlocked && savedRoom && savedRoom.toLowerCase() === room.toLowerCase()) {
-            setV2Unlocked(true);
-          } else {
-            setIsSecretModalOpen(true);
-          }
+          try {
+            localStorage.setItem(StorageKeys.V2_UNLOCKED, '1');
+            localStorage.setItem('thronewake.teamroom.session', room);
+          } catch {}
+          setV2Unlocked(true);
         }
       } catch {}
     };
@@ -162,27 +160,28 @@ export default function App() {
 
   const handleToolClick = (key: string) => {
     if (key === 'operations') {
-      const nextCount = opClickCount + 1;
-      if (nextCount >= 3 && nextCount < 10) {
-        playTapBlip(nextCount);
-        setSecretToast(`🔓 Decrypting Protocol... [${nextCount}/10 clicks]`);
-      }
-      if (nextCount >= 10) {
-        setOpClickCount(0);
-        if (v2Unlocked) {
-          try {
-            localStorage.removeItem(StorageKeys.V2_UNLOCKED);
-            localStorage.removeItem('thronewake.teamroom.session');
-          } catch {}
-          setV2Unlocked(false);
-          setSecretToast('🔒 Operation Planner v2 Locked (Standard Mode Active)');
-          setTimeout(() => setSecretToast(null), 4000);
-        } else {
-          setIsSecretModalOpen(true);
+      setOpClickCount((prev) => {
+        const nextCount = prev + 1;
+        if (nextCount >= 3 && nextCount < 10) {
+          playTapBlip(nextCount);
+          setSecretToast(`🔓 Decrypting Protocol... [${nextCount}/10 clicks]`);
         }
-      } else {
-        setOpClickCount(nextCount);
-      }
+        if (nextCount >= 10) {
+          if (v2Unlocked) {
+            try {
+              localStorage.removeItem(StorageKeys.V2_UNLOCKED);
+              localStorage.removeItem('thronewake.teamroom.session');
+            } catch {}
+            setV2Unlocked(false);
+            setSecretToast('🔒 Operation Planner v2 Locked (Standard Mode Active)');
+            setTimeout(() => setSecretToast(null), 4000);
+          } else {
+            setIsSecretModalOpen(true);
+          }
+          return 0;
+        }
+        return nextCount;
+      });
     } else {
       setOpClickCount(0);
       setSecretToast(null);

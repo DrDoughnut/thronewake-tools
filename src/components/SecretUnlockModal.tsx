@@ -145,6 +145,16 @@ export function SecretUnlockModal({
                 type="submit"
                 className="pill pill--primary secret-modal-btn-connect"
                 disabled={!passcode.trim()}
+                onClick={(e) => {
+                  e.preventDefault();
+                  const clean = passcode.trim();
+                  if (clean) {
+                    onConnectRoom(clean);
+                    onClose();
+                  } else {
+                    onClose();
+                  }
+                }}
               >
                 🔐 Connect to Room
               </button>

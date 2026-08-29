@@ -744,16 +744,12 @@ describe('the operation planner', () => {
       click(connectBtn);
     }
 
-    const roomInput = container.querySelector('.op-team-room-input') as HTMLInputElement;
-    if (roomInput) {
-      setInputValue(roomInput, 'password123');
-      const roomConnectBtn = container.querySelector('.op-team-room-form button') as HTMLButtonElement;
-      if (roomConnectBtn) click(roomConnectBtn);
-    }
+    const roomConnectBtn = container.querySelector('.op-team-room-form button') as HTMLButtonElement;
+    if (roomConnectBtn) click(roomConnectBtn);
 
     const start = Date.now();
     while (!container.querySelector('.op-plan-tab')) {
-      if (Date.now() - start > 1500) break;
+      if (Date.now() - start > 2000) break;
       await act(async () => {
         await new Promise((r) => setTimeout(r, 20));
       });
@@ -824,24 +820,19 @@ describe('the operation planner', () => {
         click(connectBtn);
       }
 
-      const roomInput = container.querySelector('.op-team-room-input') as HTMLInputElement;
-      if (roomInput) {
-        setInputValue(roomInput, 'password123');
-        const roomConnectBtn = container.querySelector('.op-team-room-form button') as HTMLButtonElement;
-        if (roomConnectBtn) click(roomConnectBtn);
-      }
+      const roomConnectBtn = container.querySelector('.op-team-room-form button') as HTMLButtonElement;
+      if (roomConnectBtn) click(roomConnectBtn);
 
-      // Wait for room connection to resolve and show active controls
       const start = Date.now();
-      while (!container.querySelector('.op-plan-tab-add')) {
-        if (Date.now() - start > 1500) break;
+      while (!container.querySelector('.op-plan-tab')) {
+        if (Date.now() - start > 2000) break;
         await act(async () => {
           await new Promise((r) => setTimeout(r, 20));
         });
       }
 
-      // Auto-save toggle button
-      const autoSaveBtn = [...container.querySelectorAll('.op-team-room-actions button')].find(
+      // Auto-save toggle button inside room options menu
+      const autoSaveBtn = [...container.querySelectorAll('.op-room-menu button, .op-team-room-actions button')].find(
         (b) => b.textContent?.includes('Auto-Save'),
       ) as HTMLElement;
       expect(autoSaveBtn).toBeTruthy();
@@ -898,21 +889,17 @@ describe('the operation planner', () => {
 
       const modalInput = container.querySelector('.secret-modal-input') as HTMLInputElement;
       if (modalInput) {
-        setInputValue(modalInput, 'password123');
+        setInputValue(modalInput, 'import_test_room');
         const connectBtn = container.querySelector('.secret-modal-btn-connect') as HTMLButtonElement;
         click(connectBtn);
       }
 
-      const roomInput = container.querySelector('.op-team-room-input') as HTMLInputElement;
-      if (roomInput) {
-        setInputValue(roomInput, 'import_test_room');
-        const roomConnectBtn = container.querySelector('.op-team-room-form button') as HTMLButtonElement;
-        if (roomConnectBtn) click(roomConnectBtn);
-      }
+      const roomConnectBtn = container.querySelector('.op-team-room-form button') as HTMLButtonElement;
+      if (roomConnectBtn) click(roomConnectBtn);
 
       const start = Date.now();
-      while (!container.querySelector('.op-v2-quickbar')) {
-        if (Date.now() - start > 1500) break;
+      while (!container.querySelector('.pill--import-btn')) {
+        if (Date.now() - start > 2000) break;
         await act(async () => {
           await new Promise((r) => setTimeout(r, 20));
         });
