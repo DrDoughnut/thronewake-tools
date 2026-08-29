@@ -1,5 +1,7 @@
 import { useMemo } from 'react';
 import type { Attacker, Player, Target } from '../engine/operations';
+import { playableFactions, lookup, type UnitRef } from '../data/factions';
+import { UnitIcon } from './UnitIcon';
 
 interface OperationParticipantPickerProps {
   attackers: Attacker[];
@@ -8,9 +10,12 @@ interface OperationParticipantPickerProps {
   assignedAttackerIds: string[];
   assignedTargetIds: string[];
   fakeTargetIds: string[];
+  attackerUnitOverrides?: Record<string, string>;
   onToggleAttacker: (attackerId: string) => void;
   onToggleTarget: (targetId: string) => void;
   onToggleTargetFake: (targetId: string) => void;
+  onUpdateAttackerUnit?: (attackerId: string, unitRef: string) => void;
+  onBatchSetAttackerUnits?: (roleOrUnitKey: string) => void;
   onSelectAllAttackers: () => void;
   onDeselectAllAttackers: () => void;
   onSelectAllTargets: () => void;
@@ -26,9 +31,12 @@ export function OperationParticipantPicker({
   assignedAttackerIds,
   assignedTargetIds,
   fakeTargetIds,
+  attackerUnitOverrides = {},
   onToggleAttacker,
   onToggleTarget,
   onToggleTargetFake,
+  onUpdateAttackerUnit,
+  onBatchSetAttackerUnits,
   onSelectAllAttackers,
   onDeselectAllAttackers,
   onSelectAllTargets,
@@ -69,7 +77,7 @@ export function OperationParticipantPicker({
           <strong>
             {activeAttackerCount} of {totalAttackerCount} armies deployed · {activeTargetCount} of {totalTargetCount} targets assigned
           </strong>
-          <span>Select which registered alliance armies march and which enemy villages are targeted for this operation wave. Unchecked armies stay benched in reserve.</span>
+          <span>Select which registered alliance armies march and which enemy villages are targeted for this operation wave. Set troop speeds for this wave without modifying the master directory.</span>
         </div>
       </div>
 
@@ -111,6 +119,47 @@ export function OperationParticipantPicker({
             </div>
           </div>
 
+          {/* Quick Wave Troop Presets */}
+          {activeAttackerCount > 0 && onBatchSetAttackerUnits && (
+            <div className="op-wave-speed-presets" aria-label="Wave speed presets">
+              <span className="op-wave-speed-presets__label">Wave Troop:</span>
+              <div className="op-wave-speed-presets__buttons">
+                <button
+                  type="button"
+                  className="pill pill--tiny op-wave-preset-btn"
+                  onClick={() => onBatchSetAttackerUnits('catapult')}
+                  title="Set all deployed armies in this wave to Catapults (3 fields/h)"
+                >
+                  🎯 Catapults (3 f/h)
+                </button>
+                <button
+                  type="button"
+                  className="pill pill--tiny op-wave-preset-btn"
+                  onClick={() => onBatchSetAttackerUnits('ram')}
+                  title="Set all deployed armies in this wave to Rams (4 fields/h)"
+                >
+                  🪵 Rams (4 f/h)
+                </button>
+                <button
+                  type="button"
+                  className="pill pill--tiny op-wave-preset-btn"
+                  onClick={() => onBatchSetAttackerUnits('chief')}
+                  title="Set all deployed armies in this wave to Chiefs / Leaders (4 fields/h)"
+                >
+                  👑 Chiefs (4 f/h)
+                </button>
+                <button
+                  type="button"
+                  className="pill pill--tiny op-wave-preset-btn op-wave-preset-btn--reset"
+                  onClick={() => onBatchSetAttackerUnits('reset')}
+                  title="Reset all armies to their Master Directory base troop"
+                >
+                  ↺ Reset
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="op-participant-chips op-participant-chips--vertical">
             {attackers.length === 0 ? (
               <div className="op-participant-chips__empty">
@@ -122,27 +171,69 @@ export function OperationParticipantPicker({
             ) : (
               attackers.map((atk) => {
                 const isSelected = assignedAttackerIds.includes(atk.id);
-                const troopName = atk.unitRef.split('/')[1]?.replace(/_/g, ' ') || 'Troop';
+                const currentUnitRef = (attackerUnitOverrides[atk.id] || atk.unitRef) as UnitRef;
+                const unitInfo = lookup(currentUnitRef);
+                const faction = unitInfo.faction;
+                const unit = unitInfo.unit;
+                const isOverridden = Boolean(attackerUnitOverrides[atk.id] && attackerUnitOverrides[atk.id] !== atk.unitRef);
 
                 return (
-                  <label
+                  <div
                     key={atk.id}
-                    className={`op-participant-chip op-participant-chip--attacker ${isSelected ? 'is-selected' : ''}`}
-                    title={isSelected ? 'Deployed in this operation wave (Click to bench)' : 'Benched in reserve (Click to deploy)'}
+                    className={`op-participant-row ${isSelected ? 'is-selected' : ''}`}
                   >
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => onToggleAttacker(atk.id)}
-                    />
-                    <span className="op-participant-chip__check" aria-hidden="true">
-                      {isSelected ? '✓' : ''}
-                    </span>
-                    <span className="op-participant-chip__name">{atk.name || 'Attacker'}</span>
-                    <span className="op-participant-chip__meta">
-                      ({troopName} · {atk.x}|{atk.y})
-                    </span>
-                  </label>
+                    <label
+                      className={`op-participant-chip op-participant-chip--attacker ${isSelected ? 'is-selected' : ''}`}
+                      title={isSelected ? 'Deployed in this operation wave (Click to bench)' : 'Benched in reserve (Click to deploy)'}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => onToggleAttacker(atk.id)}
+                      />
+                      <span className="op-participant-chip__check" aria-hidden="true">
+                        {isSelected ? '✓' : ''}
+                      </span>
+                      <span className="op-participant-chip__name">{atk.name || 'Attacker'}</span>
+                      <span className="op-participant-chip__meta">
+                        ({atk.x}|{atk.y})
+                      </span>
+                    </label>
+
+                    {isSelected && (
+                      <div className="op-wave-troop-picker" title={`Slowest troop for this wave: ${unit.name} (${unit.speed} fields/h)`}>
+                        <div className="op-wave-troop-icon">
+                          <UnitIcon unitRef={currentUnitRef} size={20} />
+                        </div>
+                        <select
+                          className={`select op-wave-troop-select ${isOverridden ? 'is-overridden' : ''}`}
+                          value={currentUnitRef}
+                          onChange={(e) => onUpdateAttackerUnit?.(atk.id, e.target.value)}
+                          aria-label={`Troop for ${atk.name || 'Attacker'}`}
+                        >
+                          <optgroup label={`${faction.name} (Hammer Race)`}>
+                            {faction.units.map((u) => (
+                              <option key={u.key} value={`${faction.key}/${u.key}`}>
+                                {u.name} ({u.speed} f/h)
+                              </option>
+                            ))}
+                          </optgroup>
+                          {playableFactions
+                            .filter((f) => f.key !== faction.key)
+                            .map((otherFaction) => (
+                              <optgroup key={otherFaction.key} label={otherFaction.name}>
+                                {otherFaction.units.map((u) => (
+                                  <option key={u.key} value={`${otherFaction.key}/${u.key}`}>
+                                    {u.name} ({u.speed} f/h)
+                                  </option>
+                                ))}
+                              </optgroup>
+                            ))}
+                        </select>
+                        <span className="op-wave-speed-tag">{unit.speed} f/h</span>
+                      </div>
+                    )}
+                  </div>
                 );
               })
             )}

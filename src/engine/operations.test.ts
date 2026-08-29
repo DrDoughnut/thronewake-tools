@@ -463,4 +463,43 @@ describe('operation-level target modes', () => {
     expect(migrated.operations[0].icon).toBe('💣');
     expect(migrated.operations[1].icon).toBe('🌊');
   });
+
+  it('preserves per-wave attackerUnitOverrides across migrateToMasterRoster loads', () => {
+    const migrated = migrateToMasterRoster({
+      version: 2,
+      roomName: 'test-room',
+      activeOpId: 'op1',
+      roster: {
+        attackers: [
+          { id: 'a1', name: 'Hammer 1', x: 0, y: 0, unitRef: 'embermark_dominion/emberblade', artifactMultiplier: 1, bannerfieldLevel: 0, safeEnabled: false, safeStart: '22:00', safeEnd: '04:00' },
+        ],
+        players: [],
+        targets: [],
+      },
+      operations: [
+        {
+          id: 'op1',
+          name: 'Catapult Wave',
+          landing: '2026-08-20T12:00',
+          serverSpeed: 3,
+          assignedAttackerIds: ['a1'],
+          assignedTargetIds: [],
+          attackerUnitOverrides: { a1: 'embermark_dominion/dominion_catapult' },
+        },
+        {
+          id: 'op2',
+          name: 'Ram Wave',
+          landing: '2026-08-20T13:00',
+          serverSpeed: 3,
+          assignedAttackerIds: ['a1'],
+          assignedTargetIds: [],
+          attackerUnitOverrides: { a1: 'embermark_dominion/iron_ram' },
+        },
+      ],
+      updatedAt: 100,
+    });
+
+    expect(migrated.operations[0].attackerUnitOverrides?.a1).toBe('embermark_dominion/dominion_catapult');
+    expect(migrated.operations[1].attackerUnitOverrides?.a1).toBe('embermark_dominion/iron_ram');
+  });
 });

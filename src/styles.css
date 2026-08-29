@@ -5038,6 +5038,110 @@ select:focus, .select:focus, .text-input:focus {
   font-family: var(--font-mono, monospace);
 }
 
+.op-participant-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.op-participant-row .op-participant-chip {
+  flex: 1;
+  min-width: 0;
+}
+
+.op-wave-speed-presets {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
+.op-wave-speed-presets__label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.op-wave-speed-presets__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+
+.op-wave-preset-btn {
+  font-size: 11px;
+  padding: 3px 8px;
+  background: hsl(220, 16%, 16%);
+  border-color: hsl(220, 16%, 26%);
+  color: var(--text-base);
+  transition: all 0.15s ease;
+}
+
+.op-wave-preset-btn:hover {
+  background: hsl(220, 20%, 24%);
+  border-color: rgba(84, 160, 255, 0.5);
+  color: #fff;
+}
+
+.op-wave-preset-btn--reset {
+  color: var(--text-dim);
+  border-style: dashed;
+}
+
+.op-wave-troop-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: hsl(220, 20%, 11%);
+  border: 1px solid hsl(220, 16%, 24%);
+  border-radius: 6px;
+  padding: 2px 6px;
+  flex-shrink: 0;
+}
+
+.op-wave-troop-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.op-wave-troop-select {
+  font-size: 11px;
+  font-weight: 600;
+  background: transparent;
+  border: none;
+  color: #fff;
+  padding: 2px 4px;
+  cursor: pointer;
+  max-width: 140px;
+  outline: none;
+}
+
+.op-wave-troop-select.is-overridden {
+  color: #f1c40f;
+  font-weight: 700;
+}
+
+.op-wave-speed-tag {
+  font-size: 10px;
+  font-weight: 700;
+  font-family: var(--font-mono, monospace);
+  padding: 2px 5px;
+  border-radius: 3px;
+  background: rgba(84, 160, 255, 0.18);
+  color: #54a0ff;
+  white-space: nowrap;
+}
+
 /* ==========================================================================
    High-Contrast Red Delete Buttons
    ========================================================================== */

@@ -789,6 +789,14 @@ describe('the operation planner', () => {
     click(setupTab);
     const benchedAttacker = container.querySelector('.op-participant-chip--attacker input[type="checkbox"]') as HTMLInputElement;
     act(() => benchedAttacker.click());
+
+    // Verify wave speed presets button is present and clickable
+    const catPresetBtn = [...container.querySelectorAll('.op-wave-preset-btn')].find(
+      (b) => b.textContent?.includes('Catapults'),
+    ) as HTMLButtonElement;
+    expect(catPresetBtn).toBeTruthy();
+    click(catPresetBtn);
+
     const routesTabReopened = [...container.querySelectorAll('.op-workspace-nav button')].find(
       (button) => button.textContent?.includes('Routes'),
     ) as HTMLButtonElement;

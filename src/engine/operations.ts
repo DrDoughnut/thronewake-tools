@@ -343,6 +343,8 @@ export interface OperationPlan {
   assignedTargetIds: string[];
   /** Target villages marked as fake for this operation only. */
   fakeTargetIds: string[];
+  /** Overridden slowest troop per attacker for this operation only (attackerId -> unitRef). */
+  attackerUnitOverrides?: Record<string, string>;
   createdAt?: number;
   updatedAt?: number;
 }
@@ -435,6 +437,7 @@ export function migrateToMasterRoster(raw: any, fallbackState?: CompactPlannerSt
           assignedAttackerIds: fallback.attackers.map((a) => a.id),
           assignedTargetIds: fallback.targets.map((t) => t.id),
           fakeTargetIds: fallback.targets.filter((t) => t.fake).map((t) => t.id),
+          attackerUnitOverrides: undefined,
           createdAt: Date.now(),
           updatedAt: Date.now(),
         },
@@ -474,6 +477,9 @@ export function migrateToMasterRoster(raw: any, fallbackState?: CompactPlannerSt
               .filter((target: CompactTarget) => target.fake)
               .map((target: CompactTarget) => target.id)
               .filter((id: string) => !Array.isArray(op.assignedTargetIds) || op.assignedTargetIds.includes(id)),
+        attackerUnitOverrides: op.attackerUnitOverrides && typeof op.attackerUnitOverrides === 'object'
+          ? op.attackerUnitOverrides
+          : undefined,
         createdAt: op.createdAt || Date.now(),
         updatedAt: op.updatedAt || Date.now(),
       })),
@@ -514,6 +520,13 @@ export function migrateToMasterRoster(raw: any, fallbackState?: CompactPlannerSt
       }
     });
 
+    const opOverrides: Record<string, string> = {};
+    opAttackers.forEach((a) => {
+      if (a.unitRef) {
+        opOverrides[a.id] = a.unitRef;
+      }
+    });
+
     convertedOps.push({
       id: opId,
       name: op.name || `Operation ${i + 1}`,
@@ -523,6 +536,7 @@ export function migrateToMasterRoster(raw: any, fallbackState?: CompactPlannerSt
       assignedAttackerIds: opAttackers.filter((a) => a.active !== false).map((a) => a.id),
       assignedTargetIds: opTargets.filter((t) => t.active !== false).map((t) => t.id),
       fakeTargetIds: opTargets.filter((t) => t.active !== false && t.fake).map((t) => t.id),
+      attackerUnitOverrides: Object.keys(opOverrides).length > 0 ? opOverrides : undefined,
       createdAt: op.createdAt || Date.now(),
       updatedAt: op.updatedAt || Date.now(),
     });

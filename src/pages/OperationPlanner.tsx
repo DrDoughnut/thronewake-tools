@@ -1134,8 +1134,14 @@ export function OperationPlanner({
   const marchingAttackers = useMemo(() => {
     if (!isV2Active) return roster.attackers;
     const assigned = activeOp.assignedAttackerIds || [];
-    return roster.attackers.filter((a) => assigned.includes(a.id));
-  }, [isV2Active, roster.attackers, activeOp.assignedAttackerIds]);
+    const overrides = activeOp.attackerUnitOverrides || {};
+    return roster.attackers
+      .filter((a) => assigned.includes(a.id))
+      .map((a) => ({
+        ...a,
+        unitRef: overrides[a.id] ? (overrides[a.id] as UnitRef) : a.unitRef,
+      }));
+  }, [isV2Active, roster.attackers, activeOp.assignedAttackerIds, activeOp.attackerUnitOverrides]);
 
   const activeTargets = useMemo(() => {
     if (!isV2Active) return roster.targets;
@@ -1410,6 +1416,58 @@ export function OperationPlanner({
       prev.map((o) =>
         o.id === currentOpId ? { ...o, assignedTargetIds: [], fakeTargetIds: [], updatedAt: Date.now() } : o,
       ),
+    );
+  };
+
+  const handleUpdateAttackerUnit = (attackerId: string, unitRef: string) => {
+    const currentOpId = activeOpId || activeOp.id;
+    setOperations((prev) =>
+      prev.map((o) => {
+        if (o.id !== currentOpId) return o;
+        const currentOverrides = o.attackerUnitOverrides || {};
+        return {
+          ...o,
+          attackerUnitOverrides: {
+            ...currentOverrides,
+            [attackerId]: unitRef,
+          },
+          updatedAt: Date.now(),
+        };
+      }),
+    );
+  };
+
+  const handleBatchSetAttackerUnits = (roleOrUnitKey: string) => {
+    const currentOpId = activeOpId || activeOp.id;
+    setOperations((prev) =>
+      prev.map((o) => {
+        if (o.id !== currentOpId) return o;
+        const newOverrides: Record<string, string> = { ...(o.attackerUnitOverrides || {}) };
+
+        roster.attackers.forEach((atk) => {
+          const factionKey = atk.unitRef.split('/')[0];
+          const faction = playableFactions.find((f) => f.key === factionKey) || playableFactions[0];
+
+          if (roleOrUnitKey === 'reset') {
+            delete newOverrides[atk.id];
+          } else if (roleOrUnitKey === 'catapult') {
+            const catUnit = faction.units.find((u) => u.role === 'siege' || u.speed === 3) || faction.units[7];
+            if (catUnit) newOverrides[atk.id] = `${faction.key}/${catUnit.key}`;
+          } else if (roleOrUnitKey === 'ram') {
+            const ramUnit = faction.units.find((u) => u.role === 'ram' || (u.speed === 4 && u.key.includes('ram'))) || faction.units[6];
+            if (ramUnit) newOverrides[atk.id] = `${faction.key}/${ramUnit.key}`;
+          } else if (roleOrUnitKey === 'chief') {
+            const chiefUnit = faction.units.find((u) => u.role === 'chief' || (u.speed === 4 && !u.key.includes('ram')) || u.time > 4000) || faction.units[8];
+            if (chiefUnit) newOverrides[atk.id] = `${faction.key}/${chiefUnit.key}`;
+          }
+        });
+
+        return {
+          ...o,
+          attackerUnitOverrides: Object.keys(newOverrides).length > 0 ? newOverrides : undefined,
+          updatedAt: Date.now(),
+        };
+      }),
     );
   };
 
@@ -1947,9 +2005,12 @@ export function OperationPlanner({
               assignedAttackerIds={activeOp.assignedAttackerIds || []}
               assignedTargetIds={activeOp.assignedTargetIds || []}
               fakeTargetIds={activeOp.fakeTargetIds || []}
+              attackerUnitOverrides={activeOp.attackerUnitOverrides || {}}
               onToggleAttacker={handleToggleAttacker}
               onToggleTarget={handleToggleTarget}
               onToggleTargetFake={handleToggleTargetFake}
+              onUpdateAttackerUnit={handleUpdateAttackerUnit}
+              onBatchSetAttackerUnits={handleBatchSetAttackerUnits}
               onSelectAllAttackers={handleSelectAllAttackers}
               onDeselectAllAttackers={handleDeselectAllAttackers}
               onSelectAllTargets={handleSelectAllTargets}
