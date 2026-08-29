@@ -414,7 +414,7 @@ describe('the operation planner', () => {
     // Total 2 routes against single attacker (1 on Defender 1 + 1 on Defender 2)
     const rows = [...container.querySelectorAll('.op-routes tbody tr')];
     expect(rows).toHaveLength(2);
-    expect(container.textContent).toContain('2 real, 0 fake');
+    expect(container.textContent).toContain('1 real, 1 fake');
   });
 
   it('sorts routes chronologically by Send time and includes seconds in send timestamps', () => {
@@ -898,14 +898,14 @@ describe('the operation planner', () => {
 
       const importModal = container.querySelector('.op-modal--import');
       expect(importModal).toBeTruthy();
-      expect(importModal?.textContent).toContain('Import Plan from Link');
+      expect(importModal?.textContent).toContain('Import Plan');
 
       const textarea = importModal?.querySelector('.op-import-textarea') as HTMLTextAreaElement;
       expect(textarea).toBeTruthy();
 
       // Paste invalid text
       setInputValue(textarea, 'invalid_gibberish');
-      expect(importModal?.textContent).toContain('Could not decode plan');
+      expect(importModal?.textContent).toContain('Could not detect villages');
 
       // Paste a valid plan URL with 1 attacker and 1 target
       const sampleEncoded = encodeCompactPlan({

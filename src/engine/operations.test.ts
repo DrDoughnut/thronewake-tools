@@ -12,6 +12,7 @@ import {
   importPlanIntoMasterRoster,
   mergeTeamRoomData,
   migrateToMasterRoster,
+  parseThronewakeProfileClipboard,
   resolveSafeTime,
   routeIsPossible,
   safeChecks,
@@ -614,5 +615,145 @@ describe('operation-level target modes', () => {
     // Both operation waves are preserved
     expect(merged.operations).toHaveLength(2);
     expect(merged.operations.map((o) => o.id)).toEqual(['op1', 'op2']);
+  });
+
+  it('parses in-game Thronewake player profile clipboard and extracts defender & villages', () => {
+    const rawClipboard = `Gugl
+Player:
+Gugl
+Tribe:
+Stormfang Clans
+Alliance:
+Alliance Not Found
+[ANF]
+Combat score:
+Combat score11,078
+Population:
+Population
+5,734
+Villages:
+8
+Safe time:
+Active
+Rewards
+
+Villages
+Name	Population	Actions
+Byzantion (-8|-33)
+Capital
+City
+Small Great Storage Plan
+Wilder Site (-5|-31):
+Stone
++25%
+Population
+1,107
+Constantinopole (-7|-41)
+City
+Wilder Site (-8|-43):
+Stone
++50%
+Wilder Site (-5|-39):
+Metal
++50%
+Population
+1,019
+Istanbul (-13|-37)
+Small Shadow Veil
+Wilder Site (-14|-38):
+Stone
++25%
+Food
++25%
+Population
+903
+Ligos (0|-20)
+City
+Wilder Site (1|-19):
+Stone
++50%
+Wilder Site (1|-17):
+Lumber
++25%
+Food
++25%
+Population
+824
+Carigrad (-18|-36)
+Population
+785
+Augusta (-6|-13)
+Wilder Site (-4|-15):
+Stone
++50%
+Population
+591
+Mikligardr (-7|-7)
+Wilder Site (-9|-9):
+Metal
++50%
+Wilder Site (-6|-7):
+Lumber
++50%
+Population
+327
+Kushta (3|9)
+Population
+178`;
+
+    const parsed = parseThronewakeProfileClipboard(rawClipboard);
+    expect(parsed).toBeTruthy();
+    expect(parsed?.players).toHaveLength(1);
+    expect(parsed?.players[0].name).toBe('Gugl');
+
+    expect(parsed?.targets).toHaveLength(8);
+    expect(parsed?.targets[0]).toMatchObject({
+      name: 'Byzantion',
+      x: -8,
+      y: -33,
+      fake: true,
+    });
+    expect(parsed?.targets[1]).toMatchObject({
+      name: 'Constantinopole',
+      x: -7,
+      y: -41,
+      fake: true,
+    });
+    expect(parsed?.targets[2]).toMatchObject({
+      name: 'Istanbul',
+      x: -13,
+      y: -37,
+      fake: true,
+    });
+    expect(parsed?.targets[3]).toMatchObject({
+      name: 'Ligos',
+      x: 0,
+      y: -20,
+      fake: true,
+    });
+    expect(parsed?.targets[4]).toMatchObject({
+      name: 'Carigrad',
+      x: -18,
+      y: -36,
+      fake: true,
+    });
+    expect(parsed?.targets[5]).toMatchObject({
+      name: 'Augusta',
+      x: -6,
+      y: -13,
+      fake: true,
+    });
+    expect(parsed?.targets[6]).toMatchObject({
+      name: 'Mikligardr',
+      x: -7,
+      y: -7,
+      fake: true,
+    });
+    expect(parsed?.targets[7]).toMatchObject({
+      name: 'Kushta',
+      x: 3,
+      y: 9,
+      fake: true,
+    });
   });
 });

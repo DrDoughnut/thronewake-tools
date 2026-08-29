@@ -1272,7 +1272,7 @@ export function OperationPlanner({
       serverSpeed: activeOp.serverSpeed,
       assignedAttackerIds: roster.attackers.map((a) => a.id),
       assignedTargetIds: roster.targets.map((t) => t.id),
-      fakeTargetIds: [],
+      fakeTargetIds: roster.targets.map((t) => t.id),
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
@@ -1350,15 +1350,17 @@ export function OperationPlanner({
         if (operation.id !== currentOpId) return operation;
         const assignedTargetIds = operation.assignedTargetIds || [];
         const fakeTargetIds = operation.fakeTargetIds || [];
-        const nextAssigned = assignedTargetIds.includes(targetId)
-          ? assignedTargetIds.filter((id) => id !== targetId)
-          : [...assignedTargetIds, targetId];
+        const isAdding = !assignedTargetIds.includes(targetId);
+        const nextAssigned = isAdding
+          ? [...assignedTargetIds, targetId]
+          : assignedTargetIds.filter((id) => id !== targetId);
+        const nextFake = isAdding
+          ? [...fakeTargetIds, targetId]
+          : fakeTargetIds.filter((id) => id !== targetId);
         return {
           ...operation,
           assignedTargetIds: nextAssigned,
-          fakeTargetIds: nextAssigned.includes(targetId)
-            ? fakeTargetIds
-            : fakeTargetIds.filter((id) => id !== targetId),
+          fakeTargetIds: nextFake,
           updatedAt: Date.now(),
         };
       }),
@@ -1404,7 +1406,12 @@ export function OperationPlanner({
     setOperations((prev) =>
       prev.map((o) =>
         o.id === currentOpId
-          ? { ...o, assignedTargetIds: roster.targets.map((t) => t.id), updatedAt: Date.now() }
+          ? {
+              ...o,
+              assignedTargetIds: roster.targets.map((t) => t.id),
+              fakeTargetIds: roster.targets.map((t) => t.id),
+              updatedAt: Date.now(),
+            }
           : o,
       ),
     );
@@ -1535,7 +1542,7 @@ export function OperationPlanner({
       name: `Village ${existing.length + 1}`,
       x: 0,
       y: 0,
-      fake: false,
+      fake: true,
       playerId,
       safeEnabled: player.safeEnabled,
       safeStart: player.safeStart,
@@ -1548,7 +1555,11 @@ export function OperationPlanner({
     setOperations((prev) =>
       prev.map((o) =>
         o.id === (activeOpId || activeOp.id)
-          ? { ...o, assignedTargetIds: [...(o.assignedTargetIds || []), newId] }
+          ? {
+              ...o,
+              assignedTargetIds: [...(o.assignedTargetIds || []), newId],
+              fakeTargetIds: [...(o.fakeTargetIds || []), newId],
+            }
           : o,
       ),
     );

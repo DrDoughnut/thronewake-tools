@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import type { PlannerState } from '../engine/operations';
-import { decodeCompactPlan, type ImportMode } from '../engine/operations';
+import { decodeCompactPlan, parseThronewakeProfileClipboard, type ImportMode } from '../engine/operations';
 import { decodeState } from '../pages/OperationPlanner';
 
 interface ImportPlanModalProps {
@@ -38,6 +38,7 @@ export function ImportPlanModal({ isOpen, onClose, onImport }: ImportPlanModalPr
     isValid: boolean;
     error?: string;
     plan?: PlannerState;
+    sourceType?: 'profile' | 'link';
   }>(() => {
     const trimmed = inputText.trim();
     if (!trimmed) {
@@ -45,7 +46,17 @@ export function ImportPlanModal({ isOpen, onClose, onImport }: ImportPlanModalPr
     }
 
     try {
-      // Extract hash if full URL or raw hash is pasted
+      // 1. Try parsing as in-game Thronewake player profile clipboard or village list
+      const profilePlan = parseThronewakeProfileClipboard(trimmed);
+      if (profilePlan && profilePlan.targets.length > 0) {
+        return {
+          isValid: true,
+          plan: profilePlan,
+          sourceType: 'profile',
+        };
+      }
+
+      // 2. Try parsing as shared URL or compact plan code
       let hash = trimmed;
       if (hash.includes('#')) {
         hash = hash.substring(hash.indexOf('#') + 1);
@@ -72,7 +83,7 @@ export function ImportPlanModal({ isOpen, onClose, onImport }: ImportPlanModalPr
       if (!plan) {
         return {
           isValid: false,
-          error: 'Could not decode plan from the provided link or code. Please check the format.',
+          error: 'Could not detect villages from Thronewake profile, or decode plan from the provided link.',
         };
       }
 
@@ -90,6 +101,7 @@ export function ImportPlanModal({ isOpen, onClose, onImport }: ImportPlanModalPr
       return {
         isValid: true,
         plan,
+        sourceType: 'link',
       };
     } catch (err: unknown) {
       return {
@@ -138,10 +150,10 @@ export function ImportPlanModal({ isOpen, onClose, onImport }: ImportPlanModalPr
         <div className="op-modal__header">
           <div>
             <h2 id="import-plan-title" className="op-modal__title">
-              📥 Import Plan from Link
+              📥 Import Plan or Thronewake Profile
             </h2>
             <p className="op-modal__desc">
-              Paste a shared planner URL or compact code to bring armies, targets, and timing into this room.
+              Paste a shared planner URL, compact code, or copy-paste an in-game Thronewake player profile / village list.
             </p>
           </div>
           <button
@@ -156,18 +168,18 @@ export function ImportPlanModal({ isOpen, onClose, onImport }: ImportPlanModalPr
 
         <form onSubmit={handleSubmit} className="op-import-form">
 
-          {/* URL / Code Input */}
+          {/* URL / Code / Profile Input */}
           <div className="op-import-input-group">
             <div className="op-import-input-header">
               <label htmlFor="import-plan-text" className="op-import-label">
-                Shared URL or Plan Code
+                Shared URL, Plan Code, or In-Game Profile Text
               </label>
               <div className="op-import-quick-actions">
                 <button
                   type="button"
                   className="pill pill--tiny pill--secondary"
                   onClick={handlePasteClipboard}
-                  title="Paste link from your clipboard"
+                  title="Paste text or link from your clipboard"
                 >
                   📋 Paste Clipboard
                 </button>
@@ -187,8 +199,8 @@ export function ImportPlanModal({ isOpen, onClose, onImport }: ImportPlanModalPr
             <textarea
               id="import-plan-text"
               className="text-input op-import-textarea"
-              rows={3}
-              placeholder="https://thronewake-tools.app/#p=... or paste raw plan code"
+              rows={4}
+              placeholder="Paste https://thronewake-tools.app/#p=... or copy-paste in-game player profile (e.g. Gugl / Byzantion (-8|-33))..."
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               autoFocus
@@ -199,29 +211,49 @@ export function ImportPlanModal({ isOpen, onClose, onImport }: ImportPlanModalPr
           {inputText.trim().length > 0 && (
             <div className={`op-import-preview ${parsedResult.isValid ? 'is-valid' : 'is-invalid'}`}>
               {parsedResult.isValid && plan ? (
-                <>
-                  <div className="op-import-preview__head">
-                    <span className="op-import-preview__badge is-success">✓ Valid Plan</span>
-                    <span className="op-import-preview__meta">
-                      🕐 {plan.landing.replace('T', ' ')} UTC &nbsp;·&nbsp; {plan.serverSpeed}× Speed
-                    </span>
-                  </div>
-                  <div className="op-import-preview__grid">
-                    <div className="op-import-preview__stat">
-                      <div className="op-import-preview__stat-title">🛡️ {plan.attackers.length} {plan.attackers.length === 1 ? 'Army' : 'Armies'}</div>
-                      <span className="op-import-preview__sub">
-                        {plan.attackers.map((a) => a.name || 'Army').slice(0, 4).join(', ')}
-                        {plan.attackers.length > 4 ? ` +${plan.attackers.length - 4} more` : ''}
+                parsedResult.sourceType === 'profile' ? (
+                  <>
+                    <div className="op-import-preview__head">
+                      <span className="op-import-preview__badge is-success">✓ Thronewake Profile Detected</span>
+                      <span className="op-import-preview__meta">
+                        👤 Defender: <strong>{plan.players[0]?.name || 'Defender'}</strong> &nbsp;·&nbsp; {plan.targets.length} Villages
                       </span>
                     </div>
-                    <div className="op-import-preview__stat">
-                      <div className="op-import-preview__stat-title">🎯 {plan.targets.length} {plan.targets.length === 1 ? 'Village' : 'Villages'}</div>
-                      <span className="op-import-preview__sub">
-                        {plan.players.length} {plan.players.length === 1 ? 'account' : 'accounts'} · {plan.targets.filter((t) => !t.fake).length} real, {plan.targets.filter((t) => t.fake).length} fake
+                    <div className="op-import-preview__grid">
+                      <div className="op-import-preview__stat" style={{ gridColumn: '1 / -1' }}>
+                        <div className="op-import-preview__stat-title">🎯 {plan.targets.length} Target Villages Extracted</div>
+                        <span className="op-import-preview__sub">
+                          {plan.targets.map((t) => `${t.name} (${t.x}|${t.y})`).slice(0, 6).join(' · ')}
+                          {plan.targets.length > 6 ? ` · +${plan.targets.length - 6} more` : ''}
+                        </span>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="op-import-preview__head">
+                      <span className="op-import-preview__badge is-success">✓ Valid Plan</span>
+                      <span className="op-import-preview__meta">
+                        🕐 {plan.landing.replace('T', ' ')} UTC &nbsp;·&nbsp; {plan.serverSpeed}× Speed
                       </span>
                     </div>
-                  </div>
-                </>
+                    <div className="op-import-preview__grid">
+                      <div className="op-import-preview__stat">
+                        <div className="op-import-preview__stat-title">🛡️ {plan.attackers.length} {plan.attackers.length === 1 ? 'Army' : 'Armies'}</div>
+                        <span className="op-import-preview__sub">
+                          {plan.attackers.map((a) => a.name || 'Army').slice(0, 4).join(', ')}
+                          {plan.attackers.length > 4 ? ` +${plan.attackers.length - 4} more` : ''}
+                        </span>
+                      </div>
+                      <div className="op-import-preview__stat">
+                        <div className="op-import-preview__stat-title">🎯 {plan.targets.length} {plan.targets.length === 1 ? 'Village' : 'Villages'}</div>
+                        <span className="op-import-preview__sub">
+                          {plan.players.length} {plan.players.length === 1 ? 'account' : 'accounts'} · {plan.targets.filter((t) => !t.fake).length} real, {plan.targets.filter((t) => t.fake).length} fake
+                        </span>
+                      </div>
+                    </div>
+                  </>
+                )
               ) : (
                 <div className="op-import-preview__error">
                   ⚠️ {parsedResult.error || 'Invalid or unrecognized plan format.'}

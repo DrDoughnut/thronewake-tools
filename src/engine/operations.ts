@@ -551,7 +551,7 @@ export function migrateToMasterRoster(raw: any, fallbackState?: CompactPlannerSt
       serverSpeed: 3,
       assignedAttackerIds: Array.from(masterAttackersMap.keys()),
       assignedTargetIds: Array.from(masterTargetsMap.keys()),
-      fakeTargetIds: [],
+      fakeTargetIds: Array.from(masterTargetsMap.keys()),
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
@@ -800,9 +800,10 @@ export function importPlanIntoMasterRoster(
   if (mode === 'new_wave') {
     const newWaveId = 'op_' + Date.now();
     const newWaveName = customWaveName?.trim() || `Operation ${currentOperations.length + 1} (Imported)`;
-    const assignedAttackerIds = importedPlan.attackers
+    const rawAssignedAttackerIds = importedPlan.attackers
       .map((a) => attackerIdMap.get(a.id))
       .filter((id): id is string => Boolean(id));
+    const assignedAttackerIds = rawAssignedAttackerIds.length > 0 ? rawAssignedAttackerIds : attackers.map((a) => a.id);
     const assignedTargetIds = importedPlan.targets
       .map((t) => targetIdMap.get(t.id))
       .filter((id): id is string => Boolean(id));
@@ -1065,5 +1066,91 @@ export function decodeCompactPlan(compactStr: string): CompactPlannerState | nul
     attackers,
     targets,
     players,
+  };
+}
+
+/**
+ * Parses in-game Thronewake player profile clipboard or raw village list.
+ * Extracts defender name, alliance, and all village names & coordinates.
+ */
+export function parseThronewakeProfileClipboard(rawText: string): PlannerState | null {
+  const text = rawText.trim();
+  if (!text) return null;
+
+  // 1. Extract Player/Defender Name
+  let playerName = '';
+  const playerMatch = text.match(/(?:Player:|Defender:)\s*\n?\s*([^\n\r]+)/i);
+  if (playerMatch && playerMatch[1]) {
+    playerName = playerMatch[1].trim();
+  }
+
+  // If no explicit Player: label, check if first line looks like a player name
+  if (!playerName) {
+    const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    if (lines.length > 0 && !lines[0].toLowerCase().includes('village') && !lines[0].includes('(')) {
+      playerName = lines[0];
+    }
+  }
+
+  if (!playerName) {
+    playerName = 'Defender';
+  }
+
+  const playerId = 'p_imp_' + Math.random().toString(36).slice(2, 7);
+  const targets: CompactTarget[] = [];
+  const lines = text.split(/\r?\n/);
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+
+    // Ignore Wilder site lines
+    if (line.toLowerCase().includes('wilder')) continue;
+
+    // Match patterns like: "Byzantion (-8|-33)" or "Village Name (-8|-33)" or "Name\t(-8|-33)"
+    const match = line.match(/^(?:Name\s+Population\s+Actions\s+)?(.*?)\s*\(\s*(-?\d+)\s*[|,\t]\s*(-?\d+)\s*\)/i);
+    if (match) {
+      let vName = match[1].replace(/^(?:Name|Actions|Population)\s*/i, '').trim();
+      const x = parseInt(match[2], 10);
+      const y = parseInt(match[3], 10);
+
+      if (Number.isNaN(x) || Number.isNaN(y)) continue;
+      if (x < -500 || x > 500 || y < -500 || y > 500) continue;
+
+      if (!vName) {
+        vName = `Village ${targets.length + 1}`;
+      }
+
+      targets.push({
+        id: `t_imp_${targets.length + 1}_${Math.random().toString(36).slice(2, 6)}`,
+        name: vName,
+        x,
+        y,
+        fake: true, // Default to Fake
+        playerId,
+        safeEnabled: false,
+        safeStart: '00:00',
+        safeEnd: '00:00',
+        active: true,
+      });
+    }
+  }
+
+  if (targets.length === 0) return null;
+
+  return {
+    landing: toUtcDatetimeInput(new Date()),
+    serverSpeed: 3,
+    attackers: [],
+    targets,
+    players: [
+      {
+        id: playerId,
+        name: playerName,
+        safeEnabled: false,
+        safeStart: '00:00',
+        safeEnd: '00:00',
+      },
+    ],
   };
 }
