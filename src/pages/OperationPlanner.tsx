@@ -1150,6 +1150,19 @@ export function OperationPlanner({
       }));
   }, [isV2Active, roster.attackers, activeOp.assignedAttackerIds, activeOp.attackerUnitOverrides]);
 
+  const marchingAttackerPlayers = useMemo(() => {
+    const map = new Map<string, { id: string; name: string }>();
+    for (const atk of marchingAttackers) {
+      const p = atk.playerId ? (roster.attackerPlayers || []).find((player) => player.id === atk.playerId) : undefined;
+      const id = p ? p.id : atk.id;
+      const name = p ? p.name : atk.name;
+      if (!map.has(id)) {
+        map.set(id, { id, name });
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [marchingAttackers, roster.attackerPlayers]);
+
   const activeTargets = useMemo(() => {
     if (!isV2Active) return roster.targets;
     const assigned = activeOp.assignedTargetIds || [];
@@ -1787,7 +1800,12 @@ export function OperationPlanner({
 
   const visibleRoutes = useMemo(() => {
     return routes.filter((route) => {
-      if (filterAttacker !== 'all' && route.attacker.id !== filterAttacker) return false;
+      if (filterAttacker !== 'all') {
+        const isMatch =
+          (route.attacker.playerId && route.attacker.playerId === filterAttacker) ||
+          route.attacker.id === filterAttacker;
+        if (!isMatch) return false;
+      }
       if (filterTarget !== 'all' && route.target.id !== filterTarget) return false;
       if (filterStatus === 'possible' && !route.possible) return false;
       if (filterStatus === 'blocked' && route.possible) return false;
@@ -2238,12 +2256,16 @@ export function OperationPlanner({
                     onChange={(e) => setFilterAttacker(e.target.value)}
                     aria-label="Filter routes by attacker"
                   >
-                    <option value="all">All Attackers ({marchingAttackers.length})</option>
-                    {marchingAttackers.map((atk) => {
-                      const count = routes.filter((r) => r.attacker.id === atk.id).length;
+                    <option value="all">All Attackers ({marchingAttackerPlayers.length})</option>
+                    {marchingAttackerPlayers.map((atkPlayer) => {
+                      const count = routes.filter(
+                        (r) =>
+                          (r.attacker.playerId && r.attacker.playerId === atkPlayer.id) ||
+                          r.attacker.id === atkPlayer.id
+                      ).length;
                       return (
-                        <option key={atk.id} value={atk.id}>
-                          {atk.name} ({count} routes)
+                        <option key={atkPlayer.id} value={atkPlayer.id}>
+                          {atkPlayer.name} ({count} routes)
                         </option>
                       );
                     })}
