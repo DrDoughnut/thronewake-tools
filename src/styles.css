@@ -1386,6 +1386,19 @@ select:focus, .select:focus, .text-input:focus {
   flex: 0 0 auto;
 }
 
+/* Group Dropdown Bar (Underneath Safetime) */
+.op-group-dropdown-bar {
+  display: flex;
+  align-items: center;
+  padding: 4px 2px 2px 2px;
+}
+
+.op-group-dropdown-btn {
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 11.5px;
+}
+
 /* Single Unified Villages Disclosure */
 .op-villages-disclosure {
   width: 100%;

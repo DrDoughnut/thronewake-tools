@@ -378,15 +378,6 @@ export function AttackerPlayerGroupCard({
             </button>
             <button
               type="button"
-              className="pill pill--tiny pill--secondary"
-              onClick={() => setIsExpanded(!isExpanded)}
-              aria-expanded={isExpanded}
-              title={isExpanded ? 'Collapse hammer details' : 'Expand hammer details'}
-            >
-              🔨 {playerHammers.length} {playerHammers.length === 1 ? 'hammer' : 'hammers'} {isExpanded ? '▲' : '▼'}
-            </button>
-            <button
-              type="button"
               className="op-remove-danger op-remove-danger--sm"
               aria-label={`Delete member ${player.name}`}
               onClick={() => setIsConfirmingDeletePlayer(true)}
@@ -403,6 +394,18 @@ export function AttackerPlayerGroupCard({
             label={`${player.name || 'Member'} Safe Hours`}
             onChange={(patch) => onPatchPlayer(patch)}
           />
+        </div>
+
+        <div className="op-group-dropdown-bar">
+          <button
+            type="button"
+            className="pill pill--tiny pill--secondary op-group-dropdown-btn"
+            onClick={() => setIsExpanded(!isExpanded)}
+            aria-expanded={isExpanded}
+            title={isExpanded ? 'Collapse hammer details' : 'Expand hammer details'}
+          >
+            🔨 {playerHammers.length} {playerHammers.length === 1 ? 'hammer' : 'hammers'} {isExpanded ? '▲' : '▼'}
+          </button>
         </div>
 
         {isExpanded && (
@@ -727,15 +730,6 @@ export function PlayerGroupCard({
             </button>
             <button
               type="button"
-              className="pill pill--tiny pill--secondary"
-              onClick={() => setIsExpanded(!isExpanded)}
-              aria-expanded={isExpanded}
-              title={isExpanded ? 'Collapse village details' : 'Expand village details'}
-            >
-              🏘️ {playerVillages.length} {playerVillages.length === 1 ? 'village' : 'villages'} {isExpanded ? '▲' : '▼'}
-            </button>
-            <button
-              type="button"
               className="op-remove-danger op-remove-danger--sm"
               aria-label={`Delete defender ${player.name}`}
               onClick={() => setIsConfirmingDeletePlayer(true)}
@@ -752,6 +746,18 @@ export function PlayerGroupCard({
             label={`${player.name || 'Defender'} Safe Hours`}
             onChange={(patch) => onPatchPlayer(patch)}
           />
+        </div>
+
+        <div className="op-group-dropdown-bar">
+          <button
+            type="button"
+            className="pill pill--tiny pill--secondary op-group-dropdown-btn"
+            onClick={() => setIsExpanded(!isExpanded)}
+            aria-expanded={isExpanded}
+            title={isExpanded ? 'Collapse village details' : 'Expand village details'}
+          >
+            🏘️ {playerVillages.length} {playerVillages.length === 1 ? 'village' : 'villages'} {isExpanded ? '▲' : '▼'}
+          </button>
         </div>
 
         {isExpanded && (
