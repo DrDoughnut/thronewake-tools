@@ -423,14 +423,34 @@ export function migrateToMasterRoster(raw: any, fallbackState?: CompactPlannerSt
       ],
     };
 
+    const rawFallbackAttackers: CompactAttacker[] = fallback.attackers;
+    const memberMap = new Map<string, CompactPlayer>();
+    const fallbackAttackers = rawFallbackAttackers.map((atk, idx) => {
+      const memberId = atk.playerId || `ap_member_${atk.id || idx + 1}`;
+      if (!memberMap.has(memberId)) {
+        memberMap.set(memberId, {
+          id: memberId,
+          name: atk.name || `Member ${memberMap.size + 1}`,
+          safeEnabled: atk.safeEnabled,
+          safeStart: atk.safeStart,
+          safeEnd: atk.safeEnd,
+        });
+      }
+      return {
+        ...atk,
+        playerId: memberId,
+      };
+    });
+
     return {
       version: 2,
       roomName: 'Local Operations',
       activeOpId: 'op1',
       roster: {
-        attackers: fallback.attackers,
+        attackers: fallbackAttackers,
         players: fallback.players,
         targets: fallback.targets,
+        attackerPlayers: Array.from(memberMap.values()),
       },
       operations: [
         {
@@ -450,19 +470,57 @@ export function migrateToMasterRoster(raw: any, fallbackState?: CompactPlannerSt
     };
   }
 
+  // Helper to ensure every attacker belongs to an alliance member account
+  const ensureAttackerMembers = (
+    rawAttackers: CompactAttacker[],
+    existingMembers: CompactPlayer[],
+  ): { attackers: CompactAttacker[]; attackerPlayers: CompactPlayer[] } => {
+    const memberMap = new Map<string, CompactPlayer>();
+    existingMembers.forEach((m) => memberMap.set(m.id, m));
+
+    const attackers = rawAttackers.map((atk, idx) => {
+      if (atk.playerId && memberMap.has(atk.playerId)) {
+        return atk;
+      }
+      const memberId = atk.playerId || `ap_member_${atk.id || idx + 1}`;
+      if (!memberMap.has(memberId)) {
+        memberMap.set(memberId, {
+          id: memberId,
+          name: atk.name || `Member ${memberMap.size + 1}`,
+          safeEnabled: atk.safeEnabled,
+          safeStart: atk.safeStart,
+          safeEnd: atk.safeEnd,
+        });
+      }
+      return {
+        ...atk,
+        playerId: memberId,
+      };
+    });
+
+    return {
+      attackers,
+      attackerPlayers: Array.from(memberMap.values()),
+    };
+  };
+
   // If already in new MasterRoster format:
   if (raw.roster && Array.isArray(raw.operations)) {
+    const rawAttackers: CompactAttacker[] = Array.isArray(raw.roster.attackers) ? raw.roster.attackers : [];
+    const existingMembers: CompactPlayer[] = Array.isArray(raw.roster.attackerPlayers) ? raw.roster.attackerPlayers : [];
+    const { attackers, attackerPlayers } = ensureAttackerMembers(rawAttackers, existingMembers);
+
     return {
       version: 2,
       roomName: raw.roomName || 'unnamed-room',
       activeOpId: raw.activeOpId || (raw.operations[0]?.id ?? 'op1'),
       roster: {
-        attackers: Array.isArray(raw.roster.attackers) ? raw.roster.attackers : [],
+        attackers,
         players: Array.isArray(raw.roster.players) ? raw.roster.players : [],
         targets: Array.isArray(raw.roster.targets)
           ? raw.roster.targets.map((target: CompactTarget) => ({ ...target, fake: false }))
           : [],
-        attackerPlayers: Array.isArray(raw.roster.attackerPlayers) ? raw.roster.attackerPlayers : [],
+        attackerPlayers,
       },
       operations: raw.operations.map((op: any, index: number) => ({
         id: op.id || `op_${index + 1}`,
@@ -562,15 +620,18 @@ export function migrateToMasterRoster(raw: any, fallbackState?: CompactPlannerSt
     });
   }
 
+  const { attackers: convertedAttackers, attackerPlayers: convertedAttackerPlayers } =
+    ensureAttackerMembers(Array.from(masterAttackersMap.values()), []);
+
   return {
     version: 2,
     roomName: raw.roomName || 'unnamed-room',
     activeOpId: raw.activeOpId || convertedOps[0].id,
     roster: {
-      attackers: Array.from(masterAttackersMap.values()),
+      attackers: convertedAttackers,
       players: Array.from(masterPlayersMap.values()),
       targets: Array.from(masterTargetsMap.values()),
-      attackerPlayers: [],
+      attackerPlayers: convertedAttackerPlayers,
     },
     operations: convertedOps,
     updatedAt: raw.updatedAt || Date.now(),
@@ -656,15 +717,35 @@ export function importPlanIntoMasterRoster(
   customWaveName?: string,
 ): ImportResult {
   if (mode === 'replace') {
-    const newWaveId = 'op_' + Date.now();
+    const rawAttackers: CompactAttacker[] = [...importedPlan.attackers];
+    const memberMap = new Map<string, CompactPlayer>();
+    const replacedAttackers = rawAttackers.map((atk, idx) => {
+      const memberId = atk.playerId || `ap_member_${atk.id || idx + 1}`;
+      if (!memberMap.has(memberId)) {
+        memberMap.set(memberId, {
+          id: memberId,
+          name: atk.name || `Member ${memberMap.size + 1}`,
+          safeEnabled: atk.safeEnabled,
+          safeStart: atk.safeStart,
+          safeEnd: atk.safeEnd,
+        });
+      }
+      return {
+        ...atk,
+        playerId: memberId,
+      };
+    });
+
+    const newWaveId = 'op_1';
     const newWaveName = customWaveName?.trim() || 'Operation 1 (Imported)';
     const newOperations: OperationPlan[] = [
       {
         id: newWaveId,
         name: newWaveName,
+        icon: '🎯',
         landing: importedPlan.landing,
         serverSpeed: importedPlan.serverSpeed,
-        assignedAttackerIds: importedPlan.attackers.map((a) => a.id),
+        assignedAttackerIds: replacedAttackers.map((a) => a.id),
         assignedTargetIds: importedPlan.targets.map((t) => t.id),
         fakeTargetIds: importedPlan.targets.filter((t) => t.fake).map((t) => t.id),
         createdAt: Date.now(),
@@ -674,10 +755,10 @@ export function importPlanIntoMasterRoster(
 
     return {
       roster: {
-        attackers: [...importedPlan.attackers],
+        attackers: replacedAttackers,
         players: [...importedPlan.players],
         targets: importedPlan.targets.map((target) => ({ ...target, fake: false })),
-        attackerPlayers: currentRoster.attackerPlayers ? [...currentRoster.attackerPlayers] : [],
+        attackerPlayers: Array.from(memberMap.values()),
       },
       operations: newOperations,
       activeOpId: newWaveId,
@@ -697,6 +778,9 @@ export function importPlanIntoMasterRoster(
   const attackers: CompactAttacker[] = [...currentRoster.attackers];
   const players: CompactPlayer[] = [...currentRoster.players];
   const targets: CompactTarget[] = [...currentRoster.targets];
+  const attackerPlayers: CompactPlayer[] = currentRoster.attackerPlayers
+    ? [...currentRoster.attackerPlayers]
+    : [];
 
   let attackersAdded = 0;
   let attackersReused = 0;
@@ -726,9 +810,23 @@ export function importPlanIntoMasterRoster(
       if (attackers.some((a) => a.id === uniqueId)) {
         uniqueId = `a_${Date.now()}_${idx + 1}`;
       }
+
+      let mappedPlayerId = impAtk.playerId;
+      if (!mappedPlayerId || !attackerPlayers.some((p) => p.id === mappedPlayerId)) {
+        mappedPlayerId = `ap_${Date.now()}_${idx + 1}`;
+        attackerPlayers.push({
+          id: mappedPlayerId,
+          name: impAtk.name || `Member ${attackerPlayers.length + 1}`,
+          safeEnabled: impAtk.safeEnabled,
+          safeStart: impAtk.safeStart,
+          safeEnd: impAtk.safeEnd,
+        });
+      }
+
       const newAtk: CompactAttacker = {
         ...impAtk,
         id: uniqueId,
+        playerId: mappedPlayerId,
       };
       attackers.push(newAtk);
       attackerIdMap.set(impAtk.id, uniqueId);
@@ -762,13 +860,14 @@ export function importPlanIntoMasterRoster(
 
   // Fallback default player if none exist
   if (players.length === 0) {
-    players.push({
-      id: 'p1',
+    const defaultPlayer: CompactPlayer = {
+      id: 'p_default',
       name: 'Defender 1',
-      safeEnabled: true,
-      safeStart: '22:00',
-      safeEnd: '04:00',
-    });
+      safeEnabled: false,
+      safeStart: '00:00',
+      safeEnd: '00:00',
+    };
+    players.push(defaultPlayer);
   }
 
   // 3. Process Target Villages
@@ -808,7 +907,7 @@ export function importPlanIntoMasterRoster(
     attackers,
     players,
     targets,
-    attackerPlayers: currentRoster.attackerPlayers ? [...currentRoster.attackerPlayers] : [],
+    attackerPlayers,
   };
 
   if (mode === 'new_wave') {

@@ -600,18 +600,12 @@ export function AllianceArmiesModal({
             </div>
           </div>
           <div className="op-modal__header-actions">
-            {onAddAttackerPlayer && (
-              <button type="button" className="pill pill--primary" onClick={onAddAttackerPlayer}>
-                + Add Member
-              </button>
-            )}
             <button
               type="button"
-              className="pill pill--secondary"
-              onClick={() => onAddAttacker()}
-              title="Add standalone hammer"
+              className="pill pill--primary"
+              onClick={onAddAttackerPlayer || (() => onAddAttacker())}
             >
-              + Standalone Hammer
+              + Add Member
             </button>
             <button type="button" className="op-modal-close" onClick={onClose} aria-label="Close roster modal">
               ✕

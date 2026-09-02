@@ -975,5 +975,71 @@ Population
       expect(merged.roster.attackerPlayers).toHaveLength(2);
       expect(merged.roster.attackerPlayers?.map((p) => p.name)).toEqual(['Doughnut', 'Teammate']);
     });
+
+    it('migrates legacy rooms with standalone attackers into members with 1 hammer each', () => {
+      const legacyRoom = {
+        version: 2,
+        roomName: 'legacy-room',
+        activeOpId: 'op1',
+        roster: {
+          attackers: [
+            {
+              id: 'a1',
+              name: 'Legionnaire Hammer',
+              x: 10,
+              y: 20,
+              unitRef: 'embermark_dominion/dominion_catapult',
+              artifactMultiplier: 1,
+              bannerfieldLevel: 0,
+              safeEnabled: true,
+              safeStart: '22:00',
+              safeEnd: '06:00',
+            },
+            {
+              id: 'a2',
+              name: 'Second Hammer',
+              x: 30,
+              y: 40,
+              unitRef: 'stormfang_clans/iron_ram',
+              artifactMultiplier: 1.5,
+              bannerfieldLevel: 5,
+              safeEnabled: false,
+              safeStart: '00:00',
+              safeEnd: '00:00',
+            },
+          ],
+          players: [],
+          targets: [],
+        },
+        operations: [
+          {
+            id: 'op1',
+            name: 'Operation 1',
+            landing: '2026-09-05T12:00',
+            serverSpeed: 3,
+            assignedAttackerIds: ['a1', 'a2'],
+            assignedTargetIds: [],
+            fakeTargetIds: [],
+          },
+        ],
+      };
+
+      const migrated = migrateToMasterRoster(legacyRoom as any);
+      expect(migrated.roster.attackers).toHaveLength(2);
+      expect(migrated.roster.attackerPlayers).toHaveLength(2);
+
+      // Verify Member 1
+      const member1 = migrated.roster.attackerPlayers?.[0];
+      expect(member1?.name).toBe('Legionnaire Hammer');
+      expect(member1?.safeEnabled).toBe(true);
+      expect(member1?.safeStart).toBe('22:00');
+      expect(member1?.safeEnd).toBe('06:00');
+      expect(migrated.roster.attackers[0].playerId).toBe(member1?.id);
+
+      // Verify Member 2
+      const member2 = migrated.roster.attackerPlayers?.[1];
+      expect(member2?.name).toBe('Second Hammer');
+      expect(migrated.roster.attackers[1].playerId).toBe(member2?.id);
+    });
   });
 });
