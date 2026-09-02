@@ -81,7 +81,7 @@ export function ExportRoomModal({ isOpen, onClose, roomData }: ExportRoomModalPr
           {/* Summary Stats */}
           <div className="op-export-stats-grid">
             <div className="op-export-stat-card">
-              <span className="op-export-stat-icon">🛡️</span>
+              <span className="op-export-stat-icon">🔨</span>
               <div className="op-export-stat-info">
                 <span className="op-export-stat-num">{roomData.roster.attackers.length}</span>
                 <span className="op-export-stat-lbl">Master Armies</span>

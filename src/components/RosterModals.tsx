@@ -383,7 +383,7 @@ export function AttackerPlayerGroupCard({
               aria-expanded={isExpanded}
               title={isExpanded ? 'Collapse hammer details' : 'Expand hammer details'}
             >
-              🛡️ {playerHammers.length} {playerHammers.length === 1 ? 'hammer' : 'hammers'} {isExpanded ? '▲' : '▼'}
+              🔨 {playerHammers.length} {playerHammers.length === 1 ? 'hammer' : 'hammers'} {isExpanded ? '▲' : '▼'}
             </button>
             <button
               type="button"
@@ -577,7 +577,7 @@ export function AllianceArmiesModal({
       <div className="op-modal op-modal--roster" onClick={(e) => e.stopPropagation()}>
         <div className="op-modal__header">
           <div className="op-modal__title-wrap">
-            <span className="op-modal__icon">🛡️</span>
+            <span className="op-modal__icon">🔨</span>
             <div>
               <h2 className="op-modal__title">Alliance Hammer Directory ({attackers.length} Registered)</h2>
               <p className="op-modal__subtitle">

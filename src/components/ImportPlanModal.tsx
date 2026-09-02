@@ -279,7 +279,7 @@ export function ImportPlanModal({ isOpen, onClose, onImport, onImportRoom }: Imp
                     </div>
                     <div className="op-import-preview__grid">
                       <div className="op-import-preview__stat">
-                        <div className="op-import-preview__stat-title">🛡️ {roomData.roster.attackers.length} Master Armies</div>
+                        <div className="op-import-preview__stat-title">🔨 {roomData.roster.attackers.length} Master Armies</div>
                         <span className="op-import-preview__sub">
                           {roomData.roster.attackers.map((a) => a.name).slice(0, 3).join(', ')}
                           {roomData.roster.attackers.length > 3 ? ` +${roomData.roster.attackers.length - 3} more` : ''}
@@ -321,7 +321,7 @@ export function ImportPlanModal({ isOpen, onClose, onImport, onImportRoom }: Imp
                     </div>
                     <div className="op-import-preview__grid">
                       <div className="op-import-preview__stat">
-                        <div className="op-import-preview__stat-title">🛡️ {plan.attackers.length} {plan.attackers.length === 1 ? 'Army' : 'Armies'}</div>
+                        <div className="op-import-preview__stat-title">🔨 {plan.attackers.length} {plan.attackers.length === 1 ? 'Army' : 'Armies'}</div>
                         <span className="op-import-preview__sub">
                           {plan.attackers.map((a) => a.name || 'Army').slice(0, 4).join(', ')}
                           {plan.attackers.length > 4 ? ` +${plan.attackers.length - 4} more` : ''}
