@@ -381,8 +381,9 @@ export function AttackerPlayerGroupCard({
               className="pill pill--tiny pill--secondary"
               onClick={() => setIsExpanded(!isExpanded)}
               aria-expanded={isExpanded}
+              title={isExpanded ? 'Collapse hammer details' : 'Expand hammer details'}
             >
-              {isExpanded ? '▲ Hide' : `▼ (${playerHammers.length})`}
+              🛡️ {playerHammers.length} {playerHammers.length === 1 ? 'hammer' : 'hammers'} {isExpanded ? '▲' : '▼'}
             </button>
             <button
               type="button"
@@ -404,22 +405,7 @@ export function AttackerPlayerGroupCard({
           />
         </div>
 
-        <details
-          className="op-villages-disclosure"
-          open={isExpanded}
-          onToggle={(e) => setIsExpanded(e.currentTarget.open)}
-        >
-          <summary className="op-villages-summary">
-            <span className="op-villages-summary__title">
-              🛡️ {playerHammers.length} {playerHammers.length === 1 ? 'hammer' : 'hammers'}
-            </span>
-            {!isExpanded && playerHammers.length > 0 && (
-              <span className="op-villages-summary__preview">
-                {playerHammers.map((h) => `${h.name || 'Hammer'} (${h.x}|${h.y})`).join(' · ')}
-              </span>
-            )}
-          </summary>
-
+        {isExpanded && (
           <div className="op-strip-list">
             {playerHammers.length === 0 ? (
               <div className="op-villages-empty">
@@ -517,7 +503,7 @@ export function AttackerPlayerGroupCard({
               ))
             )}
           </div>
-        </details>
+        )}
       </div>
 
       <ConfirmDeleteModal
@@ -698,7 +684,7 @@ export function PlayerGroupCard({
   player,
   pIdx,
   targets,
-  defaultExpanded = false,
+  defaultExpanded = true,
   onPatchPlayer,
   onRemovePlayer,
   onAddVillage,
@@ -744,8 +730,9 @@ export function PlayerGroupCard({
               className="pill pill--tiny pill--secondary"
               onClick={() => setIsExpanded(!isExpanded)}
               aria-expanded={isExpanded}
+              title={isExpanded ? 'Collapse village details' : 'Expand village details'}
             >
-              {isExpanded ? '▲ Hide' : `▼ (${playerVillages.length})`}
+              🏘️ {playerVillages.length} {playerVillages.length === 1 ? 'village' : 'villages'} {isExpanded ? '▲' : '▼'}
             </button>
             <button
               type="button"
@@ -767,22 +754,7 @@ export function PlayerGroupCard({
           />
         </div>
 
-        <details
-          className="op-villages-disclosure"
-          open={isExpanded}
-          onToggle={(e) => setIsExpanded(e.currentTarget.open)}
-        >
-          <summary className="op-villages-summary">
-            <span className="op-villages-summary__title">
-              🏘️ {playerVillages.length} {playerVillages.length === 1 ? 'village' : 'villages'}
-            </span>
-            {!isExpanded && playerVillages.length > 0 && (
-              <span className="op-villages-summary__preview">
-                {playerVillages.map((v) => `${v.name || 'Village'} (${v.x}|${v.y})`).join(' · ')}
-              </span>
-            )}
-          </summary>
-
+        {isExpanded && (
           <div className="op-strip-list">
             {playerVillages.length === 0 ? (
               <div className="op-villages-empty">
@@ -838,7 +810,7 @@ export function PlayerGroupCard({
               ))
             )}
           </div>
-        </details>
+        )}
       </div>
 
       <ConfirmDeleteModal
