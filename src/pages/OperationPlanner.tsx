@@ -2181,9 +2181,7 @@ export function OperationPlanner({
               </div>
 
               {/* Alarm Control Button Toolbar */}
-              <details className="op-alarm-settings">
-                <summary>{alarmEnabled ? '🔔 Alarm on' : '🔕 Alarm muted'}</summary>
-                <div className="op-alarm-toolbar">
+              <div className="op-alarm-toolbar">
                 <button
                   type="button"
                   className={`pill pill--alarm ${alarmEnabled ? 'is-enabled' : 'is-muted'}`}
@@ -2226,14 +2224,11 @@ export function OperationPlanner({
                     🎵 Test 1m Chime
                   </button>
                 </div>
-                </div>
-              </details>
+              </div>
             </div>
 
             {/* Route Filters Toolbar */}
-            <details className="op-filter-disclosure">
-              <summary>Filters · {visibleRoutes.length}/{routes.length} shown</summary>
-              <div className="op-filters-bar">
+            <div className="op-filters-bar">
               <div className="op-filter-selects">
                 <label className="op-filter-label">
                   <span>Attacker:</span>
@@ -2326,7 +2321,6 @@ export function OperationPlanner({
                 </div>
               </div>
             </div>
-            </details>
 
             <div className="op-routes">
               <table>

@@ -6296,15 +6296,11 @@ select:focus, .select:focus, .text-input:focus {
   gap: 4px;
 }
 
-.op-time-adjust,
-.op-alarm-settings,
-.op-filter-disclosure {
+.op-time-adjust {
   position: relative;
 }
 
-.op-time-adjust > summary,
-.op-alarm-settings > summary,
-.op-filter-disclosure > summary {
+.op-time-adjust > summary {
   width: fit-content;
   list-style: none;
   border: 1px solid hsl(220, 16%, 27%);
@@ -6318,18 +6314,11 @@ select:focus, .select:focus, .text-input:focus {
   user-select: none;
 }
 
-.op-time-adjust > summary::-webkit-details-marker,
-.op-alarm-settings > summary::-webkit-details-marker,
-.op-filter-disclosure > summary::-webkit-details-marker { display: none; }
+.op-time-adjust > summary::-webkit-details-marker { display: none; }
 
-.op-time-adjust[open] > summary,
-.op-alarm-settings[open] > summary,
-.op-filter-disclosure[open] > summary { color: #fff; border-color: hsl(220, 22%, 40%); }
+.op-time-adjust[open] > summary { color: #fff; border-color: hsl(220, 22%, 40%); }
 
 .op-time-adjust .op-landing-shortcuts { margin-top: 6px; }
-.op-alarm-settings .op-alarm-toolbar { margin-top: 8px; }
-.op-filter-disclosure { margin: 10px 0; }
-.op-filter-disclosure .op-filters-bar { margin-top: 8px; }
 
 @media (max-width: 760px) {
   .operations--v2-classified { padding: 8px; }
@@ -6363,10 +6352,7 @@ select:focus, .select:focus, .text-input:focus {
   .op-participant-chip__meta { display: none; }
   .op-target-assignment { grid-template-columns: minmax(0, 1fr) 52px; }
 
-  .op-alarm-settings { align-self: flex-start; }
   .op-alarm-toolbar { align-items: stretch; }
-  .op-filter-disclosure > summary { width: 100%; text-align: center; }
-  .op-filter-disclosure .op-filters-bar { padding: 9px; }
 }
 
 .op-room-menu { position: relative; z-index: 100; }
