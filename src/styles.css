@@ -4946,6 +4946,10 @@ select:focus, .select:focus, .text-input:focus {
   letter-spacing: 0.03em;
 }
 
+.op-participant-player-header--attacker {
+  color: #ff9f76;
+}
+
 .op-participant-player-header strong {
   color: #fff;
   font-size: 12.5px;
@@ -6722,30 +6726,6 @@ select:focus, .select:focus, .text-input:focus {
   background: rgba(255, 255, 255, 0.03);
   border-radius: 4px;
   margin-top: 6px;
-}
-
-.op-participant-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-bottom: 8px;
-}
-
-.op-participant-group-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 11.5px;
-  font-weight: 600;
-  color: var(--text-dim, #8b95a8);
-  padding: 2px 4px;
-  border-bottom: 1px solid var(--border-color, #2b3142);
-}
-
-.op-participant-group-count {
-  font-size: 10.5px;
-  font-weight: 400;
-  opacity: 0.8;
 }
 
 

@@ -144,74 +144,70 @@ export function OperationParticipantPicker({
             </div>
           </div>
 
-          <div className="op-participant-chips op-participant-chips--vertical">
-            {attackers.length === 0 ? (
-              <div className="op-participant-chips__empty">
-                No armies registered in master directory.{' '}
-                <button type="button" className="btn-link" onClick={onOpenAttackerModal}>
-                  + Register armies
-                </button>
-              </div>
-            ) : (
-              attackerPlayerGroups.map((group, gIdx) => (
+          {attackers.length === 0 ? (
+            <div className="op-participant-chips__empty">
+              No armies registered in master directory.{' '}
+              <button type="button" className="btn-link" onClick={onOpenAttackerModal}>
+                + Register armies
+              </button>
+            </div>
+          ) : (
+            <div className="op-participant-players-list">
+              {attackerPlayerGroups.map((group, gIdx) => (
                 <div
-                  className="op-participant-group"
-                  key={group.player ? group.player.id : `unassigned_${gIdx}`}
+                  key={group.player?.id || `unassigned-${gIdx}`}
+                  className="op-participant-player-block"
                 >
-                  {group.player && (
-                    <div className="op-participant-group-header">
-                      <span>👤 {group.player.name || 'Member'}</span>
-                      <span className="op-participant-group-count">
-                        ({group.attackers.filter((a) => assignedAttackerIds.includes(a.id)).length}/
-                        {group.attackers.length} deployed)
-                      </span>
-                    </div>
-                  )}
+                  <div className="op-participant-player-header op-participant-player-header--attacker">
+                    <span>Member: <strong>{group.player ? group.player.name : 'Alliance Member'}</strong></span>
+                  </div>
 
-                  {group.attackers.map((atk) => {
-                    const isSelected = assignedAttackerIds.includes(atk.id);
-                    const currentUnitRef = (attackerUnitOverrides[atk.id] || atk.unitRef) as UnitRef;
-                    const unitInfo = lookup(currentUnitRef);
+                  <div className="op-participant-chips op-participant-chips--vertical">
+                    {group.attackers.map((atk) => {
+                      const isSelected = assignedAttackerIds.includes(atk.id);
+                      const currentUnitRef = (attackerUnitOverrides[atk.id] || atk.unitRef) as UnitRef;
+                      const unitInfo = lookup(currentUnitRef);
 
-                    return (
-                      <div
-                        key={atk.id}
-                        className={`op-participant-row ${isSelected ? 'is-selected' : ''}`}
-                      >
-                        <label
-                          className={`op-participant-chip op-participant-chip--attacker ${isSelected ? 'is-selected' : ''}`}
-                          title={isSelected ? 'Deployed in this operation wave (Click to bench)' : 'Benched in reserve (Click to deploy)'}
+                      return (
+                        <div
+                          key={atk.id}
+                          className={`op-participant-row ${isSelected ? 'is-selected' : ''}`}
                         >
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => onToggleAttacker(atk.id)}
-                          />
-                          <span className="op-participant-chip__check" aria-hidden="true">
-                            {isSelected ? '✓' : ''}
-                          </span>
-                          <span className="op-participant-chip__name">{atk.name || 'Attacker'}</span>
-                          <span className="op-participant-chip__meta">
-                            ({atk.x}|{atk.y})
-                          </span>
-                        </label>
-
-                        {isSelected && (
-                          <div className="op-wave-troop-picker" title={`Slowest troop for this wave: ${unitInfo.unit.name} (${unitInfo.unit.speed} fields/h)`}>
-                            <UnitGridPicker
-                              unitRef={currentUnitRef}
-                              onChange={(newRef) => onUpdateAttackerUnit?.(atk.id, newRef)}
-                              compact={true}
+                          <label
+                            className={`op-participant-chip op-participant-chip--attacker ${isSelected ? 'is-selected' : ''}`}
+                            title={isSelected ? 'Deployed in this operation wave (Click to bench)' : 'Benched in reserve (Click to deploy)'}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => onToggleAttacker(atk.id)}
                             />
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                            <span className="op-participant-chip__check" aria-hidden="true">
+                              {isSelected ? '✓' : ''}
+                            </span>
+                            <span className="op-participant-chip__name">{atk.name || 'Attacker'}</span>
+                            <span className="op-participant-chip__meta">
+                              ({atk.x}|{atk.y})
+                            </span>
+                          </label>
+
+                          {isSelected && (
+                            <div className="op-wave-troop-picker" title={`Slowest troop for this wave: ${unitInfo.unit.name} (${unitInfo.unit.speed} fields/h)`}>
+                              <UnitGridPicker
+                                unitRef={currentUnitRef}
+                                onChange={(newRef) => onUpdateAttackerUnit?.(atk.id, newRef)}
+                                compact={true}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              ))
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Right Column: Target Villages Sorted by Defender */}
