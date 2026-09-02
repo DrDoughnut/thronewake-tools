@@ -6712,3 +6712,40 @@ select:focus, .select:focus, .text-input:focus {
   outline: none;
 }
 
+.op-strip-card__inherited-safe {
+  padding: 4px 8px;
+  font-size: 11.5px;
+  color: var(--text-dim, #8b95a8);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 4px;
+  margin-top: 6px;
+}
+
+.op-participant-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.op-participant-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-dim, #8b95a8);
+  padding: 2px 4px;
+  border-bottom: 1px solid var(--border-color, #2b3142);
+}
+
+.op-participant-group-count {
+  font-size: 10.5px;
+  font-weight: 400;
+  opacity: 0.8;
+}
+
+

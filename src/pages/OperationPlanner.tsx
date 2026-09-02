@@ -62,6 +62,7 @@ interface Attacker extends SafeTimeOwner {
   unitRef: UnitRef;
   artifactMultiplier: 1 | 1.5 | 2;
   bannerfieldLevel: number;
+  playerId?: string;
   active?: boolean;
 }
 
@@ -93,6 +94,7 @@ interface PlannedRoute {
   key: string;
   attacker: Attacker;
   target: Target;
+  attackerSafe: ResolvedSafeTime;
   targetSafe: ResolvedSafeTime;
   attackerWindow: SafeWindow;
   targetWindow: SafeWindow;
@@ -625,9 +627,9 @@ function SafetimeCheckCell({
       title: 'Send / Attacker Safe Time',
       blocked: route.checks.sendAttacker,
       time: `Send: ${stamp(route.send, true)}`,
-      windowText: route.attacker.safeEnabled
-        ? `${route.attacker.name} safe time: ${route.attacker.safeStart}–${route.attacker.safeEnd} UTC`
-        : `${route.attacker.name} has no safe time`,
+      windowText: route.attackerSafe.safeEnabled
+        ? `${route.attackerSafe.sourceName ?? route.attacker.name} safe time: ${route.attackerSafe.safeStart}–${route.attackerSafe.safeEnd} UTC`
+        : `${route.attackerSafe.sourceName ?? route.attacker.name} has no safe time`,
     },
     {
       code: 'C',
@@ -836,7 +838,11 @@ function ScheduleTimeline({
           <h2 className="panel__title">Daily safe-time schedule · UTC</h2>
           <div className="op-schedule__journey-readout">
             <span className="op-schedule__journey-label">Selected Route:</span>
-            <strong className="op-route-attacker">{route.attacker.name}</strong>
+            <strong className="op-route-attacker">
+              {route.attackerSafe.sourceName && route.attackerSafe.sourceName !== route.attacker.name
+                ? `${route.attackerSafe.sourceName}: ${route.attacker.name}`
+                : route.attacker.name}
+            </strong>
             <span className="op-route-arrow" aria-hidden="true">➔</span>
             <strong className="op-route-target">
               {route.targetSafe.sourceName && route.targetSafe.sourceName !== route.target.name
@@ -1476,17 +1482,26 @@ export function OperationPlanner({
 
 
 
-  // Master Roster CRUD: Attackers
-  const handleAddAttacker = () => {
+  // Master Roster CRUD: Attackers & Alliance Members
+  const handleAddAttacker = (playerIdOrEvent?: string | unknown) => {
+    const playerId = typeof playerIdOrEvent === 'string' ? playerIdOrEvent : '';
     const newId = nextId('a');
+    const owningPlayer = playerId ? (roster.attackerPlayers || []).find((p) => p.id === playerId) : undefined;
+    const playerHammersCount = playerId
+      ? roster.attackers.filter((a) => a.playerId === playerId).length
+      : roster.attackers.length;
+
     const newAtk: Attacker = {
       id: newId,
-      name: `Hammer ${roster.attackers.length + 1}`,
+      name: owningPlayer
+        ? `${owningPlayer.name} Hammer ${playerHammersCount + 1}`
+        : `Hammer ${roster.attackers.length + 1}`,
       x: 0,
       y: 0,
       unitRef: defaultUnitRef,
       artifactMultiplier: 1,
       bannerfieldLevel: 0,
+      playerId: playerId || '',
       ...initialSafeTime(),
     };
     setRoster((prev) => ({
@@ -1500,6 +1515,63 @@ export function OperationPlanner({
           ? { ...o, assignedAttackerIds: [...(o.assignedAttackerIds || []), newId] }
           : o,
       ),
+    );
+  };
+
+  const handleAddAttackerPlayer = () => {
+    const pId = nextId('ap');
+    const newPlayer: Player = {
+      id: pId,
+      name: `Member ${(roster.attackerPlayers || []).length + 1}`,
+      ...initialSafeTime(),
+    };
+    const newHammerId = nextId('a');
+    const newHammer: Attacker = {
+      id: newHammerId,
+      name: `${newPlayer.name} Hammer 1`,
+      x: 0,
+      y: 0,
+      unitRef: defaultUnitRef,
+      artifactMultiplier: 1,
+      bannerfieldLevel: 0,
+      playerId: pId,
+      ...initialSafeTime(),
+    };
+    setRoster((prev) => ({
+      ...prev,
+      attackerPlayers: [...(prev.attackerPlayers || []), newPlayer],
+      attackers: [...prev.attackers, newHammer],
+    }));
+    setOperations((prev) =>
+      prev.map((o) =>
+        o.id === (activeOpId || activeOp.id)
+          ? { ...o, assignedAttackerIds: [...(o.assignedAttackerIds || []), newHammerId] }
+          : o,
+      ),
+    );
+  };
+
+  const handlePatchAttackerPlayer = (id: string, patch: Partial<Player>) => {
+    setRoster((prev) => ({
+      ...prev,
+      attackerPlayers: (prev.attackerPlayers || []).map((p) => (p.id === id ? { ...p, ...patch } : p)),
+    }));
+  };
+
+  const handleRemoveAttackerPlayer = (playerId: string) => {
+    setRoster((prev) => ({
+      ...prev,
+      attackerPlayers: (prev.attackerPlayers || []).filter((p) => p.id !== playerId),
+      attackers: prev.attackers.filter((a) => a.playerId !== playerId),
+    }));
+    const removedAttackerIds = new Set(
+      roster.attackers.filter((a) => a.playerId === playerId).map((a) => a.id),
+    );
+    setOperations((prev) =>
+      prev.map((o) => ({
+        ...o,
+        assignedAttackerIds: (o.assignedAttackerIds || []).filter((id) => !removedAttackerIds.has(id)),
+      })),
     );
   };
 
@@ -1682,7 +1754,8 @@ export function OperationPlanner({
           bannerfieldLevel: attacker.bannerfieldLevel,
         });
         const send = new Date(land.getTime() - travel * 3_600_000);
-        const attackerWindow = ownerWindow(attacker);
+        const attackerSafe = resolveSafeTime(attacker, roster.attackerPlayers || []);
+        const attackerWindow = ownerWindow(attackerSafe);
         const targetSafe = resolveSafeTime(target, roster.players);
         const targetWindow = ownerWindow(targetSafe);
         const checks = safeChecks(send, land, attackerWindow, targetWindow);
@@ -1690,6 +1763,7 @@ export function OperationPlanner({
           key: attacker.id + ':' + target.id,
           attacker,
           target,
+          attackerSafe,
           targetSafe,
           attackerWindow,
           targetWindow,
@@ -1704,7 +1778,7 @@ export function OperationPlanner({
     );
 
     return computed.sort((a, b) => a.send.getTime() - b.send.getTime());
-  }, [marchingAttackers, activeTargets, roster.players, activeOp.serverSpeed, parsedLanding]);
+  }, [marchingAttackers, activeTargets, roster.players, roster.attackerPlayers, activeOp.serverSpeed, parsedLanding]);
 
   const selectedRoute = routes.find((route) => route.key === selectedKey) ?? routes[0];
   const handleInspectRoute = (routeKey: string) => {
@@ -2009,6 +2083,7 @@ export function OperationPlanner({
             /* Top-Secret v2: Operation March Participant Selector Checklist */
             <OperationParticipantPicker
               attackers={roster.attackers}
+              attackerPlayers={roster.attackerPlayers || []}
               players={roster.players}
               targets={roster.targets}
               assignedAttackerIds={activeOp.assignedAttackerIds || []}
@@ -2281,6 +2356,10 @@ export function OperationPlanner({
                       const defenderName = route.targetSafe.sourceName || route.target.name;
                       const hasDifferentVillageName =
                         route.targetSafe.sourceName && route.targetSafe.sourceName !== route.target.name;
+                      const attackerName =
+                        route.attackerSafe.sourceName && route.attackerSafe.sourceName !== route.attacker.name
+                          ? `${route.attackerSafe.sourceName}: ${route.attacker.name}`
+                          : route.attacker.name;
 
                       return (
                         <tr
@@ -2299,7 +2378,7 @@ export function OperationPlanner({
                           <td data-label="Route">
                             <div className="op-route-summary">
                               <div className="op-route-button__names">
-                                <strong className="op-route-attacker">{route.attacker.name}</strong>
+                                <strong className="op-route-attacker">{attackerName}</strong>
                                 <span className="op-route-arrow" aria-hidden="true">➔</span>
                                 <strong className="op-route-target">{defenderName}</strong>
                                 <span className={`op-hit-tag ${route.target.fake ? 'is-fake' : 'is-real'}`}>
@@ -2371,8 +2450,12 @@ export function OperationPlanner({
       {/* Modals */}
       <AllianceArmiesModal
         attackers={roster.attackers}
+        attackerPlayers={roster.attackerPlayers || []}
         isOpen={isArmiesModalOpen}
         onClose={() => setIsArmiesModalOpen(false)}
+        onAddAttackerPlayer={handleAddAttackerPlayer}
+        onPatchAttackerPlayer={handlePatchAttackerPlayer}
+        onRemoveAttackerPlayer={handleRemoveAttackerPlayer}
         onAddAttacker={handleAddAttacker}
         onPatchAttacker={handlePatchAttacker}
         onRemoveAttacker={handleRemoveAttacker}

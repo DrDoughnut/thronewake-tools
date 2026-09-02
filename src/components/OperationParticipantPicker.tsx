@@ -5,6 +5,7 @@ import { UnitGridPicker } from './UnitGridPicker';
 
 interface OperationParticipantPickerProps {
   attackers: Attacker[];
+  attackerPlayers?: Player[];
   players: Player[];
   targets: Target[];
   assignedAttackerIds: string[];
@@ -25,6 +26,7 @@ interface OperationParticipantPickerProps {
 
 export function OperationParticipantPicker({
   attackers,
+  attackerPlayers = [],
   players,
   targets,
   assignedAttackerIds,
@@ -47,6 +49,31 @@ export function OperationParticipantPicker({
 
   const activeTargetCount = assignedTargetIds.length;
   const totalTargetCount = targets.length;
+
+  // Group attackers by alliance member, sorted by member name
+  const attackerPlayerGroups = useMemo(() => {
+    if (!attackerPlayers || attackerPlayers.length === 0) {
+      return [{ player: null, attackers }];
+    }
+
+    const groups: { player: Player | null; attackers: Attacker[] }[] = [];
+
+    attackerPlayers.forEach((p) => {
+      const pAttackers = attackers.filter((a) => a.playerId === p.id);
+      if (pAttackers.length > 0) {
+        groups.push({ player: p, attackers: pAttackers });
+      }
+    });
+
+    const unassigned = attackers.filter(
+      (a) => !a.playerId || !attackerPlayers.some((p) => p.id === a.playerId),
+    );
+    if (unassigned.length > 0) {
+      groups.push({ player: null, attackers: unassigned });
+    }
+
+    return groups;
+  }, [attackerPlayers, attackers]);
 
   // Group targets by player, sorted by player name
   const playerGroups = useMemo(() => {
@@ -126,46 +153,63 @@ export function OperationParticipantPicker({
                 </button>
               </div>
             ) : (
-              attackers.map((atk) => {
-                const isSelected = assignedAttackerIds.includes(atk.id);
-                const currentUnitRef = (attackerUnitOverrides[atk.id] || atk.unitRef) as UnitRef;
-                const unitInfo = lookup(currentUnitRef);
-
-                return (
-                  <div
-                    key={atk.id}
-                    className={`op-participant-row ${isSelected ? 'is-selected' : ''}`}
-                  >
-                    <label
-                      className={`op-participant-chip op-participant-chip--attacker ${isSelected ? 'is-selected' : ''}`}
-                      title={isSelected ? 'Deployed in this operation wave (Click to bench)' : 'Benched in reserve (Click to deploy)'}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => onToggleAttacker(atk.id)}
-                      />
-                      <span className="op-participant-chip__check" aria-hidden="true">
-                        {isSelected ? '✓' : ''}
+              attackerPlayerGroups.map((group, gIdx) => (
+                <div
+                  className="op-participant-group"
+                  key={group.player ? group.player.id : `unassigned_${gIdx}`}
+                >
+                  {group.player && (
+                    <div className="op-participant-group-header">
+                      <span>👤 {group.player.name || 'Member'}</span>
+                      <span className="op-participant-group-count">
+                        ({group.attackers.filter((a) => assignedAttackerIds.includes(a.id)).length}/
+                        {group.attackers.length} deployed)
                       </span>
-                      <span className="op-participant-chip__name">{atk.name || 'Attacker'}</span>
-                      <span className="op-participant-chip__meta">
-                        ({atk.x}|{atk.y})
-                      </span>
-                    </label>
+                    </div>
+                  )}
 
-                    {isSelected && (
-                      <div className="op-wave-troop-picker" title={`Slowest troop for this wave: ${unitInfo.unit.name} (${unitInfo.unit.speed} fields/h)`}>
-                        <UnitGridPicker
-                          unitRef={currentUnitRef}
-                          onChange={(newRef) => onUpdateAttackerUnit?.(atk.id, newRef)}
-                          compact={true}
-                        />
+                  {group.attackers.map((atk) => {
+                    const isSelected = assignedAttackerIds.includes(atk.id);
+                    const currentUnitRef = (attackerUnitOverrides[atk.id] || atk.unitRef) as UnitRef;
+                    const unitInfo = lookup(currentUnitRef);
+
+                    return (
+                      <div
+                        key={atk.id}
+                        className={`op-participant-row ${isSelected ? 'is-selected' : ''}`}
+                      >
+                        <label
+                          className={`op-participant-chip op-participant-chip--attacker ${isSelected ? 'is-selected' : ''}`}
+                          title={isSelected ? 'Deployed in this operation wave (Click to bench)' : 'Benched in reserve (Click to deploy)'}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => onToggleAttacker(atk.id)}
+                          />
+                          <span className="op-participant-chip__check" aria-hidden="true">
+                            {isSelected ? '✓' : ''}
+                          </span>
+                          <span className="op-participant-chip__name">{atk.name || 'Attacker'}</span>
+                          <span className="op-participant-chip__meta">
+                            ({atk.x}|{atk.y})
+                          </span>
+                        </label>
+
+                        {isSelected && (
+                          <div className="op-wave-troop-picker" title={`Slowest troop for this wave: ${unitInfo.unit.name} (${unitInfo.unit.speed} fields/h)`}>
+                            <UnitGridPicker
+                              unitRef={currentUnitRef}
+                              onChange={(newRef) => onUpdateAttackerUnit?.(atk.id, newRef)}
+                              compact={true}
+                            />
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                );
-              })
+                    );
+                  })}
+                </div>
+              ))
             )}
           </div>
         </div>

@@ -317,26 +317,274 @@ export function AttackerCard({
   );
 }
 
+// ── Alliance Member Player Group Card ──────────────────────────────────────
+
+export interface AttackerPlayerGroupCardProps {
+  player: Player;
+  pIdx: number;
+  attackers: Attacker[];
+  defaultExpanded?: boolean;
+  onPatchPlayer: (patch: Partial<Player>) => void;
+  onRemovePlayer: () => void;
+  onAddHammer: () => void;
+  onPatchAttacker: (attackerId: string, patch: Partial<Attacker>) => void;
+  onRemoveAttacker: (attackerId: string) => void;
+}
+
+export function AttackerPlayerGroupCard({
+  player,
+  pIdx,
+  attackers,
+  defaultExpanded = false,
+  onPatchPlayer,
+  onRemovePlayer,
+  onAddHammer,
+  onPatchAttacker,
+  onRemoveAttacker,
+}: AttackerPlayerGroupCardProps) {
+  const [isConfirmingDeletePlayer, setIsConfirmingDeletePlayer] = useState(false);
+  const [deletingAttacker, setDeletingAttacker] = useState<Attacker | null>(null);
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+  const playerHammers = attackers.filter((a) => a.playerId === player.id);
+
+  const handleAddHammer = () => {
+    setIsExpanded(true);
+    onAddHammer();
+  };
+
+  return (
+    <>
+      <div className="op-target-group is-player op-roster-target-group" key={player.id}>
+        <div className="op-target-group__head">
+          <div className="op-target-group__player-title">
+            <span className="op-target-group__icon" aria-hidden="true">👤</span>
+            <span className="op-card__idx">#{pIdx + 1}</span>
+            <input
+              className="text-input op-player__name"
+              aria-label="Alliance member name"
+              value={player.name}
+              onChange={(e) => onPatchPlayer({ name: e.target.value })}
+              placeholder="Member Account Name"
+            />
+          </div>
+
+          <div className="op-target-group__actions">
+            <button
+              type="button"
+              className="pill pill--tiny pill--primary"
+              onClick={handleAddHammer}
+            >
+              + Add Hammer
+            </button>
+            <button
+              type="button"
+              className="pill pill--tiny pill--secondary"
+              onClick={() => setIsExpanded(!isExpanded)}
+              aria-expanded={isExpanded}
+            >
+              {isExpanded ? '▲ Hide' : `▼ (${playerHammers.length})`}
+            </button>
+            <button
+              type="button"
+              className="op-remove-danger op-remove-danger--sm"
+              aria-label={`Delete member ${player.name}`}
+              onClick={() => setIsConfirmingDeletePlayer(true)}
+              title="Delete member account"
+            >
+              🗑️
+            </button>
+          </div>
+        </div>
+
+        <div className="op-target-group__player-safetime">
+          <SafeTimeFields
+            owner={player}
+            label={`${player.name || 'Member'} Safe Hours`}
+            onChange={(patch) => onPatchPlayer(patch)}
+          />
+        </div>
+
+        <details
+          className="op-villages-disclosure"
+          open={isExpanded}
+          onToggle={(e) => setIsExpanded(e.currentTarget.open)}
+        >
+          <summary className="op-villages-summary">
+            <span className="op-villages-summary__title">
+              🛡️ {playerHammers.length} {playerHammers.length === 1 ? 'hammer' : 'hammers'}
+            </span>
+            {!isExpanded && playerHammers.length > 0 && (
+              <span className="op-villages-summary__preview">
+                {playerHammers.map((h) => `${h.name || 'Hammer'} (${h.x}|${h.y})`).join(' · ')}
+              </span>
+            )}
+          </summary>
+
+          <div className="op-strip-list">
+            {playerHammers.length === 0 ? (
+              <div className="op-villages-empty">
+                No hammers for this member. Click "+ Add Hammer" above to register one.
+              </div>
+            ) : (
+              playerHammers.map((attacker, hIdx) => (
+                <article
+                  className="op-strip-card op-strip-card--attacker"
+                  key={attacker.id}
+                >
+                  <div className="op-strip-card__top">
+                    <div className="op-strip-card__identity">
+                      <span className="op-card__idx">#{hIdx + 1}</span>
+                      <input
+                        className="text-input op-card__name"
+                        aria-label="Hammer name"
+                        placeholder="Hammer name"
+                        value={attacker.name}
+                        onChange={(e) => onPatchAttacker(attacker.id, { name: e.target.value })}
+                      />
+                      <div className="coord-inline">
+                        <label className="coord-field">
+                          <span className="coord-field__tag">X</span>
+                          <CoordInput
+                            value={attacker.x}
+                            onChange={(x) => onPatchAttacker(attacker.id, { x })}
+                            ariaLabel="Hammer X coordinate"
+                          />
+                        </label>
+                        <label className="coord-field">
+                          <span className="coord-field__tag">Y</span>
+                          <CoordInput
+                            value={attacker.y}
+                            onChange={(y) => onPatchAttacker(attacker.id, { y })}
+                            ariaLabel="Hammer Y coordinate"
+                          />
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="op-strip-card__military">
+                      <div className="op-strip-card__modifiers">
+                        <label className="op-modifier-inline" title="Speed Artifact">
+                          <span className="op-modifier-inline__tag">Artifact</span>
+                          <select
+                            className="select op-select-solid-sm"
+                            value={attacker.artifactMultiplier}
+                            onChange={(e) =>
+                              onPatchAttacker(attacker.id, {
+                                artifactMultiplier: Number(e.target.value) as Attacker['artifactMultiplier'],
+                              })
+                            }
+                          >
+                            <option value={1}>1.0×</option>
+                            <option value={1.5}>1.5×</option>
+                            <option value={2}>2.0×</option>
+                          </select>
+                        </label>
+
+                        <label className="op-modifier-inline" title="Bannerfield Level (+20% speed per level beyond 20 fields)">
+                          <span className="op-modifier-inline__tag">Bannerfield</span>
+                          <input
+                            className="text-input op-input-solid-sm"
+                            type="number"
+                            min={0}
+                            max={20}
+                            value={attacker.bannerfieldLevel}
+                            onChange={(e) =>
+                              onPatchAttacker(attacker.id, {
+                                bannerfieldLevel: Math.min(20, Math.max(0, Number(e.target.value) || 0)),
+                              })
+                            }
+                          />
+                          <span className="bannerfield-bonus-tag-sm">+{attacker.bannerfieldLevel * 20}%</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="op-remove-danger"
+                      aria-label={`Delete hammer ${attacker.name}`}
+                      onClick={() => setDeletingAttacker(attacker)}
+                      title="Delete hammer"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+
+                  <div className="op-strip-card__inherited-safe">
+                    <span>🔒 Inherits <strong>{player.name || 'Member'}</strong>'s safe hours</span>
+                  </div>
+                </article>
+              ))
+            )}
+          </div>
+        </details>
+      </div>
+
+      <ConfirmDeleteModal
+        isOpen={isConfirmingDeletePlayer}
+        title="Delete Alliance Member"
+        message={`Are you sure you want to delete member account "${player.name}"? All ${playerHammers.length} hammers belonging to this member will also be removed from the master roster.`}
+        confirmLabel="Delete Member & Hammers"
+        onConfirm={() => {
+          setIsConfirmingDeletePlayer(false);
+          onRemovePlayer();
+        }}
+        onCancel={() => setIsConfirmingDeletePlayer(false)}
+      />
+
+      <ConfirmDeleteModal
+        isOpen={deletingAttacker !== null}
+        title="Delete Hammer"
+        message="Are you sure you want to delete this hammer? It will be removed from all operations and the master roster."
+        itemDescription={
+          deletingAttacker ? `${deletingAttacker.name || 'Hammer'} (${deletingAttacker.x}|${deletingAttacker.y})` : ''
+        }
+        confirmLabel="Delete Hammer"
+        onConfirm={() => {
+          if (deletingAttacker) {
+            onRemoveAttacker(deletingAttacker.id);
+            setDeletingAttacker(null);
+          }
+        }}
+        onCancel={() => setDeletingAttacker(null)}
+      />
+    </>
+  );
+}
+
 // ── Alliance Armies Modal ──────────────────────────────────────────────────
 
-interface AllianceArmiesModalProps {
+export interface AllianceArmiesModalProps {
   attackers: Attacker[];
+  attackerPlayers?: Player[];
   isOpen: boolean;
   onClose: () => void;
-  onAddAttacker: () => void;
+  onAddAttackerPlayer?: () => void;
+  onPatchAttackerPlayer?: (id: string, patch: Partial<Player>) => void;
+  onRemoveAttackerPlayer?: (id: string) => void;
+  onAddAttacker: (playerId?: string) => void;
   onPatchAttacker: (id: string, patch: Partial<Attacker>) => void;
   onRemoveAttacker: (id: string) => void;
 }
 
 export function AllianceArmiesModal({
   attackers,
+  attackerPlayers = [],
   isOpen,
   onClose,
+  onAddAttackerPlayer,
+  onPatchAttackerPlayer,
+  onRemoveAttackerPlayer,
   onAddAttacker,
   onPatchAttacker,
   onRemoveAttacker,
 }: AllianceArmiesModalProps) {
   if (!isOpen) return null;
+
+  const hasPlayers = attackerPlayers.length > 0;
+  const unassignedAttackers = attackers.filter(
+    (a) => !a.playerId || !attackerPlayers.some((p) => p.id === a.playerId),
+  );
 
   return (
     <div className="op-modal-backdrop" onClick={onClose} role="dialog" aria-modal="true">
@@ -347,13 +595,23 @@ export function AllianceArmiesModal({
             <div>
               <h2 className="op-modal__title">Alliance Hammer Directory ({attackers.length} Registered)</h2>
               <p className="op-modal__subtitle">
-                Register all available alliance hammers here. Any hammer saved in this master directory can be deployed into any operation wave.
+                Register alliance members and their hammer villages here. Members define their safe hours once, and all their hammers inherit that sleep schedule.
               </p>
             </div>
           </div>
           <div className="op-modal__header-actions">
-            <button type="button" className="pill pill--primary" onClick={onAddAttacker}>
-              + Register Army
+            {onAddAttackerPlayer && (
+              <button type="button" className="pill pill--primary" onClick={onAddAttackerPlayer}>
+                + Add Member
+              </button>
+            )}
+            <button
+              type="button"
+              className="pill pill--secondary"
+              onClick={() => onAddAttacker()}
+              title="Add standalone hammer"
+            >
+              + Standalone Hammer
             </button>
             <button type="button" className="op-modal-close" onClick={onClose} aria-label="Close roster modal">
               ✕
@@ -362,19 +620,58 @@ export function AllianceArmiesModal({
         </div>
 
         <div className="op-modal__body">
-          {attackers.length === 0 ? (
-            <div className="op-modal__empty">No armies registered in master directory. Click "+ Register Army" above.</div>
+          {attackers.length === 0 && !hasPlayers ? (
+            <div className="op-modal__empty">
+              No armies or members registered in master directory.{' '}
+              {onAddAttackerPlayer ? (
+                <button type="button" className="btn-link" onClick={onAddAttackerPlayer}>
+                  Click "+ Add Member" to start
+                </button>
+              ) : (
+                'Click "+ Add Hammer" above.'
+              )}
+            </div>
           ) : (
-            <div className="op-strip-list">
-              {attackers.map((attacker, index) => (
-                <AttackerCard
-                  key={attacker.id}
-                  attacker={attacker}
-                  index={index}
-                  onPatch={(patch) => onPatchAttacker(attacker.id, patch)}
-                  onRemove={() => onRemoveAttacker(attacker.id)}
-                />
-              ))}
+            <div className="op-targets-list">
+              {/* Member Accounts with their hammers */}
+              {hasPlayers &&
+                attackerPlayers.map((player, pIdx) => (
+                  <AttackerPlayerGroupCard
+                    key={player.id}
+                    player={player}
+                    pIdx={pIdx}
+                    attackers={attackers}
+                    defaultExpanded={true}
+                    onPatchPlayer={(patch) => onPatchAttackerPlayer?.(player.id, patch)}
+                    onRemovePlayer={() => onRemoveAttackerPlayer?.(player.id)}
+                    onAddHammer={() => onAddAttacker(player.id)}
+                    onPatchAttacker={onPatchAttacker}
+                    onRemoveAttacker={onRemoveAttacker}
+                  />
+                ))}
+
+              {/* Standalone / Unassigned Hammers */}
+              {unassignedAttackers.length > 0 && (
+                <div className="op-unassigned-villages op-roster-target-group">
+                  <div className="op-unassigned-villages__header">
+                    <span className="op-target-group__icon">⚔️</span>
+                    <strong>
+                      {hasPlayers ? 'Standalone / Unassigned Armies' : 'Registered Armies'} ({unassignedAttackers.length})
+                    </strong>
+                  </div>
+                  <div className="op-strip-list">
+                    {unassignedAttackers.map((attacker, index) => (
+                      <AttackerCard
+                        key={attacker.id}
+                        attacker={attacker}
+                        index={index}
+                        onPatch={(patch) => onPatchAttacker(attacker.id, patch)}
+                        onRemove={() => onRemoveAttacker(attacker.id)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

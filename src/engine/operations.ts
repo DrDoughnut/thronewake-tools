@@ -293,6 +293,8 @@ export interface CompactAttacker extends CompactSafeTimeOwner {
   unitRef: string;
   artifactMultiplier: 1 | 1.5 | 2;
   bannerfieldLevel: number;
+  /** Id of the owning alliance member player, or '' when standalone. */
+  playerId?: string;
   active?: boolean;
 }
 
@@ -331,6 +333,8 @@ export interface MasterRoster {
   attackers: CompactAttacker[];
   players: CompactPlayer[];
   targets: CompactTarget[];
+  /** Optional alliance member accounts who own hammers and share safe-time windows. */
+  attackerPlayers?: CompactPlayer[];
 }
 
 export interface OperationPlan {
@@ -458,6 +462,7 @@ export function migrateToMasterRoster(raw: any, fallbackState?: CompactPlannerSt
         targets: Array.isArray(raw.roster.targets)
           ? raw.roster.targets.map((target: CompactTarget) => ({ ...target, fake: false }))
           : [],
+        attackerPlayers: Array.isArray(raw.roster.attackerPlayers) ? raw.roster.attackerPlayers : [],
       },
       operations: raw.operations.map((op: any, index: number) => ({
         id: op.id || `op_${index + 1}`,
@@ -565,6 +570,7 @@ export function migrateToMasterRoster(raw: any, fallbackState?: CompactPlannerSt
       attackers: Array.from(masterAttackersMap.values()),
       players: Array.from(masterPlayersMap.values()),
       targets: Array.from(masterTargetsMap.values()),
+      attackerPlayers: [],
     },
     operations: convertedOps,
     updatedAt: raw.updatedAt || Date.now(),
@@ -572,7 +578,7 @@ export function migrateToMasterRoster(raw: any, fallbackState?: CompactPlannerSt
 }
 
 /**
- * Merges two TeamRoomData instances (e.g. cloud vs local concurrent edits)
+ * Losslessly merges cloud and local TeamRoomData during concurrent saves or live sync
  * into a single unified state without losing entities or waves.
  */
 export function mergeTeamRoomData(cloud: TeamRoomData, local: TeamRoomData): TeamRoomData {
@@ -580,6 +586,11 @@ export function mergeTeamRoomData(cloud: TeamRoomData, local: TeamRoomData): Tea
   const attackerMap = new Map<string, CompactAttacker>();
   cloud.roster.attackers.forEach((a) => attackerMap.set(a.id, a));
   local.roster.attackers.forEach((a) => attackerMap.set(a.id, a));
+
+  // 1.5. Merge Master Attacker Players (Union by ID)
+  const attackerPlayerMap = new Map<string, CompactPlayer>();
+  (cloud.roster.attackerPlayers || []).forEach((ap) => attackerPlayerMap.set(ap.id, ap));
+  (local.roster.attackerPlayers || []).forEach((ap) => attackerPlayerMap.set(ap.id, ap));
 
   // 2. Merge Master Players (Union by ID)
   const playerMap = new Map<string, CompactPlayer>();
@@ -609,6 +620,7 @@ export function mergeTeamRoomData(cloud: TeamRoomData, local: TeamRoomData): Tea
       attackers: Array.from(attackerMap.values()),
       players: Array.from(playerMap.values()),
       targets: Array.from(targetMap.values()),
+      attackerPlayers: Array.from(attackerPlayerMap.values()),
     },
     operations: Array.from(opMap.values()),
     updatedAt: Date.now(),
@@ -665,6 +677,7 @@ export function importPlanIntoMasterRoster(
         attackers: [...importedPlan.attackers],
         players: [...importedPlan.players],
         targets: importedPlan.targets.map((target) => ({ ...target, fake: false })),
+        attackerPlayers: currentRoster.attackerPlayers ? [...currentRoster.attackerPlayers] : [],
       },
       operations: newOperations,
       activeOpId: newWaveId,
@@ -795,6 +808,7 @@ export function importPlanIntoMasterRoster(
     attackers,
     players,
     targets,
+    attackerPlayers: currentRoster.attackerPlayers ? [...currentRoster.attackerPlayers] : [],
   };
 
   if (mode === 'new_wave') {

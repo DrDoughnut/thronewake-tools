@@ -854,4 +854,126 @@ Population
       expect(parseRoomBackup('https://thronewake.app/#p=abc')).toBeNull();
     });
   });
+
+  describe('alliance member accounts & multi-hammer safe-time inheritance', () => {
+    const member1 = {
+      id: 'ap1',
+      name: 'Doughnut',
+      safeEnabled: true,
+      safeStart: '23:00',
+      safeEnd: '07:00',
+    };
+
+    const hammer1 = {
+      id: 'h1',
+      name: 'Cata Hammer',
+      x: 10,
+      y: 20,
+      unitRef: 'embermark_dominion/dominion_catapult',
+      artifactMultiplier: 1 as const,
+      bannerfieldLevel: 0,
+      playerId: 'ap1',
+      safeEnabled: false,
+      safeStart: '00:00',
+      safeEnd: '00:00',
+    };
+
+    const hammer2 = {
+      id: 'h2',
+      name: 'Ram Hammer',
+      x: 15,
+      y: 25,
+      unitRef: 'stormfang_clans/iron_ram',
+      artifactMultiplier: 1.5 as const,
+      bannerfieldLevel: 10,
+      playerId: 'ap1',
+      safeEnabled: false,
+      safeStart: '00:00',
+      safeEnd: '00:00',
+    };
+
+    const standaloneHammer = {
+      id: 'h3',
+      name: 'Solo Hammer',
+      x: 50,
+      y: 50,
+      unitRef: 'embermark_dominion/dominion_catapult',
+      artifactMultiplier: 1 as const,
+      bannerfieldLevel: 0,
+      playerId: '',
+      safeEnabled: true,
+      safeStart: '01:00',
+      safeEnd: '06:00',
+    };
+
+    it('inherits safe-time from alliance member for multiple hammers', () => {
+      const res1 = resolveSafeTime(hammer1, [member1]);
+      expect(res1.safeEnabled).toBe(true);
+      expect(res1.safeStart).toBe('23:00');
+      expect(res1.safeEnd).toBe('07:00');
+      expect(res1.sourceName).toBe('Doughnut');
+
+      const res2 = resolveSafeTime(hammer2, [member1]);
+      expect(res2.safeEnabled).toBe(true);
+      expect(res2.safeStart).toBe('23:00');
+      expect(res2.safeEnd).toBe('07:00');
+      expect(res2.sourceName).toBe('Doughnut');
+    });
+
+    it('falls back to hammer individual safe-time if standalone or player not found', () => {
+      const resStandalone = resolveSafeTime(standaloneHammer, [member1]);
+      expect(resStandalone.safeEnabled).toBe(true);
+      expect(resStandalone.safeStart).toBe('01:00');
+      expect(resStandalone.safeEnd).toBe('06:00');
+      expect(resStandalone.sourceName).toBeUndefined();
+
+      const resUnknownPlayer = resolveSafeTime({ ...hammer1, playerId: 'nonexistent' }, [member1]);
+      expect(resUnknownPlayer.safeEnabled).toBe(false);
+      expect(resUnknownPlayer.safeStart).toBe('00:00');
+      expect(resUnknownPlayer.safeEnd).toBe('00:00');
+    });
+
+    it('merges attackerPlayers losslessly in mergeTeamRoomData', () => {
+      const roomA = {
+        version: 2 as const,
+        roomName: 'test-room',
+        activeOpId: 'op1',
+        roster: {
+          attackers: [hammer1],
+          players: [],
+          targets: [],
+          attackerPlayers: [member1],
+        },
+        operations: [],
+        updatedAt: 100,
+      };
+
+      const member2 = {
+        id: 'ap2',
+        name: 'Teammate',
+        safeEnabled: true,
+        safeStart: '02:00',
+        safeEnd: '08:00',
+      };
+
+      const roomB = {
+        version: 2 as const,
+        roomName: 'test-room',
+        activeOpId: 'op1',
+        roster: {
+          attackers: [hammer2],
+          players: [],
+          targets: [],
+          attackerPlayers: [member2],
+        },
+        operations: [],
+        updatedAt: 200,
+      };
+
+      const merged = mergeTeamRoomData(roomA, roomB);
+      expect(merged.roster.attackers).toHaveLength(2);
+      expect(merged.roster.attackerPlayers).toHaveLength(2);
+      expect(merged.roster.attackerPlayers?.map((p) => p.name)).toEqual(['Doughnut', 'Teammate']);
+    });
+  });
 });
