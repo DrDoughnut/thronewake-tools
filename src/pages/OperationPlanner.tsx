@@ -26,6 +26,7 @@ import {
   travelHours,
   migrateToMasterRoster,
   importPlanIntoMasterRoster,
+  mergeTeamRoomData,
   type ImportMode,
   type MasterRoster,
   type OperationPlan,
@@ -1328,6 +1329,35 @@ export function OperationPlanner({
     }
   };
 
+  const handleImportRoom = (importedRoom: TeamRoomData, mode: 'replace' | 'merge') => {
+    if (mode === 'replace') {
+      setRoster(importedRoom.roster);
+      setOperations(importedRoom.operations);
+      if (importedRoom.activeOpId) {
+        setActiveOpId(importedRoom.activeOpId);
+      } else if (importedRoom.operations.length > 0) {
+        setActiveOpId(importedRoom.operations[0].id);
+      }
+      setWorkspaceView('setup');
+    } else {
+      const currentData: TeamRoomData = {
+        version: 2,
+        roomName: roomSession?.roomName || 'unnamed-room',
+        activeOpId: activeOpId || activeOp.id,
+        roster,
+        operations,
+        updatedAt: Date.now(),
+      };
+      const merged = mergeTeamRoomData(importedRoom, currentData);
+      setRoster(merged.roster);
+      setOperations(merged.operations);
+      if (merged.activeOpId) {
+        setActiveOpId(merged.activeOpId);
+      }
+      setWorkspaceView('setup');
+    }
+  };
+
   // Operation March Assignment Toggles
   const handleToggleAttacker = (attackerId: string) => {
     const currentOpId = activeOpId || activeOp.id;
@@ -2365,6 +2395,7 @@ export function OperationPlanner({
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
         onImport={handleImportPlan}
+        onImportRoom={handleImportRoom}
       />
     </div>
   );

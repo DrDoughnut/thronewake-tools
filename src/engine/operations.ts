@@ -1154,3 +1154,76 @@ export function parseThronewakeProfileClipboard(rawText: string): PlannerState |
     ],
   };
 }
+
+export interface RoomBackupPackage {
+  format: 'thronewake_room_backup_v2';
+  version: 2;
+  exportedAt: number;
+  roomName: string;
+  data: TeamRoomData;
+}
+
+/**
+ * Creates a clean, human-readable JSON backup package of the entire team room.
+ */
+export function createRoomBackup(data: TeamRoomData): string {
+  const pkg: RoomBackupPackage = {
+    format: 'thronewake_room_backup_v2',
+    version: 2,
+    exportedAt: Date.now(),
+    roomName: data.roomName || 'unnamed-room',
+    data,
+  };
+  return JSON.stringify(pkg, null, 2);
+}
+
+/**
+ * Validates and parses a room backup from JSON string or raw object text.
+ * Accepts both wrapped RoomBackupPackage and raw TeamRoomData.
+ */
+export function parseRoomBackup(text: string): TeamRoomData | null {
+  const trimmed = text.trim();
+  if (!trimmed) return null;
+  if (!trimmed.startsWith('{')) return null;
+
+  try {
+    const parsed = JSON.parse(trimmed) as unknown;
+    if (!parsed || typeof parsed !== 'object') return null;
+
+    const candidate = parsed as Record<string, unknown>;
+
+    // Case 1: Wrapped RoomBackupPackage
+    if (
+      candidate.format === 'thronewake_room_backup_v2' &&
+      candidate.data &&
+      typeof candidate.data === 'object'
+    ) {
+      const roomData = candidate.data as TeamRoomData;
+      if (
+        roomData.roster &&
+        Array.isArray(roomData.roster.attackers) &&
+        Array.isArray(roomData.roster.targets) &&
+        Array.isArray(roomData.operations)
+      ) {
+        return roomData;
+      }
+    }
+
+    // Case 2: Direct TeamRoomData JSON
+    if (
+      (candidate.version === 2 || Array.isArray(candidate.operations)) &&
+      candidate.roster &&
+      typeof candidate.roster === 'object'
+    ) {
+      const roster = candidate.roster as Record<string, unknown>;
+      if (Array.isArray(roster.attackers) && Array.isArray(roster.targets)) {
+        return candidate as unknown as TeamRoomData;
+      }
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+

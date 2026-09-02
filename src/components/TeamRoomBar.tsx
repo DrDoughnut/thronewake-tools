@@ -8,6 +8,7 @@ import {
   type RoomCryptoSession,
 } from '../engine/cryptoSync';
 import { mergeTeamRoomData, type TeamRoomData } from '../engine/operations';
+import { ExportRoomModal } from './ExportRoomModal';
 
 const ROOM_STORAGE_KEY = 'thronewake.teamroom.session';
 
@@ -46,6 +47,9 @@ export function TeamRoomBar({
   const saveInProgressRef = useRef(false);
   const isConnectingRef = useRef(false);
   const hasAutoConnectedRef = useRef(false);
+
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [exportData, setExportData] = useState<TeamRoomData | null>(null);
 
   const onRoomDataLoadedRef = useRef(onRoomDataLoaded);
   const onRoomDisconnectedRef = useRef(onRoomDisconnected);
@@ -350,6 +354,14 @@ export function TeamRoomBar({
     onRoomDisconnectedRef.current();
   };
 
+  const handleOpenExport = async () => {
+    try {
+      const data = await onSaveRequestedRef.current();
+      setExportData(data);
+      setIsExportModalOpen(true);
+    } catch {}
+  };
+
   const syncTimeStr = lastSyncedAt
     ? `${String(lastSyncedAt.getUTCHours()).padStart(2, '0')}:${String(
         lastSyncedAt.getUTCMinutes()
@@ -436,6 +448,14 @@ export function TeamRoomBar({
                       </button>
                       <button
                         type="button"
+                        className="pill pill--tiny pill--secondary"
+                        onClick={handleOpenExport}
+                        title="Export full room backup (JSON download or copy code)"
+                      >
+                        📤 Export Room Backup
+                      </button>
+                      <button
+                        type="button"
                         className="pill pill--tiny pill--secondary op-team-room-leave"
                         onClick={handleDisconnect}
                         title="Disconnect from this room"
@@ -494,6 +514,14 @@ export function TeamRoomBar({
           </div>
         </div>
       </section>
+
+      {isExportModalOpen && exportData && (
+        <ExportRoomModal
+          isOpen={isExportModalOpen}
+          onClose={() => setIsExportModalOpen(false)}
+          roomData={exportData}
+        />
+      )}
     </>
   );
 }

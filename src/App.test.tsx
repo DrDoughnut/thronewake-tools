@@ -905,7 +905,7 @@ describe('the operation planner', () => {
 
       // Paste invalid text
       setInputValue(textarea, 'invalid_gibberish');
-      expect(importModal?.textContent).toContain('Could not detect villages');
+      expect(importModal?.textContent).toContain('Could not detect room backup JSON');
 
       // Paste a valid plan URL with 1 attacker and 1 target
       const sampleEncoded = encodeCompactPlan({

@@ -6616,3 +6616,99 @@ select:focus, .select:focus, .text-input:focus {
     justify-content: flex-start;
   }
 }
+
+/* ── Export Room Modal ─────────────────────────────────────────────────── */
+.op-modal--export-room {
+  max-width: 580px;
+  width: 100%;
+}
+
+.op-export-room-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px 20px;
+}
+
+.op-export-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.op-export-stat-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  background: var(--surface-2, #1a1e29);
+  border: 1px solid var(--border-color, #2b3142);
+  border-radius: 8px;
+}
+
+.op-export-stat-icon {
+  font-size: 24px;
+}
+
+.op-export-stat-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.op-export-stat-num {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text, #f0f3fa);
+}
+
+.op-export-stat-lbl {
+  font-size: 11px;
+  color: var(--text-dim, #8b95a8);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.op-export-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.op-export-btn-download {
+  font-weight: 600;
+}
+
+.op-export-code-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--surface-3, #141721);
+  border: 1px solid var(--border-color, #2b3142);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.op-export-code-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11.5px;
+  color: var(--text-dim, #8b95a8);
+}
+
+.op-export-code-title {
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.op-export-textarea {
+  font-family: monospace;
+  font-size: 11px;
+  background: transparent;
+  border: none;
+  resize: vertical;
+  color: #7dd3fc;
+  line-height: 1.4;
+  padding: 0;
+  outline: none;
+}
+

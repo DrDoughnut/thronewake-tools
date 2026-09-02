@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   combineUtcDateAndTime,
+  createRoomBackup,
   decodeCompactPlan,
   distanceBetween,
   encodeCompactPlan,
@@ -12,6 +13,7 @@ import {
   importPlanIntoMasterRoster,
   mergeTeamRoomData,
   migrateToMasterRoster,
+  parseRoomBackup,
   parseThronewakeProfileClipboard,
   resolveSafeTime,
   routeIsPossible,
@@ -754,6 +756,102 @@ Population
       x: 3,
       y: 9,
       fake: true,
+    });
+  });
+
+  describe('room backup export & parsing', () => {
+    const mockRoomData = {
+      version: 2 as const,
+      roomName: 'chaotic402069',
+      activeOpId: 'op1',
+      roster: {
+        attackers: [
+          {
+            id: 'a1',
+            name: 'Main Hammer',
+            x: 10,
+            y: 20,
+            unitRef: 'embermark_dominion/dominion_catapult',
+            artifactMultiplier: 1 as const,
+            bannerfieldLevel: 0,
+            safeEnabled: false,
+            safeStart: '00:00',
+            safeEnd: '00:00',
+          },
+        ],
+        players: [
+          {
+            id: 'p1',
+            name: 'Enemy Leader',
+            safeEnabled: false,
+            safeStart: '00:00',
+            safeEnd: '00:00',
+          },
+        ],
+        targets: [
+          {
+            id: 't1',
+            name: 'Enemy Capital',
+            x: 50,
+            y: 60,
+            fake: false,
+            playerId: 'p1',
+            safeEnabled: false,
+            safeStart: '00:00',
+            safeEnd: '00:00',
+          },
+        ],
+      },
+      operations: [
+        {
+          id: 'op1',
+          name: 'Operation 1',
+          landing: '2026-09-05T12:00',
+          serverSpeed: 3,
+          assignedAttackerIds: ['a1'],
+          assignedTargetIds: ['t1'],
+          fakeTargetIds: [],
+          updatedAt: 123456,
+        },
+      ],
+      updatedAt: 123456,
+    };
+
+    it('serializes a room to formatted backup JSON package', () => {
+      const backupJson = createRoomBackup(mockRoomData);
+      expect(backupJson).toContain('thronewake_room_backup_v2');
+      expect(backupJson).toContain('chaotic402069');
+      expect(backupJson).toContain('Main Hammer');
+      expect(backupJson).toContain('Enemy Capital');
+    });
+
+    it('parses wrapped RoomBackupPackage JSON cleanly', () => {
+      const backupJson = createRoomBackup(mockRoomData);
+      const parsed = parseRoomBackup(backupJson);
+      expect(parsed).toBeTruthy();
+      expect(parsed?.roomName).toBe('chaotic402069');
+      expect(parsed?.roster.attackers).toHaveLength(1);
+      expect(parsed?.roster.attackers[0].name).toBe('Main Hammer');
+      expect(parsed?.roster.targets).toHaveLength(1);
+      expect(parsed?.roster.targets[0].name).toBe('Enemy Capital');
+      expect(parsed?.operations).toHaveLength(1);
+      expect(parsed?.operations[0].id).toBe('op1');
+    });
+
+    it('parses direct raw TeamRoomData JSON cleanly', () => {
+      const rawJson = JSON.stringify(mockRoomData);
+      const parsed = parseRoomBackup(rawJson);
+      expect(parsed).toBeTruthy();
+      expect(parsed?.roomName).toBe('chaotic402069');
+      expect(parsed?.roster.attackers).toHaveLength(1);
+      expect(parsed?.operations).toHaveLength(1);
+    });
+
+    it('returns null for invalid or non-room JSON and text', () => {
+      expect(parseRoomBackup('')).toBeNull();
+      expect(parseRoomBackup('not json')).toBeNull();
+      expect(parseRoomBackup('{"foo": "bar"}')).toBeNull();
+      expect(parseRoomBackup('https://thronewake.app/#p=abc')).toBeNull();
     });
   });
 });
