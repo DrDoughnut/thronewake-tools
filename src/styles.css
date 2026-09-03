@@ -1110,26 +1110,33 @@ select:focus, .select:focus, .text-input:focus {
 .op-strip-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
 }
 
-/* Base Strip Card */
+/* Base Strip Card (Lighter shade of grey without outline border) */
 .op-strip-card {
-  background: hsl(220, 18%, 10%);
-  border: 1px solid hsl(220, 15%, 22%);
-  border-radius: var(--radius);
-  padding: 8px 12px;
-  transition: border-color 0.15s ease;
+  background: hsl(220, 16%, 16%);
+  border: none;
+  border-radius: 6px;
+  padding: 6px 10px;
+  transition: background 0.15s ease;
   box-sizing: border-box;
 }
 .op-strip-card:hover {
-  border-color: hsl(220, 18%, 32%);
+  background: hsl(220, 16%, 19%);
 }
 .op-strip-card--attacker {
   border-left: 3.5px solid #f28b72;
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+.op-strip-card--attacker.op-strip-card--attacker-row {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 .op-strip-card--target {
   border-left: 3.5px solid #72c2dd;
@@ -1332,12 +1339,12 @@ select:focus, .select:focus, .text-input:focus {
 .op-target-group {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-bottom: 12px;
-  padding: 10px 12px;
-  border-radius: var(--radius-lg, 10px);
-  border: 1px solid hsl(220, 15%, 22%);
-  background: hsl(220, 17%, 11%);
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid hsl(220, 15%, 20%);
+  background: hsl(220, 18%, 10%);
 }
 .op-target-group.is-player { border-left: 3.5px solid #4a90e2; }
 .op-target-group.is-loose { border-style: dashed; }
@@ -1351,22 +1358,23 @@ select:focus, .select:focus, .text-input:focus {
 .op-target-group__player-title {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   flex: 1 1 auto;
   min-width: 0;
   flex-wrap: wrap;
 }
 .op-target-group__icon { font-size: 13px; flex-shrink: 0; }
 .op-player__name {
-  width: 160px;
-  min-width: 110px;
-  padding: 4px 8px;
+  width: 155px;
+  min-width: 105px;
+  padding: 3px 7px;
   font-size: 13px;
   font-weight: 650;
   color: #fff;
   background: hsl(220, 18%, 8%);
   border: 1.5px solid hsl(220, 14%, 28%);
   border-radius: var(--radius);
+  height: 28px;
 }
 .op-target-group__name {
   color: var(--text-dim);
@@ -1379,6 +1387,87 @@ select:focus, .select:focus, .text-input:focus {
   width: 100%;
   margin-top: 2px;
 }
+
+/* Compact SafeTime (Inline with Player Name - Bounded in Green Pill) */
+.op-safetime-compact {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  background: hsl(220, 19%, 10%);
+  border: 1px solid hsl(220, 14%, 24%);
+  border-radius: var(--radius);
+  font-size: 11.5px;
+  color: var(--text-dim);
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.op-safetime-compact.is-enabled {
+  border-color: rgba(94, 204, 137, 0.45);
+  background: hsla(140, 45%, 12%, 0.35);
+  color: #c7eed5;
+}
+
+.op-safetime-compact__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  font-weight: 650;
+  color: var(--text-normal);
+}
+
+.op-safetime-compact.is-enabled .op-safetime-compact__toggle {
+  color: #8be3aa;
+}
+
+.op-safetime-compact__toggle input[type="checkbox"] {
+  accent-color: #5ecc89;
+  cursor: pointer;
+  margin: 0;
+  width: 13px;
+  height: 13px;
+}
+
+.op-safetime-compact__label {
+  font-size: 11px;
+}
+
+.op-safetime-compact__inputs {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.op-safetime-compact__inputs .time-input {
+  width: 46px;
+  padding: 1px 4px;
+  font-size: 11.5px;
+  text-align: center;
+  background: hsl(220, 18%, 7%);
+  border: 1px solid hsl(220, 14%, 28%);
+  border-radius: 4px;
+  color: #fff;
+  height: 22px;
+}
+
+.op-safetime-compact__sep {
+  color: var(--text-faint);
+  font-size: 11px;
+}
+
+.op-safetime-compact__meta {
+  font-size: 10px;
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+
+.op-safetime-compact__off {
+  font-size: 10.5px;
+  color: var(--text-faint);
+  font-style: italic;
+}
 .op-target-group__actions {
   display: flex;
   align-items: center;
@@ -1390,13 +1479,17 @@ select:focus, .select:focus, .text-input:focus {
 .op-group-dropdown-bar {
   display: flex;
   align-items: center;
-  padding: 4px 2px 2px 2px;
+  padding: 0;
+  margin: 0;
 }
 
 .op-group-dropdown-btn {
   font-weight: 600;
   cursor: pointer;
-  font-size: 11.5px;
+  font-size: 11px;
+  padding: 1px 6px;
+  height: 20px;
+  line-height: 18px;
 }
 
 /* Single Unified Villages Disclosure */
@@ -5175,6 +5268,29 @@ select:focus, .select:focus, .text-input:focus {
   max-width: 440px;
 }
 
+/* Confirmation Modal Backdrop (Guaranteed dead-center over viewport) */
+.op-modal-backdrop--confirm {
+  z-index: 10005;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 16px !important;
+  overflow: hidden !important;
+}
+
+.op-modal-backdrop--confirm .op-modal--compact {
+  max-width: 440px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  margin: auto !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9), 0 0 40px rgba(0, 0, 0, 0.6);
+}
+
 @keyframes fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -6540,15 +6656,48 @@ select:focus, .select:focus, .text-input:focus {
 }
 
 @media (max-width: 640px) {
-  .op-modal {
-    max-height: 92vh;
-    border-radius: 8px;
-    margin: 8px;
+  .op-modal-backdrop {
+    display: flex;
+    overflow-x: auto;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 10px;
+    align-items: flex-start;
+    justify-content: flex-start;
   }
-  .op-modal__header {
+  .op-modal-backdrop--confirm {
+    align-items: center !important;
+    justify-content: center !important;
+    overflow-x: hidden !important;
+    overflow-y: hidden !important;
+    padding: 16px !important;
+  }
+  .op-modal-backdrop--confirm .op-modal--compact {
+    min-width: 0 !important;
+    max-width: 90vw !important;
+    width: 380px !important;
+    margin: auto !important;
+  }
+  .op-modal {
+    max-height: 94vh;
+    border-radius: 8px;
+    margin: auto 0;
+    flex-shrink: 0;
+  }
+  .op-modal--roster {
+    min-width: 680px;
+    max-width: none;
+    width: 680px;
+  }
+  .op-modal--roster .op-modal__header {
     padding: 12px 14px;
-    flex-wrap: wrap;
-    gap: 8px;
+    flex-wrap: nowrap;
+    gap: 12px;
+  }
+  .op-modal--roster .op-modal__header-actions {
+    width: auto;
+    flex-shrink: 0;
+    gap: 6px;
   }
   .op-modal__title-wrap {
     gap: 8px;
@@ -6559,64 +6708,47 @@ select:focus, .select:focus, .text-input:focus {
   .op-modal__subtitle {
     font-size: 11px;
   }
-  .op-modal__header-actions {
-    width: 100%;
-    justify-content: flex-end;
-    gap: 6px;
-  }
-  .op-modal__body {
-    padding: 10px;
-    gap: 8px;
-  }
   .op-target-group {
     padding: 8px 10px;
   }
   .op-target-group__head {
-    flex-direction: column;
-    align-items: stretch;
+    flex-wrap: nowrap;
     gap: 8px;
   }
   .op-target-group__player-title {
-    width: 100%;
-    flex-wrap: wrap;
-  }
-  .op-player__name {
-    flex: 1;
-    min-width: 110px;
+    flex-wrap: nowrap;
+    gap: 6px;
   }
   .op-target-group__actions {
-    width: 100%;
-    justify-content: flex-end;
+    gap: 6px;
+    flex-shrink: 0;
   }
-  .op-target-group__actions .pill,
+  .op-target-group__actions .pill {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
   .op-target-group__actions .op-remove-danger {
-    flex: 1;
+    flex: 0 0 auto;
+    width: 28px;
+    height: 28px;
+    padding: 0;
     text-align: center;
     justify-content: center;
   }
   .op-strip-card__identity {
-    flex-wrap: wrap;
-    gap: 6px;
-    width: 100%;
-  }
-  .op-strip-card__identity .op-card__name {
-    flex: 1;
-    min-width: 110px;
-  }
-  .coord-inline {
-    flex-shrink: 0;
-  }
-  .op-safetime {
-    padding: 6px 8px;
-    flex-direction: column;
-    align-items: stretch;
+    flex-wrap: nowrap;
     gap: 6px;
   }
-  .op-safetime__header {
-    justify-content: space-between;
+  .op-strip-card--attacker.op-strip-card--attacker-row {
+    flex-wrap: nowrap;
   }
-  .op-safetime__body {
-    justify-content: flex-start;
+  .op-strip-card--target {
+    flex-wrap: nowrap;
+  }
+  .op-strip-card .op-remove-danger {
+    flex: 0 0 auto;
+    width: 26px;
+    height: 26px;
   }
 }
 

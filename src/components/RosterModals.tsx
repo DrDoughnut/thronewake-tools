@@ -114,10 +114,12 @@ export function Time24Input({
 export function SafeTimeFields({
   owner,
   label = 'Safe Hours',
+  compact = false,
   onChange,
 }: {
   owner: { safeEnabled: boolean; safeStart: string; safeEnd: string };
   label?: string;
+  compact?: boolean;
   onChange: (patch: Partial<{ safeEnabled: boolean; safeStart: string; safeEnd: string }>) => void;
 }) {
   const duration = safeWindowDurationMinutes(parseClock(owner.safeStart), parseClock(owner.safeEnd));
@@ -132,6 +134,41 @@ export function SafeTimeFields({
     const updated = enforceMaxSafeWindow(owner.safeStart, val, 'end');
     onChange(updated);
   };
+
+  if (compact) {
+    return (
+      <div className={`op-safetime-compact ${owner.safeEnabled ? 'is-enabled' : 'is-disabled'}`}>
+        <label className="op-safetime-compact__toggle" title={owner.safeEnabled ? 'Safe hours active. Click to disable.' : 'Safe hours disabled. Click to activate.'}>
+          <input
+            type="checkbox"
+            checked={owner.safeEnabled}
+            onChange={(e) => onChange({ safeEnabled: e.target.checked })}
+          />
+          <span className="op-safetime-compact__label">Safe:</span>
+        </label>
+        {owner.safeEnabled ? (
+          <div className="op-safetime-compact__inputs">
+            <Time24Input
+              value={owner.safeStart}
+              onChange={handleStartChange}
+              placeholder="22:00"
+            />
+            <span className="op-safetime-compact__sep">–</span>
+            <Time24Input
+              value={owner.safeEnd}
+              onChange={handleEndChange}
+              placeholder="04:00"
+            />
+            <span className="op-safetime-compact__meta">
+              UTC ({Math.round(duration / 60)}h{isCapped ? ' max' : ''})
+            </span>
+          </div>
+        ) : (
+          <span className="op-safetime-compact__off">Off</span>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className={`op-safetime ${owner.safeEnabled ? 'is-enabled' : 'is-disabled'}`}>
@@ -366,6 +403,11 @@ export function AttackerPlayerGroupCard({
               onChange={(e) => onPatchPlayer({ name: e.target.value })}
               placeholder="Member Account Name"
             />
+            <SafeTimeFields
+              owner={player}
+              compact={true}
+              onChange={(patch) => onPatchPlayer(patch)}
+            />
           </div>
 
           <div className="op-target-group__actions">
@@ -386,14 +428,6 @@ export function AttackerPlayerGroupCard({
               🗑️
             </button>
           </div>
-        </div>
-
-        <div className="op-target-group__player-safetime">
-          <SafeTimeFields
-            owner={player}
-            label={`${player.name || 'Member'} Safe Hours`}
-            onChange={(patch) => onPatchPlayer(patch)}
-          />
         </div>
 
         <div className="op-group-dropdown-bar">
@@ -417,91 +451,85 @@ export function AttackerPlayerGroupCard({
             ) : (
               playerHammers.map((attacker, hIdx) => (
                 <article
-                  className="op-strip-card op-strip-card--attacker"
+                  className="op-strip-card op-strip-card--attacker op-strip-card--attacker-row"
                   key={attacker.id}
                 >
-                  <div className="op-strip-card__top">
-                    <div className="op-strip-card__identity">
-                      <span className="op-card__idx">#{hIdx + 1}</span>
-                      <input
-                        className="text-input op-card__name"
-                        aria-label="Hammer name"
-                        placeholder="Hammer name"
-                        value={attacker.name}
-                        onChange={(e) => onPatchAttacker(attacker.id, { name: e.target.value })}
-                      />
-                      <div className="coord-inline">
-                        <label className="coord-field">
-                          <span className="coord-field__tag">X</span>
-                          <CoordInput
-                            value={attacker.x}
-                            onChange={(x) => onPatchAttacker(attacker.id, { x })}
-                            ariaLabel="Hammer X coordinate"
-                          />
-                        </label>
-                        <label className="coord-field">
-                          <span className="coord-field__tag">Y</span>
-                          <CoordInput
-                            value={attacker.y}
-                            onChange={(y) => onPatchAttacker(attacker.id, { y })}
-                            ariaLabel="Hammer Y coordinate"
-                          />
-                        </label>
-                      </div>
+                  <div className="op-strip-card__identity">
+                    <span className="op-card__idx">#{hIdx + 1}</span>
+                    <input
+                      className="text-input op-card__name"
+                      aria-label="Hammer name"
+                      placeholder="Hammer name"
+                      value={attacker.name}
+                      onChange={(e) => onPatchAttacker(attacker.id, { name: e.target.value })}
+                    />
+                    <div className="coord-inline">
+                      <label className="coord-field">
+                        <span className="coord-field__tag">X</span>
+                        <CoordInput
+                          value={attacker.x}
+                          onChange={(x) => onPatchAttacker(attacker.id, { x })}
+                          ariaLabel="Hammer X coordinate"
+                        />
+                      </label>
+                      <label className="coord-field">
+                        <span className="coord-field__tag">Y</span>
+                        <CoordInput
+                          value={attacker.y}
+                          onChange={(y) => onPatchAttacker(attacker.id, { y })}
+                          ariaLabel="Hammer Y coordinate"
+                        />
+                      </label>
                     </div>
-
-                    <div className="op-strip-card__military">
-                      <div className="op-strip-card__modifiers">
-                        <label className="op-modifier-inline" title="Speed Artifact">
-                          <span className="op-modifier-inline__tag">Artifact</span>
-                          <select
-                            className="select op-select-solid-sm"
-                            value={attacker.artifactMultiplier}
-                            onChange={(e) =>
-                              onPatchAttacker(attacker.id, {
-                                artifactMultiplier: Number(e.target.value) as Attacker['artifactMultiplier'],
-                              })
-                            }
-                          >
-                            <option value={1}>1.0×</option>
-                            <option value={1.5}>1.5×</option>
-                            <option value={2}>2.0×</option>
-                          </select>
-                        </label>
-
-                        <label className="op-modifier-inline" title="Bannerfield Level (+20% speed per level beyond 20 fields)">
-                          <span className="op-modifier-inline__tag">Bannerfield</span>
-                          <input
-                            className="text-input op-input-solid-sm"
-                            type="number"
-                            min={0}
-                            max={20}
-                            value={attacker.bannerfieldLevel}
-                            onChange={(e) =>
-                              onPatchAttacker(attacker.id, {
-                                bannerfieldLevel: Math.min(20, Math.max(0, Number(e.target.value) || 0)),
-                              })
-                            }
-                          />
-                          <span className="bannerfield-bonus-tag-sm">+{attacker.bannerfieldLevel * 20}%</span>
-                        </label>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      className="op-remove-danger"
-                      aria-label={`Delete hammer ${attacker.name}`}
-                      onClick={() => setDeletingAttacker(attacker)}
-                      title="Delete hammer"
-                    >
-                      🗑️
-                    </button>
                   </div>
 
-                  <div className="op-strip-card__inherited-safe">
-                    <span>🔒 Inherits <strong>{player.name || 'Member'}</strong>'s safe hours</span>
+                  <div className="op-strip-card__military">
+                    <div className="op-strip-card__modifiers">
+                      <label className="op-modifier-inline" title="Speed Artifact">
+                        <span className="op-modifier-inline__tag">Artifact</span>
+                        <select
+                          className="select op-select-solid-sm"
+                          value={attacker.artifactMultiplier}
+                          onChange={(e) =>
+                            onPatchAttacker(attacker.id, {
+                              artifactMultiplier: Number(e.target.value) as Attacker['artifactMultiplier'],
+                            })
+                          }
+                        >
+                          <option value={1}>1.0×</option>
+                          <option value={1.5}>1.5×</option>
+                          <option value={2}>2.0×</option>
+                        </select>
+                      </label>
+
+                      <label className="op-modifier-inline" title="Bannerfield Level (+20% speed per level beyond 20 fields)">
+                        <span className="op-modifier-inline__tag">Bannerfield</span>
+                        <input
+                          className="text-input op-input-solid-sm"
+                          type="number"
+                          min={0}
+                          max={20}
+                          value={attacker.bannerfieldLevel}
+                          onChange={(e) =>
+                            onPatchAttacker(attacker.id, {
+                              bannerfieldLevel: Math.min(20, Math.max(0, Number(e.target.value) || 0)),
+                            })
+                          }
+                        />
+                        <span className="bannerfield-bonus-tag-sm">+{attacker.bannerfieldLevel * 20}%</span>
+                      </label>
+                    </div>
                   </div>
+
+                  <button
+                    type="button"
+                    className="op-remove-danger op-remove-danger--sm"
+                    aria-label={`Delete hammer ${attacker.name}`}
+                    onClick={() => setDeletingAttacker(attacker)}
+                    title="Delete hammer"
+                  >
+                    🗑️
+                  </button>
                 </article>
               ))
             )}
@@ -718,6 +746,11 @@ export function PlayerGroupCard({
               onChange={(e) => onPatchPlayer({ name: e.target.value })}
               placeholder="Defender Account Name"
             />
+            <SafeTimeFields
+              owner={player}
+              compact={true}
+              onChange={(patch) => onPatchPlayer(patch)}
+            />
           </div>
 
           <div className="op-target-group__actions">
@@ -738,14 +771,6 @@ export function PlayerGroupCard({
               🗑️
             </button>
           </div>
-        </div>
-
-        <div className="op-target-group__player-safetime">
-          <SafeTimeFields
-            owner={player}
-            label={`${player.name || 'Defender'} Safe Hours`}
-            onChange={(patch) => onPatchPlayer(patch)}
-          />
         </div>
 
         <div className="op-group-dropdown-bar">
