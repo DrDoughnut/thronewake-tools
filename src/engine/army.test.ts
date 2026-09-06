@@ -306,3 +306,72 @@ describe('totals', () => {
     expect(group('workshop').queues).toHaveLength(1);
   });
 });
+
+describe('War Anvil artifacts', () => {
+  it('applies Large War Anvil to take 25% less training time', () => {
+    const baseQuery = one('barracks1', 20, 'barracks', ['emberblade'], { hours: 24 });
+    const standard = computeArmy(baseQuery, mods());
+    const largeAnvil = computeArmy({ ...baseQuery, warAnvil: 'large' }, mods());
+
+    const stdSeconds = outFor(standard, 'barracks1').secondsEach.emberblade;
+    const anvilSeconds = outFor(largeAnvil, 'barracks1').secondsEach.emberblade;
+
+    expect(anvilSeconds).toBeCloseTo(stdSeconds * 0.75, 5);
+    expect(largeAnvil.totals.units).toBeGreaterThan(standard.totals.units);
+  });
+
+  it('applies Small War Anvil to take 50% less training time in this village', () => {
+    const baseQuery = one('barracks1', 20, 'barracks', ['emberblade'], { hours: 24 });
+    const standard = computeArmy(baseQuery, mods());
+    const smallAnvil = computeArmy({ ...baseQuery, warAnvil: 'small' }, mods());
+
+    const stdSeconds = outFor(standard, 'barracks1').secondsEach.emberblade;
+    const anvilSeconds = outFor(smallAnvil, 'barracks1').secondsEach.emberblade;
+
+    expect(anvilSeconds).toBeCloseTo(stdSeconds * 0.5, 5);
+    expect(smallAnvil.totals.units).toBeGreaterThanOrEqual(standard.totals.units * 2);
+  });
+
+  it('applies Unique War Anvil to take 50% less training time for all villages', () => {
+    const baseQuery = one('barracks1', 20, 'barracks', ['emberblade'], { hours: 24 });
+    const standard = computeArmy(baseQuery, mods());
+    const uniqueAnvil = computeArmy({ ...baseQuery, warAnvil: 'unique' }, mods());
+
+    const stdSeconds = outFor(standard, 'barracks1').secondsEach.emberblade;
+    const anvilSeconds = outFor(uniqueAnvil, 'barracks1').secondsEach.emberblade;
+
+    expect(anvilSeconds).toBeCloseTo(stdSeconds * 0.5, 5);
+    expect(uniqueAnvil.totals.units).toBeGreaterThanOrEqual(standard.totals.units * 2);
+  });
+
+  it('accepts direct warAnvilReduction percentage override', () => {
+    const baseQuery = one('barracks1', 20, 'barracks', ['emberblade'], { hours: 24 });
+    const standard = computeArmy(baseQuery, mods());
+    const custom = computeArmy({ ...baseQuery, warAnvilReduction: 0.25 }, mods());
+
+    const stdSeconds = outFor(standard, 'barracks1').secondsEach.emberblade;
+    const customSeconds = outFor(custom, 'barracks1').secondsEach.emberblade;
+
+    expect(customSeconds).toBeCloseTo(stdSeconds * 0.75, 5);
+  });
+});
+
+describe('Secondary training building mutual exclusivity', () => {
+  it('enforces that only one secondary building produces units when both are specified', () => {
+    const r = computeArmy(
+      query({
+        levels: { barracks2: 20, stable2: 20 },
+        selection: { barracks: ['emberblade'], stable: ['crimson_lancer'] },
+        hours: 24,
+      }),
+      mods(),
+    );
+
+    const b2 = outFor(r, 'barracks2');
+    const s2 = outFor(r, 'stable2');
+
+    expect(b2.count).toBeGreaterThan(0);
+    expect(s2.count).toBe(0);
+    expect(s2.level).toBe(0);
+  });
+});

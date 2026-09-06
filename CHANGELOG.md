@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.8.1] - 2026-09-06
+
+- **Army Calculator Improvements**:
+  - **War Anvil Training Artifacts**: Added selector for **Small War Anvil** (troop training takes 50% less time in this village), **Large War Anvil** (troop training takes 25% less time for all villages), and **Unique War Anvil** (troop training takes 50% less time for all villages). Calculates exact reductions and increased unit output across all parallel queues with URL and storage sync.
+  - **Secondary Building Mutual Exclusivity**: Enforces the single secondary training building rule per village. If **Barracks #2** or **Stable #2** is active (>0), the other is automatically locked, crossed out, and greyed out. Setting or typing a level in the locked queue automatically switches to it and resets the other to 0.
+  - **Mobile 0-Level Reset Button**: Restored the quick `0` level reset button on mobile screens so mobile players can quickly clear queues without backspacing input text.
+
 ## [1.8.0] - 2026-08-22
 
 ### Added

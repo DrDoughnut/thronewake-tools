@@ -4,7 +4,7 @@ import { playableFactions } from '../data/factions';
 import { factionBuildingList, rules, type FactionBuildingKey } from '../data/rules';
 import { DIVISOR_META, NUMERATOR_META, RESOURCE_META } from '../data/statMeta';
 import { computeArmy, trainableUnits } from '../engine/army';
-import { DURATION_UNITS, SERVER_SPEEDS, toHours, useArmyState, type DurationUnit } from '../armyState';
+import { DURATION_UNITS, SERVER_SPEEDS, toHours, useArmyState, WAR_ANVIL_OPTIONS, type DurationUnit, type WarAnvilType } from '../armyState';
 import { Slider } from '../components/Slider';
 import { StatIcon } from '../components/StatIcon';
 import { UnitIcon } from '../components/UnitIcon';
@@ -32,6 +32,7 @@ export function ArmyCalculator() {
           hours: toHours(state.durationValue, state.durationUnit),
           speed: state.speed,
           speedBonus: state.speedBonusPercent / 100,
+          warAnvil: state.warAnvil,
           levels: state.levels,
           selection: state.selection,
         },
@@ -120,7 +121,37 @@ export function ArmyCalculator() {
               }
             />
           </label>
+
+          <label className="field-inline field-inline--anvil">
+            <span className="field-inline__label">War Anvil</span>
+            <select
+              className="select"
+              value={state.warAnvil}
+              onChange={(e) => patch({ warAnvil: e.target.value as WarAnvilType })}
+              aria-label="War Anvil artifact"
+            >
+              {WAR_ANVIL_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
+
+        {state.warAnvil !== 'none' && (
+          <div className="army__anvil-banner">
+            <span className="army__anvil-banner-icon" aria-hidden="true">⚡</span>
+            <span className="army__anvil-banner-text">
+              {state.warAnvil === 'small' &&
+                'Small War Anvil: Troop training takes 50% less time in this village'}
+              {state.warAnvil === 'large' &&
+                'Large War Anvil: Troop training takes 25% less time for all villages'}
+              {state.warAnvil === 'unique' &&
+                'Unique War Anvil: Troop training takes 50% less time for all villages'}
+            </span>
+          </div>
+        )}
 
         <div className="army__setup-row army__setup-row--sliders">
           <Slider
@@ -168,18 +199,47 @@ export function ArmyCalculator() {
                     const level = state.levels[queue.key] ?? 0;
                     const cap = maxLevel(queue);
                     const out = outputFor(queue.key);
+                    const isConflict =
+                      queue.key === 'barracks2'
+                        ? (state.levels.stable2 ?? 0) > 0
+                        : queue.key === 'stable2'
+                          ? (state.levels.barracks2 ?? 0) > 0
+                          : false;
+                    const conflictingWith =
+                      queue.key === 'barracks2' ? 'Stable #2' : 'Barracks #2';
 
                     return (
-                      <div className="qcell" key={queue.key}>
+                      <div
+                        className={`qcell ${isConflict ? 'qcell--conflict' : ''}`}
+                        key={queue.key}
+                      >
                         <div className="qcell__head">
-                          <span className="qcell__name">{queue.name}</span>
-                          {queue.building.costMultiplier !== 1 && (
+                          <span
+                            className={`qcell__name ${isConflict ? 'qcell__name--crossed' : ''}`}
+                            title={
+                              isConflict
+                                ? `Only one secondary building allowed (Barracks #2 or Stable #2). Currently active in ${conflictingWith}. Click any level button here to switch.`
+                                : undefined
+                            }
+                          >
+                            {queue.name}
+                          </span>
+                          {isConflict ? (
                             <span
-                              className="queue__tag"
-                              title="Units from here cost triple."
+                              className="queue__tag queue__tag--conflict"
+                              title={`Only one secondary building allowed. Click any button here to switch from ${conflictingWith}.`}
                             >
-                              ×{queue.building.costMultiplier}
+                              locked
                             </span>
+                          ) : (
+                            queue.building.costMultiplier !== 1 && (
+                              <span
+                                className="queue__tag"
+                                title="Units from here cost triple."
+                              >
+                                ×{queue.building.costMultiplier}
+                              </span>
+                            )
                           )}
                         </div>
 
@@ -227,8 +287,21 @@ export function ArmyCalculator() {
                         </div>
 
                         <div className="qcell__out">
-                          {level > 0 && picked.length > 0 ? `${fmt(out.count)} units` : 'idle'}
-                          {out.pushed && <span className="qcell__pushed"> · past cap</span>}
+                          {isConflict ? (
+                            <span
+                              className="qcell__out--conflict"
+                              title={`Only one secondary building allowed. Active in ${conflictingWith}.`}
+                            >
+                              Blocked by {conflictingWith}
+                            </span>
+                          ) : level > 0 && picked.length > 0 ? (
+                            `${fmt(out.count)} units`
+                          ) : (
+                            'idle'
+                          )}
+                          {out.pushed && !isConflict && (
+                            <span className="qcell__pushed"> · past cap</span>
+                          )}
                         </div>
                       </div>
                     );
@@ -259,9 +332,10 @@ export function ArmyCalculator() {
                             type="button"
                             className={`unit-pick ${active ? 'is-active' : ''}`}
                             aria-label={unit.name}
+                            aria-pressed={active}
                             title={
                               each
-                                ? `${unit.name} — ${duration(each)} each`
+                                ? `${unit.name} — ${duration(each)} each (${active ? 'selected' : 'click to build'})`
                                 : (unit.description ?? unit.name)
                             }
                             style={
@@ -270,6 +344,11 @@ export function ArmyCalculator() {
                             onClick={() => toggleUnit(group.key, unit.key)}
                           >
                             <UnitIcon unitRef={`${faction.key}/${unit.key}`} size={28} />
+                            {active && (
+                              <span className="unit-pick__check" aria-hidden="true">
+                                ✓
+                              </span>
+                            )}
                           </button>
                         );
                       })}

@@ -2,7 +2,7 @@
  * Player release notes. Bump `APP_VERSION` and add an entry here
  * whenever a change is worth telling returning players about.
  */
-export const APP_VERSION = '1.8.0';
+export const APP_VERSION = '1.8.1';
 
 export interface ChangelogEntry {
   version: string;
@@ -11,6 +11,15 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '1.8.1',
+    date: '2026-09-06',
+    changes: [
+      'War Anvil Artifacts: configure Small War Anvil (50% less training time in this village), Large War Anvil (25% less training time for all villages), or Unique War Anvil (50% less training time for all villages) in the Army Calculator.',
+      'Secondary Building Exclusivity: enforces single secondary training building rule (Barracks #2 or Stable #2), greying out and crossing out the conflicting queue.',
+      'Mobile Queue Controls: restored the 0-level reset button on mobile viewports for quick queue clearing.',
+    ],
+  },
   {
     version: '1.8.0',
     date: '2026-08-22',

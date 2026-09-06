@@ -15,6 +15,20 @@ import {
   type Modifiers,
 } from './stats';
 
+export type WarAnvilType = 'none' | 'small' | 'large' | 'unique';
+
+export function warAnvilReduction(type: WarAnvilType | undefined): number {
+  switch (type) {
+    case 'small':
+    case 'unique':
+      return 0.5;
+    case 'large':
+      return 0.25;
+    default:
+      return 0;
+  }
+}
+
 export interface ArmyQuery {
   faction: string;
   /** How long the queues run, in hours. */
@@ -23,6 +37,10 @@ export interface ArmyQuery {
   speed: number;
   /** Fractional training speed bonus; 0.25 means 25% faster. */
   speedBonus: number;
+  /** War Anvil artifact: 'large' (25% less time), 'unique' (50% less time), or 'none'. */
+  warAnvil?: WarAnvilType;
+  /** Direct fractional reduction (0.25, 0.50), overriding `warAnvil` if specified. */
+  warAnvilReduction?: number;
   /** Building level per queue key. */
   levels: Record<string, number>;
   /** Selected unit keys per group key. */
@@ -106,6 +124,14 @@ export function computeArmy(query: ArmyQuery, mods: Modifiers): ArmyResult {
   const faction = factionByKey(query.faction);
   const speed = query.speed > 0 ? query.speed : 1;
   const totalSeconds = Math.max(0, query.hours) * 3600;
+  const anvilReduction =
+    query.warAnvilReduction ?? warAnvilReduction(query.warAnvil);
+
+  // Enforce single secondary building invariant: either Barracks #2 or Stable #2
+  const effectiveLevels = { ...query.levels };
+  if ((effectiveLevels.barracks2 ?? 0) > 0 && (effectiveLevels.stable2 ?? 0) > 0) {
+    effectiveLevels.stable2 = 0;
+  }
 
   const counts = new Map<string, number>();
   const outputs: QueueOutput[] = [];
@@ -118,7 +144,7 @@ export function computeArmy(query: ArmyQuery, mods: Modifiers): ArmyResult {
       );
 
     for (const queue of group.queues) {
-      const level = clampLevel(query.levels[queue.key] ?? 0, queue);
+      const level = clampLevel(effectiveLevels[queue.key] ?? 0, queue);
       const buildingSpeed = queue.building.speed[level] ?? 0;
 
       const secondsEach: Record<string, number> = {};
@@ -130,7 +156,14 @@ export function computeArmy(query: ArmyQuery, mods: Modifiers): ArmyResult {
         const share = totalSeconds / selected.length;
         for (const unit of selected) {
           const each =
-            trainingSeconds(faction, unit, buildingSpeed, mods, query.speedBonus) / speed;
+            trainingSeconds(
+              faction,
+              unit,
+              buildingSpeed,
+              mods,
+              query.speedBonus,
+              anvilReduction,
+            ) / speed;
           secondsEach[unit.key] = each;
           const made = each > 0 ? Math.floor(share / each) : 0;
           queueCount += made;

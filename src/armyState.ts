@@ -23,6 +23,42 @@ export const HOURS_PER_UNIT: Record<DurationUnit, number> = {
 
 export const toHours = (value: number, unit: DurationUnit) => value * HOURS_PER_UNIT[unit];
 
+export type WarAnvilType = 'none' | 'small' | 'large' | 'unique';
+
+export interface WarAnvilOption {
+  value: WarAnvilType;
+  label: string;
+  reduction: number;
+  description: string;
+}
+
+export const WAR_ANVIL_OPTIONS: readonly WarAnvilOption[] = [
+  {
+    value: 'none',
+    label: 'None',
+    reduction: 0,
+    description: 'No training artifact active',
+  },
+  {
+    value: 'small',
+    label: 'Small War Anvil (-50%)',
+    reduction: 0.5,
+    description: 'Troop training takes 50% less time in this village',
+  },
+  {
+    value: 'large',
+    label: 'Large War Anvil (-25%)',
+    reduction: 0.25,
+    description: 'Troop training takes 25% less time for all villages',
+  },
+  {
+    value: 'unique',
+    label: 'Unique War Anvil (-50%)',
+    reduction: 0.5,
+    description: 'Troop training takes 50% less time for all villages',
+  },
+] as const;
+
 export interface ArmyState extends Modifiers {
   faction: string;
   /** Length of the production run, as typed. Converted to hours via `toHours`. */
@@ -32,6 +68,8 @@ export interface ArmyState extends Modifiers {
   speed: number;
   /** Percentage, as typed: 25 means +25% training speed. */
   speedBonusPercent: number;
+  /** War Anvil artifact type. */
+  warAnvil: WarAnvilType;
   /** Building level per queue key. */
   levels: Record<string, number>;
   /** Selected unit keys per group key. */
@@ -54,6 +92,7 @@ export const initialArmyState: ArmyState = {
   durationUnit: 'days',
   speed: DEFAULT_SPEED,
   speedBonusPercent: 0,
+  warAnvil: 'none',
   smithy: 0,
   buildings: noBuildings(),
   levels: zeroLevels(),
@@ -101,6 +140,7 @@ function encode(state: ArmyState): string {
   p.set('hu', state.durationUnit);
   p.set('x', String(state.speed));
   if (state.speedBonusPercent) p.set('sb', String(state.speedBonusPercent));
+  if (state.warAnvil && state.warAnvil !== 'none') p.set('wa', state.warAnvil);
   if (state.smithy) p.set('sm', String(state.smithy));
   for (const b of factionBuildingList) {
     const level = state.buildings[b.key as FactionBuildingKey];
@@ -141,6 +181,16 @@ function decode(hash: string): ArmyState {
     ? (unitRaw as DurationUnit)
     : initialArmyState.durationUnit;
 
+  const waRaw = p.get('wa') ?? p.get('anvil');
+  const warAnvil: WarAnvilType =
+    waRaw === 'small'
+      ? 'small'
+      : waRaw === 'large'
+        ? 'large'
+        : waRaw === 'unique'
+          ? 'unique'
+          : initialArmyState.warAnvil;
+
   return {
     faction,
     durationValue:
@@ -149,11 +199,18 @@ function decode(hash: string): ArmyState {
     durationUnit,
     speed,
     speedBonusPercent: num('sb', 1000),
+    warAnvil,
     smithy: num('sm', rules.smithy.researchMaxLevel),
     buildings: Object.fromEntries(
       factionBuildingList.map((b) => [b.key, num(b.key, b.maxLevel)]),
     ) as Record<FactionBuildingKey, number>,
-    levels: Object.fromEntries(queues.map((q) => [q.key, num(q.key, maxLevel(q))])),
+    levels: (() => {
+      const levs = Object.fromEntries(queues.map((q) => [q.key, num(q.key, maxLevel(q))]));
+      if ((levs.barracks2 ?? 0) > 0 && (levs.stable2 ?? 0) > 0) {
+        levs.stable2 = 0;
+      }
+      return levs;
+    })(),
     selection: Object.fromEntries(
       queueGroups.map((g) => {
         const raw = p.get(`u_${g.key}`);
@@ -179,6 +236,8 @@ export function hasArmyHashParams(hash: string): boolean {
     'hu',
     'x',
     'sb',
+    'wa',
+    'anvil',
     'sm',
     ...factionBuildingList.map((b) => b.key),
     ...queues.map((q) => q.key),
@@ -209,6 +268,14 @@ export function sanitizeArmyState(saved: Partial<ArmyState> | null | undefined):
   const durationValue =
     clamp(Number(saved.durationValue) || 0, 1, 100000) || initialArmyState.durationValue;
   const speedBonusPercent = clamp(Number(saved.speedBonusPercent) || 0, 0, 1000);
+  const warAnvil: WarAnvilType =
+    saved.warAnvil === 'small'
+      ? 'small'
+      : saved.warAnvil === 'large'
+        ? 'large'
+        : saved.warAnvil === 'unique'
+          ? 'unique'
+          : initialArmyState.warAnvil;
   const smithy = clamp(Number(saved.smithy) || 0, 0, rules.smithy.researchMaxLevel);
 
   const buildings = Object.fromEntries(
@@ -224,6 +291,9 @@ export function sanitizeArmyState(saved: Partial<ArmyState> | null | undefined):
       clamp(Number(saved.levels?.[q.key]) || 0, 0, maxLevel(q)),
     ]),
   );
+  if ((levels.barracks2 ?? 0) > 0 && (levels.stable2 ?? 0) > 0) {
+    levels.stable2 = 0;
+  }
 
   const selection = Object.fromEntries(
     queueGroups.map((g) => {
@@ -244,6 +314,7 @@ export function sanitizeArmyState(saved: Partial<ArmyState> | null | undefined):
     durationUnit,
     speed,
     speedBonusPercent,
+    warAnvil,
     smithy,
     buildings,
     levels,
@@ -291,7 +362,17 @@ export function useArmyState() {
   }, []);
 
   const setLevel = useCallback((key: string, level: number) => {
-    setState((prev) => ({ ...prev, levels: { ...prev.levels, [key]: level } }));
+    setState((prev) => {
+      const nextLevels = { ...prev.levels, [key]: level };
+      // Only one secondary training building is allowed in a village:
+      // setting Barracks #2 clears Stable #2, and vice versa.
+      if (key === 'barracks2' && level > 0) {
+        nextLevels.stable2 = 0;
+      } else if (key === 'stable2' && level > 0) {
+        nextLevels.barracks2 = 0;
+      }
+      return { ...prev, levels: nextLevels };
+    });
   }, []);
 
   /** Toggle a unit in a group's selection, keeping roster order. */

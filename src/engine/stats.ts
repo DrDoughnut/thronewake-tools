@@ -79,10 +79,11 @@ export function trainingSeconds(
   buildingSpeed: number,
   mods: Modifiers,
   speedBonus = 0,
+  anvilReduction = 0,
 ): number {
   const level = unit.stabled ? levelFor(faction, 'ridersWells', mods) : 0;
   const discount = 1 - factionBuildings.ridersWells.trainingSpeedPerLevel * level;
-  return (unit.time * buildingSpeed * discount) / (1 + speedBonus);
+  return (unit.time * buildingSpeed * discount * (1 - anvilReduction)) / (1 + speedBonus);
 }
 
 /**

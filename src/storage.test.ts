@@ -68,6 +68,17 @@ describe('Army Calculator State Persistence', () => {
     expect(state.durationUnit).toBe('hours');
   });
 
+  it('decodes War Anvil artifact from URL hash', () => {
+    window.location.hash = '#tool=army&f=embermark_dominion&wa=small';
+    expect(loadInitialArmyState().warAnvil).toBe('small');
+
+    window.location.hash = '#tool=army&f=embermark_dominion&wa=large';
+    expect(loadInitialArmyState().warAnvil).toBe('large');
+
+    window.location.hash = '#tool=army&f=embermark_dominion&anvil=unique';
+    expect(loadInitialArmyState().warAnvil).toBe('unique');
+  });
+
   it('sanitizes invalid or corrupted values in stored army state', () => {
     const sanitized = sanitizeArmyState({
       faction: 'invalid_faction_key',
@@ -75,6 +86,7 @@ describe('Army Calculator State Persistence', () => {
       durationUnit: 'invalid_unit' as any,
       speed: 999 as any,
       speedBonusPercent: 99999,
+      warAnvil: 'corrupted_anvil' as any,
     });
 
     expect(sanitized.faction).toBe('embermark_dominion');
@@ -82,6 +94,21 @@ describe('Army Calculator State Persistence', () => {
     expect(sanitized.durationUnit).toBe('days');
     expect(sanitized.speed).toBe(3);
     expect(sanitized.speedBonusPercent).toBe(1000);
+    expect(sanitized.warAnvil).toBe('none');
+  });
+
+  it('enforces single secondary building in stored state', () => {
+    const sanitized = sanitizeArmyState({
+      levels: {
+        barracks1: 20,
+        barracks2: 20,
+        stable1: 20,
+        stable2: 20,
+      } as any,
+    });
+
+    expect(sanitized.levels.barracks2).toBe(20);
+    expect(sanitized.levels.stable2).toBe(0);
   });
 });
 
