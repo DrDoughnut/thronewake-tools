@@ -451,6 +451,66 @@ describe('operation-level target modes', () => {
     expect(result.operations[0].fakeTargetIds).toEqual(['existing']);
   });
 
+  it('updates existing villages at matching coordinates instead of duplicating them', () => {
+    const existingTarget = {
+      id: 'tgt-orig',
+      name: 'Old Name',
+      x: 15,
+      y: -25,
+      fake: false,
+      playerId: 'p1',
+      safeEnabled: false,
+      safeStart: '22:00',
+      safeEnd: '04:00',
+      isCapital: false,
+      isCity: false,
+    };
+    const result = importPlanIntoMasterRoster(
+      {
+        attackers: [],
+        players: [{ id: 'p1', name: 'Enemy Player', safeEnabled: false, safeStart: '22:00', safeEnd: '04:00' }],
+        targets: [existingTarget],
+      },
+      [],
+      {
+        landing: '2026-08-20T12:00',
+        serverSpeed: 3,
+        attackers: [],
+        players: [{ id: 'p_imp', name: 'Enemy Player', safeEnabled: false, safeStart: '22:00', safeEnd: '04:00' }],
+        targets: [
+          {
+            id: 'imp-t1',
+            name: 'New Name',
+            x: 15,
+            y: -25,
+            fake: true,
+            playerId: 'p_imp',
+            safeEnabled: false,
+            safeStart: '22:00',
+            safeEnd: '04:00',
+            isCapital: true,
+            isCity: true,
+            artifactName: 'War Anvil',
+          },
+        ],
+      },
+      'new_wave',
+    );
+
+    expect(result.roster.targets).toHaveLength(1);
+    expect(result.roster.targets[0]).toMatchObject({
+      id: 'tgt-orig',
+      name: 'New Name',
+      x: 15,
+      y: -25,
+      isCapital: true,
+      isCity: true,
+      artifactName: 'War Anvil',
+    });
+    expect(result.summary.targetsReused).toBe(1);
+    expect(result.summary.targetsAdded).toBe(0);
+  });
+
   it('preserves custom operation icons across migrateToMasterRoster loads', () => {
     const migrated = migrateToMasterRoster({
       version: 2,
@@ -710,28 +770,38 @@ Population
 
     expect(parsed?.targets).toHaveLength(8);
     expect(parsed?.targets[0]).toMatchObject({
-      name: 'Byzantion [Capital, City, Small Great Storage Plan]',
+      name: 'Byzantion',
       x: -8,
       y: -33,
       fake: true,
+      isCapital: true,
+      isCity: true,
+      artifactName: 'Small Great Storage Plan',
     });
     expect(parsed?.targets[1]).toMatchObject({
-      name: 'Constantinopole [City]',
+      name: 'Constantinopole',
       x: -7,
       y: -41,
       fake: true,
+      isCapital: false,
+      isCity: true,
     });
     expect(parsed?.targets[2]).toMatchObject({
-      name: 'Istanbul [Small Shadow Veil]',
+      name: 'Istanbul',
       x: -13,
       y: -37,
       fake: true,
+      isCapital: false,
+      isCity: false,
+      artifactName: 'Small Shadow Veil',
     });
     expect(parsed?.targets[3]).toMatchObject({
-      name: 'Ligos [City]',
+      name: 'Ligos',
       x: 0,
       y: -20,
       fake: true,
+      isCapital: false,
+      isCity: true,
     });
     expect(parsed?.targets[4]).toMatchObject({
       name: 'Carigrad',
@@ -886,34 +956,48 @@ Population
     expect(parsed?.targets).toHaveLength(9);
 
     expect(parsed?.targets[0]).toMatchObject({
-      name: '03 - Sorona [City, Small Harvest Horn]',
+      name: '03 - Sorona',
       x: -33,
       y: -32,
+      isCapital: false,
+      isCity: true,
+      artifactName: 'Small Harvest Horn',
     });
     expect(parsed?.targets[1]).toMatchObject({
-      name: '02 - AI Station 404 [Capital]',
+      name: '02 - AI Station 404',
       x: -34,
       y: -31,
+      isCapital: true,
+      isCity: false,
     });
     expect(parsed?.targets[2]).toMatchObject({
-      name: "06 - Starstorm Station [City, Small Trickster's Mirror]",
+      name: '06 - Starstorm Station',
       x: -33,
       y: -33,
+      isCapital: false,
+      isCity: true,
+      artifactName: "Small Trickster's Mirror",
     });
     expect(parsed?.targets[3]).toMatchObject({
-      name: '05 - AI Station 205 [City]',
+      name: '05 - AI Station 205',
       x: -27,
       y: -30,
+      isCapital: false,
+      isCity: true,
     });
     expect(parsed?.targets[4]).toMatchObject({
-      name: '04 - Aiguillon [City]',
+      name: '04 - Aiguillon',
       x: -37,
       y: -31,
+      isCapital: false,
+      isCity: true,
     });
     expect(parsed?.targets[5]).toMatchObject({
-      name: '08 - Eiron [City]',
+      name: '08 - Eiron',
       x: -32,
       y: -33,
+      isCapital: false,
+      isCity: true,
     });
     expect(parsed?.targets[6]).toMatchObject({
       name: '01 - Ribbit IV',

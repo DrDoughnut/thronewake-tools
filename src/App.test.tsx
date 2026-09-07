@@ -910,6 +910,41 @@ describe('the operation planner', () => {
     }
   });
 
+  it('supports toggling Capital, City, and Artifact on villages in Target Directory', () => {
+    // In v1 Operation Planner, Defender accounts and villages are rendered in .op-defenders-list
+    const capBtn = container.querySelector('.op-village-tag-btn--cap') as HTMLButtonElement;
+    expect(capBtn).toBeTruthy();
+    expect(capBtn.classList.contains('is-active')).toBe(false);
+    click(capBtn);
+    expect(capBtn.classList.contains('is-active')).toBe(true);
+
+    // Toggle City button
+    const cityBtn = container.querySelector('.op-village-tag-btn--city') as HTMLButtonElement;
+    expect(cityBtn).toBeTruthy();
+    expect(cityBtn.classList.contains('is-active')).toBe(false);
+    click(cityBtn);
+    expect(cityBtn.classList.contains('is-active')).toBe(true);
+
+    // Click Artifact button to open popover
+    const artBtn = container.querySelector('.op-village-tag-btn--art') as HTMLButtonElement;
+    expect(artBtn).toBeTruthy();
+    click(artBtn);
+
+    const popover = container.querySelector('.op-artifact-popover');
+    expect(popover).toBeTruthy();
+
+    // Pick "Harvest Horn" preset
+    const presetBtn = [...popover!.querySelectorAll('.op-artifact-preset-btn')].find(
+      (b) => b.textContent?.includes('Harvest Horn'),
+    ) as HTMLButtonElement;
+    expect(presetBtn).toBeTruthy();
+    click(presetBtn);
+
+    // Verify artifact button now shows name and is-active
+    expect(artBtn.textContent).toContain('Harvest Horn');
+    expect(artBtn.classList.contains('is-active')).toBe(true);
+  });
+
   it('supports importing and seeding plans from shared links via the Import Plan modal', async () => {
     const originalFetch = globalThis.fetch;
     globalThis.fetch = vi.fn().mockResolvedValue({

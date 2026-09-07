@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { Attacker, Player, Target } from '../engine/operations';
-import { enforceMaxSafeWindow, safeWindowDurationMinutes, parseClock } from '../engine/operations';
+import { enforceMaxSafeWindow, safeWindowDurationMinutes, parseClock, extractLegacyTags } from '../engine/operations';
 import { UnitGridPicker } from './UnitGridPicker';
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 
@@ -697,6 +697,95 @@ export function AllianceArmiesModal({
   );
 }
 
+const COMMON_ARTIFACTS = [
+  'Wind Boots',
+  'Shadow Veil',
+  'Stone Shield',
+  "Trickster's Mirror",
+  'Great Storage Plan',
+  "Seer's Eye",
+  'Harvest Horn',
+  'War Anvil',
+  'Monument Plans',
+];
+
+interface ArtifactPickerProps {
+  currentArtifact: string;
+  onSelect: (art: string) => void;
+  onClose: () => void;
+}
+
+function ArtifactPicker({ currentArtifact, onSelect, onClose }: ArtifactPickerProps) {
+  const [customText, setCustomText] = useState(currentArtifact || '');
+  const popoverRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [onClose]);
+
+  return (
+    <div className="op-artifact-popover" ref={popoverRef} onClick={(e) => e.stopPropagation()}>
+      <div className="op-artifact-popover__title">Select or Enter Artifact</div>
+      <div className="op-artifact-popover__presets">
+        {COMMON_ARTIFACTS.map((name) => (
+          <button
+            key={name}
+            type="button"
+            className={`op-artifact-preset-btn ${currentArtifact === name ? 'is-active' : ''}`}
+            onClick={() => {
+              onSelect(name);
+              onClose();
+            }}
+          >
+            {name}
+          </button>
+        ))}
+      </div>
+      <form
+        className="op-artifact-popover__custom"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (customText.trim()) {
+            onSelect(customText.trim());
+          }
+          onClose();
+        }}
+      >
+        <input
+          className="text-input op-artifact-input"
+          placeholder="Custom artifact name..."
+          value={customText}
+          onChange={(e) => setCustomText(e.target.value)}
+          autoFocus
+        />
+        <div className="op-artifact-popover__actions">
+          {currentArtifact && (
+            <button
+              type="button"
+              className="pill pill--tiny pill--danger"
+              onClick={() => {
+                onSelect('');
+                onClose();
+              }}
+            >
+              Clear
+            </button>
+          )}
+          <button type="submit" className="pill pill--tiny pill--primary">
+            Set
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
 // ── Defender Player Group Card ─────────────────────────────────────────────
 
 export interface PlayerGroupCardProps {
@@ -725,11 +814,25 @@ export function PlayerGroupCard({
   const [isConfirmingDeletePlayer, setIsConfirmingDeletePlayer] = useState(false);
   const [deletingTarget, setDeletingTarget] = useState<Target | null>(null);
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+  const [openArtifactPickerId, setOpenArtifactPickerId] = useState<string | null>(null);
   const playerVillages = targets.filter((t) => t.playerId === player.id);
 
   const handleAddVillage = () => {
     setIsExpanded(true);
     onAddVillage();
+  };
+
+  const handleToggleCapital = (target: Target) => {
+    const nextIsCap = !target.isCapital;
+    if (nextIsCap) {
+      // Clear capital on any other village for this defender
+      playerVillages.forEach((v) => {
+        if (v.id !== target.id && v.isCapital) {
+          onPatchTarget(v.id, { isCapital: false });
+        }
+      });
+    }
+    onPatchTarget(target.id, { isCapital: nextIsCap });
   };
 
   return (
@@ -792,53 +895,104 @@ export function PlayerGroupCard({
                 No villages for this defender. Click "+ Add Village" above to add one.
               </div>
             ) : (
-              playerVillages.map((target, vIdx) => (
-                <article
-                  className="op-strip-card op-strip-card--target"
-                  key={target.id}
-                >
-                  <div className="op-strip-card__identity">
-                    <span className="op-card__idx">#{vIdx + 1}</span>
-                    <input
-                      className="text-input op-card__name"
-                      aria-label="Village name"
-                      placeholder="Village name"
-                      value={target.name}
-                      onChange={(e) => onPatchTarget(target.id, { name: e.target.value })}
-                    />
-                    <div className="coord-inline">
-                      <label className="coord-field">
-                        <span className="coord-field__tag">X</span>
-                        <CoordInput
-                          value={target.x}
-                          onChange={(x) => onPatchTarget(target.id, { x })}
-                          ariaLabel="Village X coordinate"
-                        />
-                      </label>
-                      <label className="coord-field">
-                        <span className="coord-field__tag">Y</span>
-                        <CoordInput
-                          value={target.y}
-                          onChange={(y) => onPatchTarget(target.id, { y })}
-                          ariaLabel="Village Y coordinate"
-                        />
-                      </label>
-                    </div>
-                  </div>
+              playerVillages.map((rawTarget, vIdx) => {
+                const target = extractLegacyTags(rawTarget);
+                return (
+                  <article
+                    className="op-strip-card op-strip-card--target"
+                    key={target.id}
+                  >
+                    <div className="op-strip-card__identity">
+                      <span className="op-card__idx">#{vIdx + 1}</span>
+                      <input
+                        className="text-input op-card__name"
+                        aria-label="Village name"
+                        placeholder="Village name"
+                        value={target.name}
+                        onChange={(e) => onPatchTarget(target.id, { name: e.target.value })}
+                      />
+                      <div className="coord-inline">
+                        <label className="coord-field">
+                          <span className="coord-field__tag">X</span>
+                          <CoordInput
+                            value={target.x}
+                            onChange={(x) => onPatchTarget(target.id, { x })}
+                            ariaLabel="Village X coordinate"
+                          />
+                        </label>
+                        <label className="coord-field">
+                          <span className="coord-field__tag">Y</span>
+                          <CoordInput
+                            value={target.y}
+                            onChange={(y) => onPatchTarget(target.id, { y })}
+                            ariaLabel="Village Y coordinate"
+                          />
+                        </label>
+                      </div>
 
-                  <div className="op-strip-card__target-meta">
-                    <button
-                      type="button"
-                      className="op-remove-danger op-remove-danger--sm"
-                      aria-label={`Remove ${target.name}`}
-                      onClick={() => setDeletingTarget(target)}
-                      title="Delete village"
-                    >
-                      🗑️
-                    </button>
-                  </div>
-                </article>
-              ))
+                      {/* Togglable Buttons: Capital, City, Artifact */}
+                      <div className="op-village-tags-group">
+                        <button
+                          type="button"
+                          className={`op-village-tag-btn op-village-tag-btn--cap ${target.isCapital ? 'is-active' : ''}`}
+                          onClick={() => handleToggleCapital(target)}
+                          title={target.isCapital ? 'Capital village (Click to remove)' : 'Mark as Capital'}
+                        >
+                          👑 Capital
+                        </button>
+                        <button
+                          type="button"
+                          className={`op-village-tag-btn op-village-tag-btn--city ${target.isCity ? 'is-active' : ''}`}
+                          onClick={() => onPatchTarget(target.id, { isCity: !target.isCity })}
+                          title={target.isCity ? 'City village (Click to remove)' : 'Mark as City'}
+                        >
+                          🏛️ City
+                        </button>
+                        <div className="op-village-artifact-wrap">
+                          {target.artifactName ? (
+                            <button
+                              type="button"
+                              className="op-village-tag-btn op-village-tag-btn--art is-active"
+                              onClick={() => setOpenArtifactPickerId(openArtifactPickerId === target.id ? null : target.id)}
+                              title={`Artifact: ${target.artifactName} (Click to change)`}
+                            >
+                              🏺 {target.artifactName}
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              className="op-village-tag-btn op-village-tag-btn--art"
+                              onClick={() => setOpenArtifactPickerId(openArtifactPickerId === target.id ? null : target.id)}
+                              title="Assign an artifact to this village"
+                            >
+                              + Artifact
+                            </button>
+                          )}
+                          {openArtifactPickerId === target.id && (
+                            <ArtifactPicker
+                              currentArtifact={target.artifactName || ''}
+                              onSelect={(art) => onPatchTarget(target.id, { artifactName: art })}
+                              onClose={() => setOpenArtifactPickerId(null)}
+                            />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="op-strip-card__target-meta">
+                      <button
+                        type="button"
+                        className="op-remove-danger op-remove-danger--sm"
+                        aria-label={`Remove ${target.name}`}
+                        onClick={() => setDeletingTarget(target)}
+                        title="Delete village"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  </article>
+                );
+              })
             )}
           </div>
         )}

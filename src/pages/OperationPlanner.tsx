@@ -26,6 +26,7 @@ import {
   travelHours,
   migrateToMasterRoster,
   importPlanIntoMasterRoster,
+  extractLegacyTags,
   mergeTeamRoomData,
   type ImportMode,
   type MasterRoster,
@@ -80,6 +81,9 @@ interface Target extends SafeTimeOwner {
   fake: boolean;
   playerId: string;
   active?: boolean;
+  isCapital?: boolean;
+  isCity?: boolean;
+  artifactName?: string;
 }
 
 interface PlannerState {
@@ -220,6 +224,9 @@ export function decodeState(rawHash?: string): PlannerState {
         safeEnabled: Boolean(tgt.safeEnabled),
         safeStart: tgt.safeStart || '22:00',
         safeEnd: tgt.safeEnd || '04:00',
+        isCapital: Boolean(tgt.isCapital),
+        isCity: Boolean(tgt.isCity),
+        artifactName: tgt.artifactName || '',
       }));
 
       return {
@@ -295,9 +302,10 @@ export function decodeState(rawHash?: string): PlannerState {
 
         const cleanTargets: Target[] = (parsed.targets.length ? parsed.targets : fallback.targets).map((tgt, idx) => {
           const safe = enforceMaxSafeWindow(tgt?.safeStart || '22:00', tgt?.safeEnd || '04:00', 'start');
+          const legacyMeta = extractLegacyTags(tgt as Target);
           return {
             id: typeof tgt?.id === 'string' && tgt.id ? tgt.id : `t${idx + 1}`,
-            name: typeof tgt?.name === 'string' && tgt.name ? tgt.name : `Village ${idx + 1}`,
+            name: typeof tgt?.name === 'string' && tgt.name ? legacyMeta.name : `Village ${idx + 1}`,
             x: Number(tgt?.x) || 0,
             y: Number(tgt?.y) || 0,
             fake: Boolean(tgt?.fake),
@@ -305,6 +313,9 @@ export function decodeState(rawHash?: string): PlannerState {
             safeEnabled: Boolean(tgt?.safeEnabled),
             safeStart: safe.safeStart,
             safeEnd: safe.safeEnd,
+            isCapital: legacyMeta.isCapital,
+            isCity: legacyMeta.isCity,
+            artifactName: legacyMeta.artifactName,
           };
         });
 
@@ -969,6 +980,20 @@ function ScheduleTimeline({
                   ? `${route.targetSafe.sourceName}: ${route.target.name}`
                   : route.target.name}
               </strong>
+              {(() => {
+                const meta = extractLegacyTags(route.target);
+                return (
+                  <>
+                    {meta.isCapital && <span className="op-badge-tag op-badge-tag--cap">👑 Cap</span>}
+                    {meta.isCity && <span className="op-badge-tag op-badge-tag--city">🏛️ City</span>}
+                    {meta.artifactName && (
+                      <span className="op-badge-tag op-badge-tag--art" title={`Artifact: ${meta.artifactName}`}>
+                        🏺 {meta.artifactName}
+                      </span>
+                    )}
+                  </>
+                );
+              })()}
               <a
                 href={`https://www.thronewake.com/map/tile/${route.target.x}/${route.target.y}?center=true`}
                 target="_blank"
@@ -2543,6 +2568,7 @@ export function OperationPlanner({
                     visibleRoutes.map((route) => {
                       const countdown = getCountdownInfo(route.send, now);
                       const defenderName = route.targetSafe.sourceName || route.target.name;
+                      const tgtMeta = extractLegacyTags(route.target);
                       const hasDifferentVillageName =
                         route.targetSafe.sourceName && route.targetSafe.sourceName !== route.target.name;
                       const attackerName =
@@ -2570,6 +2596,13 @@ export function OperationPlanner({
                                 <strong className="op-route-attacker">{attackerName}</strong>
                                 <span className="op-route-arrow" aria-hidden="true">➔</span>
                                 <strong className="op-route-target">{defenderName}</strong>
+                                {tgtMeta.isCapital && <span className="op-badge-tag op-badge-tag--cap">👑 Cap</span>}
+                                {tgtMeta.isCity && <span className="op-badge-tag op-badge-tag--city">🏛️ City</span>}
+                                {tgtMeta.artifactName && (
+                                  <span className="op-badge-tag op-badge-tag--art" title={`Artifact: ${tgtMeta.artifactName}`}>
+                                    🏺 {tgtMeta.artifactName}
+                                  </span>
+                                )}
                                 <span className={`op-hit-tag ${route.target.fake ? 'is-fake' : 'is-real'}`}>
                                   {route.target.fake ? 'Fake' : 'Real'}
                                 </span>

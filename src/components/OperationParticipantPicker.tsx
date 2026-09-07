@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import type { Attacker, Player, Target } from '../engine/operations';
+import { extractLegacyTags } from '../engine/operations';
 import { lookup, type UnitRef } from '../data/factions';
 import { UnitGridPicker } from './UnitGridPicker';
 
@@ -277,7 +278,8 @@ export function OperationParticipantPicker({
                   </div>
 
                   <div className="op-participant-chips op-participant-chips--vertical">
-                    {group.targets.map((tgt) => {
+                    {group.targets.map((rawTgt) => {
+                      const tgt = extractLegacyTags(rawTgt);
                       const isSelected = assignedTargetIds.includes(tgt.id);
                       const isFake = fakeTargetIds.includes(tgt.id);
 
@@ -296,6 +298,13 @@ export function OperationParticipantPicker({
                             </span>
                             <span className="op-participant-chip__name">{tgt.name || 'Village'}</span>
                             <span className="op-participant-chip__meta">({tgt.x}|{tgt.y})</span>
+                            {tgt.isCapital && <span className="op-badge-tag op-badge-tag--cap">👑 Cap</span>}
+                            {tgt.isCity && <span className="op-badge-tag op-badge-tag--city">🏛️ City</span>}
+                            {tgt.artifactName && (
+                              <span className="op-badge-tag op-badge-tag--art" title={`Artifact: ${tgt.artifactName}`}>
+                                🏺 {tgt.artifactName}
+                              </span>
+                            )}
                             {!group.player && tgt.safeEnabled && (
                               <span className="op-safetime__tag is-enabled op-safetime__tag--mini">
                                 🛡️ {tgt.safeStart}–{tgt.safeEnd}
