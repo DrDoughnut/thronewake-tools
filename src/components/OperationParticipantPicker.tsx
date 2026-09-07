@@ -160,6 +160,13 @@ export function OperationParticipantPicker({
                 >
                   <div className="op-participant-player-header op-participant-player-header--attacker">
                     <span>Member: <strong>{group.player ? group.player.name : 'Alliance Member'}</strong></span>
+                    {group.player && (
+                      <span className={`op-safetime__tag ${group.player.safeEnabled ? 'is-enabled' : ''}`}>
+                        {group.player.safeEnabled
+                          ? `🛡️ ${group.player.safeStart}–${group.player.safeEnd} UTC`
+                          : '🛡️ Safe: Off'}
+                      </span>
+                    )}
                   </div>
 
                   <div className="op-participant-chips op-participant-chips--vertical">
@@ -260,6 +267,13 @@ export function OperationParticipantPicker({
                 <div key={group.player?.id || `unassigned-${idx}`} className="op-participant-player-block">
                   <div className="op-participant-player-header">
                     <span>Defender: <strong>{group.player ? group.player.name : 'Unassigned Account'}</strong></span>
+                    {group.player && (
+                      <span className={`op-safetime__tag ${group.player.safeEnabled ? 'is-enabled' : ''}`}>
+                        {group.player.safeEnabled
+                          ? `🛡️ ${group.player.safeStart}–${group.player.safeEnd} UTC`
+                          : '🛡️ Safe: Off'}
+                      </span>
+                    )}
                   </div>
 
                   <div className="op-participant-chips op-participant-chips--vertical">
@@ -282,6 +296,11 @@ export function OperationParticipantPicker({
                             </span>
                             <span className="op-participant-chip__name">{tgt.name || 'Village'}</span>
                             <span className="op-participant-chip__meta">({tgt.x}|{tgt.y})</span>
+                            {!group.player && tgt.safeEnabled && (
+                              <span className="op-safetime__tag is-enabled op-safetime__tag--mini">
+                                🛡️ {tgt.safeStart}–{tgt.safeEnd}
+                              </span>
+                            )}
                           </label>
                           {isSelected && (
                             <button

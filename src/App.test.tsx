@@ -803,6 +803,59 @@ describe('the operation planner', () => {
     expect(container.querySelector(".op-hit-tag")?.textContent).toContain("Fake");
   });
 
+  it('displays the daily safetime schedule and participant safetime tags on both setup and routes pages', async () => {
+    const opTab = [...container.querySelectorAll('.pill--tool')].find(
+      (b) => b.getAttribute('aria-label') === 'Operation Planner',
+    )!;
+    for (let i = 0; i < 10; i++) {
+      click(opTab);
+    }
+    const modalInput = container.querySelector('.secret-modal-input') as HTMLInputElement;
+    if (modalInput) {
+      setInputValue(modalInput, 'password123');
+      const connectBtn = container.querySelector('.secret-modal-btn-connect') as HTMLButtonElement;
+      click(connectBtn);
+    }
+
+    const roomConnectBtn = container.querySelector('.op-team-room-form button') as HTMLButtonElement;
+    if (roomConnectBtn) click(roomConnectBtn);
+
+    const start = Date.now();
+    while (!container.querySelector('.op-plan-tab')) {
+      if (Date.now() - start > 2000) break;
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 20));
+      });
+    }
+
+    // Open first operation wave
+    const firstOpTab = container.querySelector('.op-plan-tab') as HTMLElement;
+    expect(firstOpTab).toBeTruthy();
+    click(firstOpTab);
+
+    // 1. Check Setup view: Schedule is present and participants show safetimes
+    expect(container.querySelector('.op-participant-picker')).toBeTruthy();
+    const setupSchedule = container.querySelector('.op-schedule');
+    expect(setupSchedule).toBeTruthy();
+    expect(setupSchedule?.textContent).toContain('Daily safe-time schedule · UTC');
+
+    // Participant headers in setup view show safetime tags
+    const safetimeTags = container.querySelectorAll('.op-participant-player-header .op-safetime__tag');
+    expect(safetimeTags.length).toBeGreaterThan(0);
+
+    // 2. Switch to Routes view: Schedule is also present
+    const routesTab = [...container.querySelectorAll('.op-workspace-nav button')].find(
+      (button) => button.textContent?.includes('Routes'),
+    ) as HTMLButtonElement;
+    expect(routesTab).toBeTruthy();
+    click(routesTab);
+
+    expect(container.querySelector('.op-routes')).toBeTruthy();
+    const routesSchedule = container.querySelector('.op-schedule');
+    expect(routesSchedule).toBeTruthy();
+    expect(routesSchedule?.textContent).toContain('Daily safe-time schedule · UTC');
+  });
+
   it('supports automatic saving and syncing in v2 mode', async () => {
     const originalFetch = globalThis.fetch;
     try {

@@ -710,25 +710,25 @@ Population
 
     expect(parsed?.targets).toHaveLength(8);
     expect(parsed?.targets[0]).toMatchObject({
-      name: 'Byzantion',
+      name: 'Byzantion [Capital, City, Small Great Storage Plan]',
       x: -8,
       y: -33,
       fake: true,
     });
     expect(parsed?.targets[1]).toMatchObject({
-      name: 'Constantinopole',
+      name: 'Constantinopole [City]',
       x: -7,
       y: -41,
       fake: true,
     });
     expect(parsed?.targets[2]).toMatchObject({
-      name: 'Istanbul',
+      name: 'Istanbul [Small Shadow Veil]',
       x: -13,
       y: -37,
       fake: true,
     });
     expect(parsed?.targets[3]).toMatchObject({
-      name: 'Ligos',
+      name: 'Ligos [City]',
       x: 0,
       y: -20,
       fake: true,
@@ -756,6 +756,179 @@ Population
       x: 3,
       y: 9,
       fake: true,
+    });
+  });
+
+  it('correctly parses user profile with Capital, City, and artifacts in village names', () => {
+    const rawClipboard = `Froggy G
+Player:
+Froggy G
+Tribe:
+Stormfang Clans
+Alliance:
+Alliance Not Found
+[ANF]
+Combat score:
+Combat score174,129
+Population:
+Population
+7,543
+Villages:
+9
+Description
+Make some noise for the frog!
+
+Rewards
+
+Villages
+Name\tPopulation\tActions
+03 - Sorona (-33|-32)
+City
+Small Harvest Horn
+Population
+1,235
+02 - AI Station 404 (-34|-31)
+Capital
+Wilder Site (-36|-33):
+Lumber
++25%
+Wilder Site (-33|-31):
+Lumber
++25%
+Wilder Site (-32|-34):
+Lumber
++50%
+Population
+1,042
+06 - Starstorm Station (-33|-33)
+City
+Small Trickster's Mirror
+Wilder Site (-34|-36):
+Lumber
++25%
+Wilder Site (-30|-33):
+Stone
++25%
+Food
++25%
+Population
+982
+05 - AI Station 205 (-27|-30)
+City
+Wilder Site (-28|-31):
+Stone
++25%
+Food
++25%
+Wilder Site (-25|-31):
+Lumber
++25%
+Food
++25%
+Population
+899
+04 - Aiguillon (-37|-31)
+City
+Wilder Site (-39|-31):
+Stone
++25%
+Food
++25%
+Wilder Site (-36|-30):
+Stone
++25%
+Food
++25%
+Population
+794
+08 - Eiron (-32|-33)
+City
+Wilder Site (-32|-36):
+Food
++25%
+Wilder Site (-30|-32):
+Food
++25%
+Population
+761
+01 - Ribbit IV (-24|-19)
+Wilder Site (-23|-22):
+Metal
++25%
+Food
++25%
+Wilder Site (-23|-20):
+Food
++25%
+Population
+688
+07 - Okeanos (-26|-36)
+Wilder Site (-27|-36):
+Metal
++50%
+Wilder Site (-24|-37):
+Metal
++25%
+Food
++25%
+Population
+659
+09 - Titan (-34|-32)
+Wilder Site (-36|-34):
+Food
++50%
+Population
+483`;
+
+    const parsed = parseThronewakeProfileClipboard(rawClipboard);
+    expect(parsed).toBeTruthy();
+    expect(parsed?.players[0].name).toBe('Froggy G');
+    expect(parsed?.targets).toHaveLength(9);
+
+    expect(parsed?.targets[0]).toMatchObject({
+      name: '03 - Sorona [City, Small Harvest Horn]',
+      x: -33,
+      y: -32,
+    });
+    expect(parsed?.targets[1]).toMatchObject({
+      name: '02 - AI Station 404 [Capital]',
+      x: -34,
+      y: -31,
+    });
+    expect(parsed?.targets[2]).toMatchObject({
+      name: "06 - Starstorm Station [City, Small Trickster's Mirror]",
+      x: -33,
+      y: -33,
+    });
+    expect(parsed?.targets[3]).toMatchObject({
+      name: '05 - AI Station 205 [City]',
+      x: -27,
+      y: -30,
+    });
+    expect(parsed?.targets[4]).toMatchObject({
+      name: '04 - Aiguillon [City]',
+      x: -37,
+      y: -31,
+    });
+    expect(parsed?.targets[5]).toMatchObject({
+      name: '08 - Eiron [City]',
+      x: -32,
+      y: -33,
+    });
+    expect(parsed?.targets[6]).toMatchObject({
+      name: '01 - Ribbit IV',
+      x: -24,
+      y: -19,
+    });
+    expect(parsed?.targets[7]).toMatchObject({
+      name: '07 - Okeanos',
+      x: -26,
+      y: -36,
+    });
+    expect(parsed?.targets[8]).toMatchObject({
+      name: '09 - Titan',
+      x: -34,
+      y: -32,
     });
   });
 

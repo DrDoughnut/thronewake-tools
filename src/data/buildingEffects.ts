@@ -29,6 +29,18 @@ export function formatTimeSeconds(seconds: number | null | undefined): string {
   return `${secs}s`;
 }
 
+export function formatBreakevenTime(hours: number | null | undefined): string {
+  if (hours === null || hours === undefined || isNaN(hours) || !isFinite(hours) || hours <= 0) {
+    return '—';
+  }
+  if (hours < 24) {
+    return `${hours.toFixed(1)} hrs`;
+  }
+  const days = hours / 24;
+  return `${days.toFixed(1)} days`;
+}
+
+
 export function formatEffectLabel(
   key: string,
   value: number | null | undefined,

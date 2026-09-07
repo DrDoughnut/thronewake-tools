@@ -3,7 +3,13 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { BuildingStats } from './BuildingStats';
-import { getTownHallFactor, formatTimeSeconds, formatEffectLabel, describePrerequisites } from '../data/buildingEffects';
+import {
+  getTownHallFactor,
+  formatTimeSeconds,
+  formatBreakevenTime,
+  formatEffectLabel,
+  describePrerequisites,
+} from '../data/buildingEffects';
 import { BUILDINGS, BUILDINGS_BY_GID } from '../data/buildingCatalog';
 import { TOWN_HALL_GID, FESTIVAL_GROUNDS_GID } from '../engine/cpOptimizer';
 
@@ -212,4 +218,48 @@ describe('BuildingStats Component & Effect Helpers', () => {
     const fgPrereqs = describePrerequisites(fg);
     expect(fgPrereqs.some((p) => p.includes('Town Hall') || p.includes('Academy'))).toBe(true);
   });
+
+  it('correctly calculates and formats breakeven payoff times', () => {
+    expect(formatBreakevenTime(null)).toBe('—');
+    expect(formatBreakevenTime(undefined)).toBe('—');
+    expect(formatBreakevenTime(0)).toBe('—');
+    expect(formatBreakevenTime(-5)).toBe('—');
+    expect(formatBreakevenTime(18.4)).toBe('18.4 hrs');
+    expect(formatBreakevenTime(23.9)).toBe('23.9 hrs');
+    expect(formatBreakevenTime(24.0)).toBe('1.0 days');
+    expect(formatBreakevenTime(48.0)).toBe('2.0 days');
+    expect(formatBreakevenTime(102.5)).toBe('4.3 days');
+  });
+
+  it('renders Breakeven column and Payoff summary card when viewing a resource field (Woodcutter)', () => {
+    act(() => root.unmount());
+    window.location.hash = '#tool=buildings&b=woodcutter&speed=1';
+    root = createRoot(container);
+    act(() => root.render(<BuildingStats />));
+
+    expect(container.textContent).toContain('Woodcutter');
+    // Check Breakeven column header in table
+    expect(container.textContent).toContain('Breakeven');
+    // Check Breakeven summary card
+    expect(container.textContent).toContain('Breakeven / Payoff');
+
+    // Woodcutter Level 1 cost: 250 res (40+100+50+60). Delta prod: 5 - 2 = 3 res/hr.
+    // Breakeven hours: 250 / 3 = 83.33 hrs -> 83.33 / 24 = 3.5 days.
+    expect(container.textContent).toContain('3.5 days');
+  });
+
+  it('renders Crop Field (GID 4) with Travian 4.6 costs including non-zero crop', () => {
+    const cropField = BUILDINGS_BY_GID.get(4)!;
+    expect(cropField.name).toBe('Crop Field');
+    // Level 1: 70 Wood, 90 Clay, 70 Iron, 20 Crop = 250 total
+    expect(cropField.levels[0].wood).toBe(70);
+    expect(cropField.levels[0].clay).toBe(90);
+    expect(cropField.levels[0].iron).toBe(70);
+    expect(cropField.levels[0].crop).toBe(20);
+
+    // Level 20: 1193195 Wood, 1534105 Clay, 1193195 Iron, 340915 Crop
+    expect(cropField.levels[19].crop).toBe(340915);
+  });
 });
+
+

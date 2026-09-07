@@ -4,6 +4,7 @@ import { buildingIcon, statIcon } from '../icons';
 import {
   getTownHallFactor,
   formatTimeSeconds,
+  formatBreakevenTime,
   formatEffectLabel,
   describePrerequisites,
 } from '../data/buildingEffects';
@@ -223,6 +224,30 @@ export function BuildingStats() {
     const endCp = endIdx > 0 ? selectedBuilding.levels[endIdx - 1]?.cp || 0 : 0;
     const cpGain = endCp - startCp;
 
+    // Resource field production gain (woodcutter, clay pit, iron mine, cropland)
+    const prodKey = [1, 2, 3, 4].includes(selectedBuilding.gid)
+      ? (`production${selectedBuilding.gid}` as const)
+      : null;
+
+    let prodGain = 0;
+    let breakevenHours: number | null = null;
+
+    if (prodKey) {
+      const baseProd = 2; // Level 0 resource field base production in Travian / Thronewake
+      const startProd =
+        startIdx > 0
+          ? ((selectedBuilding.levels[startIdx - 1]?.effects?.[prodKey] as number) ?? baseProd)
+          : baseProd;
+      const endProd =
+        endIdx > 0
+          ? ((selectedBuilding.levels[endIdx - 1]?.effects?.[prodKey] as number) ?? baseProd)
+          : baseProd;
+      prodGain = Math.max(0, (endProd - startProd) * serverSpeed);
+      if (prodGain > 0 && totalCost > 0) {
+        breakevenHours = totalCost / prodGain;
+      }
+    }
+
     return {
       startLevel: startIdx,
       endLevel: endIdx,
@@ -234,6 +259,9 @@ export function BuildingStats() {
       totalTime: time,
       popGain,
       cpGain,
+      prodKey,
+      prodGain,
+      breakevenHours,
       levelsCount: endIdx - startIdx,
       isCustomRange: selection.step > 0,
     };
@@ -573,6 +601,20 @@ export function BuildingStats() {
                     : '0 CP'}
                 </span>
               </div>
+
+              {rangeSummary.prodKey && (
+                <div className="bs-summary-card">
+                  <span className="bs-summary-card__label">Breakeven / Payoff</span>
+                  <strong className="bs-summary-card__value" style={{ color: '#48bb78' }}>
+                    {formatBreakevenTime(rangeSummary.breakevenHours)}
+                  </strong>
+                  <span className="bs-summary-card__sub">
+                    {rangeSummary.prodGain > 0
+                      ? `+${rangeSummary.prodGain.toLocaleString()}/hr · ${serverSpeed}x Speed`
+                      : '0/hr production gain'}
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Full Level Progression Table */}
@@ -606,6 +648,7 @@ export function BuildingStats() {
                     <th className="bs-th">CP/d (Δ)</th>
                     <th className="bs-th">res / CP</th>
                     <th className="bs-th">res / Pop</th>
+                    {rangeSummary.prodKey && <th className="bs-th">Breakeven</th>}
                     <th className="bs-th">Build Time (TH {thLevel})</th>
                     <th className="bs-th bs-th--effects">Effects & Production</th>
                   </tr>
@@ -627,6 +670,20 @@ export function BuildingStats() {
                       .map(([k, v]) => formatEffectLabel(k, v, serverSpeed))
                       .filter(Boolean);
                     const effectsText = effectsList.join(' · ');
+
+                    // Breakeven for this level
+                    let levelBreakevenHours: number | null = null;
+                    if (rangeSummary.prodKey) {
+                      const baseProd = 2;
+                      const currentProd = (lvl.effects?.[rangeSummary.prodKey] as number) ?? baseProd;
+                      const prevProd = prevLvl
+                        ? ((prevLvl.effects?.[rangeSummary.prodKey] as number) ?? baseProd)
+                        : baseProd;
+                      const hourlyGain = (currentProd - prevProd) * serverSpeed;
+                      if (hourlyGain > 0 && levelCost > 0) {
+                        levelBreakevenHours = levelCost / hourlyGain;
+                      }
+                    }
 
                     return (
                       <tr
@@ -690,6 +747,11 @@ export function BuildingStats() {
                         <td className="bs-td bs-td--eff">
                           {resPerPop !== null ? `${resPerPop.toLocaleString()}` : '∞'}
                         </td>
+                        {rangeSummary.prodKey && (
+                          <td className="bs-td bs-td--breakeven">
+                            {formatBreakevenTime(levelBreakevenHours)}
+                          </td>
+                        )}
                         <td className="bs-td bs-td--time">
                           {formatTimeSeconds(scaledTime)}
                         </td>

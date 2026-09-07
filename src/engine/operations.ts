@@ -1234,9 +1234,63 @@ export function parseThronewakeProfileClipboard(rawText: string): PlannerState |
         vName = `Village ${targets.length + 1}`;
       }
 
+      // Collect tags immediately following the village coordinate line
+      // e.g. "Capital", "City", or Artifact name (e.g. "Small Harvest Horn", "Unique War Anvil", etc.)
+      const tags: string[] = [];
+      let nextIdx = i + 1;
+
+      while (nextIdx < lines.length) {
+        const nextLine = lines[nextIdx].trim();
+        if (!nextLine) {
+          nextIdx++;
+          continue;
+        }
+
+        // Stop if we reach another village line with coords
+        if (/\(\s*-?\d+\s*[|,\t]\s*-?\d+\s*\)/.test(nextLine)) {
+          break;
+        }
+
+        // Stop if we hit standard section dividers or field labels
+        const lowerNext = nextLine.toLowerCase();
+        if (
+          lowerNext.startsWith('wilder') ||
+          lowerNext === 'population' ||
+          lowerNext === 'rewards' ||
+          lowerNext === 'villages' ||
+          lowerNext.startsWith('name\t') ||
+          lowerNext.startsWith('name ') ||
+          /^\+?\d+%?$/.test(nextLine) ||
+          /^(lumber|clay|iron|metal|stone|food|crop)$/i.test(nextLine) ||
+          /^[\d,]+$/.test(nextLine) // Pure population number line e.g. "1,235"
+        ) {
+          break;
+        }
+
+        // Check for Capital / City
+        if (/^capital$/i.test(nextLine)) {
+          if (!tags.includes('Capital')) tags.push('Capital');
+        } else if (/^city$/i.test(nextLine)) {
+          if (!tags.includes('City')) tags.push('City');
+        } else {
+          // Artifact or unique status line (e.g. "Small Harvest Horn", "Small Trickster's Mirror", "Unique War Anvil")
+          // Exclude stray game UI header words
+          if (
+            !/^(player|tribe|alliance|combat score|description|actions)$/i.test(lowerNext) &&
+            !tags.includes(nextLine)
+          ) {
+            tags.push(nextLine);
+          }
+        }
+
+        nextIdx++;
+      }
+
+      const displayName = tags.length > 0 ? `${vName} [${tags.join(', ')}]` : vName;
+
       targets.push({
         id: `t_imp_${targets.length + 1}_${Math.random().toString(36).slice(2, 6)}`,
-        name: vName,
+        name: displayName,
         x,
         y,
         fake: true, // Default to Fake

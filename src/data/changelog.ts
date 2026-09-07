@@ -18,6 +18,8 @@ export const CHANGELOG: ChangelogEntry[] = [
       'War Anvil Artifacts: configure Small War Anvil (50% less training time in this village), Large War Anvil (25% less training time for all villages), or Unique War Anvil (50% less training time for all villages) in the Army Calculator.',
       'Secondary Building Exclusivity: enforces single secondary training building rule (Barracks #2 or Stable #2), greying out and crossing out the conflicting queue.',
       'Mobile Queue Controls: restored the 0-level reset button on mobile viewports for quick queue clearing.',
+      'Building Stats: added Days until Breakeven for resource fields, calibrated Crop Field to standard Travian 4.6 costs, and upgraded mobile view to horizontal canvas panning.',
+      'Operation Planner: clipboard importer tags Capital, City, and Artifacts onto village names; added daily safetime schedule and participant safe hours to both Setup and Routes views.',
     ],
   },
   {

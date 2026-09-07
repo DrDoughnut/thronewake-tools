@@ -787,45 +787,164 @@ function ScheduleTimeline({
   route,
   onSelectRoute,
   showLocal,
+  allAttackers,
+  allAttackerPlayers,
+  allPlayers,
+  allTargets,
+  landingDate,
+  landingTime,
+  parsedLanding,
 }: {
   routes: PlannedRoute[];
-  route: PlannedRoute;
+  route?: PlannedRoute;
   onSelectRoute: (routeKey: string) => void;
   showLocal: boolean;
+  allAttackers?: Attacker[];
+  allAttackerPlayers?: Player[];
+  allPlayers?: Player[];
+  allTargets?: Target[];
+  landingDate?: string;
+  landingTime?: string;
+  parsedLanding?: Date;
 }) {
-  const attackers = [...new Map(routes.map((item) => [item.attacker.id, item.attacker])).values()];
-
   const defenderKey = (target: Target) => target.playerId || target.id;
-  const defenders = [...new Map(routes.map((item) => [
-    defenderKey(item.target),
-    {
-      key: defenderKey(item.target),
-      label: item.targetSafe.sourceName ?? item.target.name,
-      window: ownerWindow(item.targetSafe),
-    },
-  ])).values()];
 
-  const selectedDefenderKey = defenderKey(route.target);
-  const sendPosition = Math.min(100, Math.max(0, minuteOfDay(route.send) / 14.4));
-  const landPosition = Math.min(100, Math.max(0, minuteOfDay(route.land) / 14.4));
+  const defenders = useMemo(() => {
+    if (allPlayers && allPlayers.length > 0) {
+      const list: { key: string; label: string; window: SafeWindow; hasRoutes: boolean }[] = [];
+      const seenKeys = new Set<string>();
 
-  const defenderVillages = routes
-    .filter((r) => r.attacker.id === route.attacker.id && defenderKey(r.target) === selectedDefenderKey)
-    .map((r) => r.target);
+      allPlayers.forEach((player) => {
+        seenKeys.add(player.id);
+        const hasRoutes = routes.some(
+          (r) => (r.target.playerId && r.target.playerId === player.id) || r.targetSafe.sourceName === player.name,
+        );
+        list.push({
+          key: player.id,
+          label: player.name,
+          window: ownerWindow(player),
+          hasRoutes,
+        });
+      });
+
+      (allTargets || []).forEach((target) => {
+        const key = defenderKey(target);
+        if (!seenKeys.has(key) && (!target.playerId || !allPlayers.some((p) => p.id === target.playerId))) {
+          seenKeys.add(key);
+          const hasRoutes = routes.some((r) => r.target.id === target.id);
+          list.push({
+            key,
+            label: target.name,
+            window: ownerWindow(target),
+            hasRoutes,
+          });
+        }
+      });
+
+      return list;
+    }
+
+    return [...new Map(routes.map((item) => [
+      defenderKey(item.target),
+      {
+        key: defenderKey(item.target),
+        label: item.targetSafe.sourceName ?? item.target.name,
+        window: ownerWindow(item.targetSafe),
+        hasRoutes: true,
+      },
+    ])).values()];
+  }, [allPlayers, allTargets, routes]);
+
+  const attackers = useMemo(() => {
+    if (allAttackerPlayers && allAttackerPlayers.length > 0) {
+      const list: { id: string; name: string; window: SafeWindow; hasRoutes: boolean }[] = [];
+      const seenIds = new Set<string>();
+
+      allAttackerPlayers.forEach((player) => {
+        seenIds.add(player.id);
+        const hasRoutes = routes.some(
+          (r) => (r.attacker.playerId && r.attacker.playerId === player.id) || r.attackerSafe.sourceName === player.name,
+        );
+        list.push({
+          id: player.id,
+          name: player.name,
+          window: ownerWindow(player),
+          hasRoutes,
+        });
+      });
+
+      (allAttackers || []).forEach((atk) => {
+        if (!atk.playerId || !allAttackerPlayers.some((p) => p.id === atk.playerId)) {
+          if (!seenIds.has(atk.id)) {
+            seenIds.add(atk.id);
+            const hasRoutes = routes.some((r) => r.attacker.id === atk.id);
+            list.push({
+              id: atk.id,
+              name: atk.name,
+              window: ownerWindow(atk),
+              hasRoutes,
+            });
+          }
+        }
+      });
+
+      return list;
+    }
+
+    if (allAttackers && allAttackers.length > 0) {
+      return allAttackers.map((a) => ({
+        id: a.id,
+        name: a.name,
+        window: ownerWindow(a),
+        hasRoutes: routes.some((r) => r.attacker.id === a.id),
+      }));
+    }
+
+    return [...new Map(routes.map((item) => [
+      item.attacker.id,
+      {
+        id: item.attacker.id,
+        name: item.attacker.name,
+        window: ownerWindow(item.attacker),
+        hasRoutes: true,
+      },
+    ])).values()];
+  }, [allAttackerPlayers, allAttackers, routes]);
+
+  const selectedDefenderKey = route ? defenderKey(route.target) : null;
+  const sendPosition = route ? Math.min(100, Math.max(0, minuteOfDay(route.send) / 14.4)) : null;
+  const targetLandingDate = route ? route.land : parsedLanding;
+  const landPosition = targetLandingDate ? Math.min(100, Math.max(0, minuteOfDay(targetLandingDate) / 14.4)) : null;
+
+  const defenderVillages = route
+    ? routes
+        .filter((r) => r.attacker.id === route.attacker.id && defenderKey(r.target) === selectedDefenderKey)
+        .map((r) => r.target)
+    : [];
 
   const handleSelectAttacker = (attackerId: string) => {
+    if (routes.length === 0) return;
     const nextRoute = routes.find(
-      (r) => r.attacker.id === attackerId && r.target.id === route.target.id
-    ) ?? routes.find((r) => r.attacker.id === attackerId);
+      (r) =>
+        (r.attacker.id === attackerId || (r.attacker.playerId && r.attacker.playerId === attackerId)) &&
+        (route ? r.target.id === route.target.id : true),
+    ) ?? routes.find(
+      (r) => r.attacker.id === attackerId || (r.attacker.playerId && r.attacker.playerId === attackerId),
+    );
     if (nextRoute) {
       onSelectRoute(nextRoute.key);
     }
   };
 
   const handleSelectDefender = (laneKey: string) => {
+    if (routes.length === 0) return;
     const nextRoute = routes.find(
-      (r) => r.attacker.id === route.attacker.id && defenderKey(r.target) === laneKey
-    ) ?? routes.find((r) => defenderKey(r.target) === laneKey);
+      (r) =>
+        (route ? r.attacker.id === route.attacker.id : true) &&
+        (defenderKey(r.target) === laneKey || r.target.playerId === laneKey),
+    ) ?? routes.find(
+      (r) => defenderKey(r.target) === laneKey || r.target.playerId === laneKey,
+    );
     if (nextRoute) {
       onSelectRoute(nextRoute.key);
     }
@@ -836,51 +955,84 @@ function ScheduleTimeline({
       <div className="op-section-head op-schedule__header-wrap">
         <div className="op-schedule__header-left">
           <h2 className="panel__title">Daily safe-time schedule · UTC</h2>
-          <div className="op-schedule__journey-readout">
-            <span className="op-schedule__journey-label">Selected Route:</span>
-            <strong className="op-route-attacker">
-              {route.attackerSafe.sourceName && route.attackerSafe.sourceName !== route.attacker.name
-                ? `${route.attackerSafe.sourceName}: ${route.attacker.name}`
-                : route.attacker.name}
-            </strong>
-            <span className="op-route-arrow" aria-hidden="true">➔</span>
-            <strong className="op-route-target">
-              {route.targetSafe.sourceName && route.targetSafe.sourceName !== route.target.name
-                ? `${route.targetSafe.sourceName}: ${route.target.name}`
-                : route.target.name}
-            </strong>
-            <a
-              href={`https://www.thronewake.com/map/tile/${route.target.x}/${route.target.y}?center=true`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="op-map-pin-link"
-              title={`Open in-game map centered on (${route.target.x}|${route.target.y})`}
-              onClick={(e) => e.stopPropagation()}
-            >
-              📍 ({route.target.x}|{route.target.y})
-            </a>
-            <span className={`op-hit-tag ${route.target.fake ? 'is-fake' : 'is-real'}`}>
-              {route.target.fake ? 'Fake' : 'Real'}
-            </span>
-          </div>
-          <div className="op-schedule__times-row">
-            <span>
-              Send: <strong>{formatClock(minuteOfDay(route.send), true)} UTC</strong>
-              {showLocal && ` (${formatLocalClock(route.send, true)} local)`}
-            </span>
-            <span className="op-schedule__sep">·</span>
-            <span>
-              Land: <strong>{formatClock(minuteOfDay(route.land))} UTC</strong>
-              {showLocal && ` (${formatLocalClock(route.land)} local)`}
-            </span>
-            <span className="op-schedule__sep">·</span>
-            <span>Travel: <strong>{formatDuration(route.travel)}</strong></span>
-          </div>
+          {route ? (
+            <div className="op-schedule__journey-readout">
+              <span className="op-schedule__journey-label">Selected Route:</span>
+              <strong className="op-route-attacker">
+                {route.attackerSafe.sourceName && route.attackerSafe.sourceName !== route.attacker.name
+                  ? `${route.attackerSafe.sourceName}: ${route.attacker.name}`
+                  : route.attacker.name}
+              </strong>
+              <span className="op-route-arrow" aria-hidden="true">➔</span>
+              <strong className="op-route-target">
+                {route.targetSafe.sourceName && route.targetSafe.sourceName !== route.target.name
+                  ? `${route.targetSafe.sourceName}: ${route.target.name}`
+                  : route.target.name}
+              </strong>
+              <a
+                href={`https://www.thronewake.com/map/tile/${route.target.x}/${route.target.y}?center=true`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="op-map-pin-link"
+                title={`Open in-game map centered on (${route.target.x}|${route.target.y})`}
+                onClick={(e) => e.stopPropagation()}
+              >
+                📍 ({route.target.x}|{route.target.y})
+              </a>
+              <span className={`op-hit-tag ${route.target.fake ? 'is-fake' : 'is-real'}`}>
+                {route.target.fake ? 'Fake' : 'Real'}
+              </span>
+            </div>
+          ) : (
+            <div className="op-schedule__journey-readout">
+              <span className="op-schedule__journey-label">Coordinated Landing:</span>
+              <strong className="op-route-target">
+                {landingTime ? `${landingTime} UTC` : 'Pending'}
+              </strong>
+              {landingDate && <span className="op-schedule__sep">·</span>}
+              {landingDate && <span>{landingDate}</span>}
+              <span className="op-schedule__journey-hint">
+                (Pick marching armies & targets to preview route paths)
+              </span>
+            </div>
+          )}
+
+          {route ? (
+            <div className="op-schedule__times-row">
+              <span>
+                Send: <strong>{formatClock(minuteOfDay(route.send), true)} UTC</strong>
+                {showLocal && ` (${formatLocalClock(route.send, true)} local)`}
+              </span>
+              <span className="op-schedule__sep">·</span>
+              <span>
+                Land: <strong>{formatClock(minuteOfDay(route.land))} UTC</strong>
+                {showLocal && ` (${formatLocalClock(route.land)} local)`}
+              </span>
+              <span className="op-schedule__sep">·</span>
+              <span>Travel: <strong>{formatDuration(route.travel)}</strong></span>
+            </div>
+          ) : (
+            targetLandingDate && (
+              <div className="op-schedule__times-row">
+                <span>
+                  Target Land Time: <strong>{formatClock(minuteOfDay(targetLandingDate))} UTC</strong>
+                  {showLocal && ` (${formatLocalClock(targetLandingDate)} local)`}
+                </span>
+              </div>
+            )
+          )}
         </div>
+
         <div className="op-schedule__status-group">
-          <span className={'op-status ' + (route.possible ? 'is-possible' : 'is-blocked')}>
-            {route.possible ? 'All Checks Clear ✓' : 'Route Blocked ✕'}
-          </span>
+          {route ? (
+            <span className={'op-status ' + (route.possible ? 'is-possible' : 'is-blocked')}>
+              {route.possible ? 'All Checks Clear ✓' : 'Route Blocked ✕'}
+            </span>
+          ) : (
+            <span className="op-status is-idle">
+              Setup Preview
+            </span>
+          )}
         </div>
       </div>
 
@@ -900,10 +1052,10 @@ function ScheduleTimeline({
         <TimelineLane
           key={attacker.id}
           label={attacker.name}
-          window={ownerWindow(attacker)}
-          isSelected={attacker.id === route.attacker.id}
+          window={attacker.window}
+          isSelected={route ? attacker.id === route.attacker.id || attacker.id === route.attacker.playerId : false}
           type="attacker"
-          onClick={() => handleSelectAttacker(attacker.id)}
+          onClick={routes.length > 0 ? () => handleSelectAttacker(attacker.id) : undefined}
         />
       ))}
 
@@ -913,16 +1065,16 @@ function ScheduleTimeline({
           key={defender.key}
           label={defender.label}
           window={defender.window}
-          isSelected={defender.key === selectedDefenderKey}
+          isSelected={route ? defender.key === selectedDefenderKey : false}
           type="defender"
-          onClick={() => handleSelectDefender(defender.key)}
+          onClick={routes.length > 0 ? () => handleSelectDefender(defender.key) : undefined}
         />
       ))}
 
       <div className="schedule__row schedule__row--events">
         <span className="schedule__label">Movement</span>
         <div className="schedule__track schedule__track--events">
-          {route.attackerWindow.enabled && safeSegments(route.attackerWindow).map((seg) => (
+          {route?.attackerWindow.enabled && safeSegments(route.attackerWindow).map((seg) => (
             <span
               key={`mov-atk-${seg.start}-${seg.end}`}
               className="schedule__movement-safe schedule__movement-safe--attacker"
@@ -932,7 +1084,7 @@ function ScheduleTimeline({
               } as CSSProperties}
             />
           ))}
-          {route.targetWindow.enabled && safeSegments(route.targetWindow).map((seg) => (
+          {route?.targetWindow.enabled && safeSegments(route.targetWindow).map((seg) => (
             <span
               key={`mov-def-${seg.start}-${seg.end}`}
               className="schedule__movement-safe schedule__movement-safe--defender"
@@ -944,47 +1096,51 @@ function ScheduleTimeline({
           ))}
 
           {/* Send Pin */}
-          <div
-            className="schedule__pin schedule__pin--send"
-            style={{ left: `${sendPosition}%` }}
-            title={'Send ' + formatDateTime(route.send, true)}
-          >
-            <div className="schedule__pin-badge">
-              <span className="schedule__pin-dot" />
-              <span>
-                Send {formatClock(minuteOfDay(route.send), true)} UTC
-                {showLocal && (
-                  <span className="schedule__pin-local">{formatLocalClock(route.send, true)} local</span>
-                )}
-              </span>
+          {route && sendPosition !== null && (
+            <div
+              className="schedule__pin schedule__pin--send"
+              style={{ left: `${sendPosition}%` }}
+              title={'Send ' + formatDateTime(route.send, true)}
+            >
+              <div className="schedule__pin-badge">
+                <span className="schedule__pin-dot" />
+                <span>
+                  Send {formatClock(minuteOfDay(route.send), true)} UTC
+                  {showLocal && (
+                    <span className="schedule__pin-local">{formatLocalClock(route.send, true)} local</span>
+                  )}
+                </span>
+              </div>
+              <div className="schedule__pin-line" />
+              <div className="schedule__pin-head" />
             </div>
-            <div className="schedule__pin-line" />
-            <div className="schedule__pin-head" />
-          </div>
+          )}
 
           {/* Land Pin */}
-          <div
-            className="schedule__pin schedule__pin--land"
-            style={{ left: `${landPosition}%` }}
-            title={'Land ' + formatDateTime(route.land)}
-          >
-            <div className="schedule__pin-head" />
-            <div className="schedule__pin-line" />
-            <div className="schedule__pin-badge">
-              <span className="schedule__pin-dot" />
-              <span>
-                Land {formatClock(minuteOfDay(route.land))} UTC
-                {showLocal && (
-                  <span className="schedule__pin-local">{formatLocalClock(route.land)} local</span>
-                )}
-              </span>
+          {landPosition !== null && (
+            <div
+              className="schedule__pin schedule__pin--land"
+              style={{ left: `${landPosition}%` }}
+              title={route ? 'Land ' + formatDateTime(route.land) : `Landing ${landingTime || ''} UTC`}
+            >
+              <div className="schedule__pin-head" />
+              <div className="schedule__pin-line" />
+              <div className="schedule__pin-badge">
+                <span className="schedule__pin-dot" />
+                <span>
+                  Land {route ? formatClock(minuteOfDay(route.land)) : landingTime || ''} UTC
+                  {showLocal && targetLandingDate && (
+                    <span className="schedule__pin-local">{formatLocalClock(targetLandingDate)} local</span>
+                  )}
+                </span>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
       {/* Village switcher bar */}
-      {defenderVillages.length > 1 && (
+      {route && defenderVillages.length > 1 && (
         <div className="schedule__villages-footer">
           <span className="schedule__villages-label">Villages ({route.targetSafe.sourceName ?? route.target.name}):</span>
           <div className="schedule__village-pills">
@@ -2182,6 +2338,23 @@ export function OperationPlanner({
               </section>
             </>
           )}
+
+          {/* In v2 Setup view: render ScheduleTimeline so users can see safe times while picking villages */}
+          {isV2Active && workspaceView === 'setup' && (
+            <ScheduleTimeline
+              routes={routes}
+              route={selectedRoute}
+              onSelectRoute={setSelectedKey}
+              showLocal={showLocal}
+              allAttackers={roster.attackers}
+              allAttackerPlayers={roster.attackerPlayers}
+              allPlayers={roster.players}
+              allTargets={roster.targets}
+              landingDate={landingDate}
+              landingTime={landingTime}
+              parsedLanding={parsedLanding}
+            />
+          )}
             </>
           )}
 
@@ -2450,12 +2623,19 @@ export function OperationPlanner({
           </section>
 
           {/* Schedule Timeline: Rendered directly below the Route Table on the same view */}
-          {(!isV2Active || workspaceView === 'routes') && selectedRoute && (
+          {(!isV2Active || workspaceView === 'routes') && (
             <ScheduleTimeline
               routes={routes}
               route={selectedRoute}
               onSelectRoute={setSelectedKey}
               showLocal={showLocal}
+              allAttackers={roster.attackers}
+              allAttackerPlayers={roster.attackerPlayers}
+              allPlayers={roster.players}
+              allTargets={roster.targets}
+              landingDate={landingDate}
+              landingTime={landingTime}
+              parsedLanding={parsedLanding}
             />
           )}
             </>
