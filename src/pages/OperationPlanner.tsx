@@ -1996,6 +1996,48 @@ export function OperationPlanner({
     });
   }, [routes, filterAttacker, filterTarget, filterStatus, filterType]);
 
+  // Detect rapid consecutive attacks by the same attacker (under 20 seconds apart)
+  const routeClashes = useMemo(() => {
+    const clashes = new Map<string, { gapSeconds: number; attackerName: string; partnerRouteKey: string }>();
+    // Group routes by attacker identity (player ID if linked to a player, otherwise attacker village ID)
+    const groupedByPlayer = new Map<string, typeof routes>();
+
+    for (const r of routes) {
+      const playerKey = r.attacker.playerId || r.attacker.id;
+      const group = groupedByPlayer.get(playerKey) ?? [];
+      group.push(r);
+      groupedByPlayer.set(playerKey, group);
+    }
+
+    for (const [, playerRoutes] of groupedByPlayer.entries()) {
+      if (playerRoutes.length < 2) continue;
+      // Sort routes by send time ascending
+      const sorted = [...playerRoutes].sort((a, b) => a.send.getTime() - b.send.getTime());
+      for (let i = 0; i < sorted.length - 1; i++) {
+        const curr = sorted[i];
+        const next = sorted[i + 1];
+        const diffMs = next.send.getTime() - curr.send.getTime();
+        if (diffMs >= 0 && diffMs < 20_000) {
+          const gapSec = Math.round(diffMs / 1000);
+          const attackerDisplayName = curr.attackerSafe.sourceName || curr.attacker.name;
+
+          clashes.set(curr.key, {
+            gapSeconds: gapSec,
+            attackerName: attackerDisplayName,
+            partnerRouteKey: next.key,
+          });
+          clashes.set(next.key, {
+            gapSeconds: gapSec,
+            attackerName: attackerDisplayName,
+            partnerRouteKey: curr.key,
+          });
+        }
+      }
+    }
+
+    return clashes;
+  }, [routes]);
+
   // Audio alert tracking for 1-minute chime & 5-second countdown ticks
   const alerted1MinRef = useRef<Set<string>>(new Set());
   const lastBeepSecRef = useRef<number | null>(null);
@@ -2542,6 +2584,20 @@ export function OperationPlanner({
               </div>
             </div>
 
+            {routeClashes.size > 0 && (
+              <div className="op-route-clash-banner" role="alert">
+                <span className="op-route-clash-banner__icon">⚠️</span>
+                <div className="op-route-clash-banner__content">
+                  <strong className="op-route-clash-banner__title">
+                    Warning: Fast Attack Conflict Detected (&lt; 20s gap)
+                  </strong>
+                  <p className="op-route-clash-banner__desc">
+                    One or more attackers have multiple attacks scheduled less than 20 seconds apart. Sending attacks this quickly is difficult in-game; check the flagged routes in the table below.
+                  </p>
+                </div>
+              </div>
+            )}
+
             <div className="op-routes">
               <table>
                 <thead>
@@ -2633,9 +2689,19 @@ export function OperationPlanner({
                             <span className="travel-stat">{formatDuration(route.travel)}</span>
                           </td>
                           <td data-label="Launch In">
-                            <span className={`op-countdown-tag op-countdown-tag--${countdown.tier}`}>
-                              {countdown.label}
-                            </span>
+                            <div className="op-launch-cell">
+                              <span className={`op-countdown-tag op-countdown-tag--${countdown.tier}`}>
+                                {countdown.label}
+                              </span>
+                              {routeClashes.has(route.key) && (
+                                <span
+                                  className="op-launch-clash-tag"
+                                  title={`Warning: Another attack by ${routeClashes.get(route.key)?.attackerName} launches only ${routeClashes.get(route.key)?.gapSeconds}s apart!`}
+                                >
+                                  ⚠️ &lt;20s ({routeClashes.get(route.key)?.gapSeconds}s)
+                                </span>
+                              )}
+                            </div>
                           </td>
                           <td data-label="Send Time (UTC)">
                             <Stamp date={route.send} showLocal={showLocal} seconds className="op-timestamp op-timestamp--send" />

@@ -623,6 +623,28 @@ describe('the operation planner', () => {
     expect(container.querySelector('.op-countdown-tag')).toBeTruthy();
   });
 
+  it('displays warning banner and Launch In warning tags when attacks by the same player are under 20 seconds apart', () => {
+    // Plan with 1 attacker village targeting two targets at virtually identical distances (e.g. (10, 0) and (-10, 0) from (0, 0))
+    // Travel times will be identical (0 seconds difference), triggering the <20s clash warning
+    const compact = 'v1_2026-08-16T19:00_3~a:AttackerA,0,0,stormfang_clans/skullthrower,1,0,0,22:00-04:00~t:Target1,10,0,0,04:30-10:30~t:Target2,-10,0,0,04:30-10:30';
+    act(() => {
+      window.location.hash = `#tool=operations&p=${encodeURIComponent(compact)}`;
+      window.dispatchEvent(new Event('hashchange'));
+    });
+
+    // Top warning banner must be visible
+    const clashBanner = container.querySelector('.op-route-clash-banner');
+    expect(clashBanner).toBeTruthy();
+    expect(clashBanner?.textContent).toContain('Fast Attack Conflict Detected');
+    expect(clashBanner?.textContent).toContain('less than 20 seconds apart');
+
+    // Both clashing routes must display the <20s clash tag in the Launch In column
+    const clashTags = container.querySelectorAll('.op-launch-clash-tag');
+    expect(clashTags.length).toBe(2);
+    expect(clashTags[0].textContent).toContain('<20s');
+    expect(clashTags[1].textContent).toContain('<20s');
+  });
+
   it('shows confirmation popup before deleting attacker army, defender account, or target village', () => {
     // Add an attacker
     const addAtkBtn = [...container.querySelectorAll('.op-section button')].find(
