@@ -623,10 +623,11 @@ describe('the operation planner', () => {
     expect(container.querySelector('.op-countdown-tag')).toBeTruthy();
   });
 
-  it('displays warning banner and Launch In warning tags when attacks by the same player are under 20 seconds apart', () => {
+  it('displays warning banner and Launch In warning tags when attacks by the same player are under 10 seconds apart', () => {
     // Plan with 1 attacker village targeting two targets at virtually identical distances (e.g. (10, 0) and (-10, 0) from (0, 0))
-    // Travel times will be identical (0 seconds difference), triggering the <20s clash warning
-    const compact = 'v1_2026-08-16T19:00_3~a:AttackerA,0,0,stormfang_clans/skullthrower,1,0,0,22:00-04:00~t:Target1,10,0,0,04:30-10:30~t:Target2,-10,0,0,04:30-10:30';
+    // Travel times will be identical (0 seconds difference), triggering the <10s clash warning (future landing date)
+    const futureLanding = new Date(Date.now() + 86400000 * 5).toISOString().slice(0, 16);
+    const compact = `v1_${futureLanding}_3~a:AttackerA,0,0,stormfang_clans/skullthrower,1,0,0,22:00-04:00~t:Target1,10,0,0,04:30-10:30~t:Target2,-10,0,0,04:30-10:30`;
     act(() => {
       window.location.hash = `#tool=operations&p=${encodeURIComponent(compact)}`;
       window.dispatchEvent(new Event('hashchange'));
@@ -636,13 +637,13 @@ describe('the operation planner', () => {
     const clashBanner = container.querySelector('.op-route-clash-banner');
     expect(clashBanner).toBeTruthy();
     expect(clashBanner?.textContent).toContain('Fast Attack Conflict Detected');
-    expect(clashBanner?.textContent).toContain('less than 20 seconds apart');
+    expect(clashBanner?.textContent).toContain('less than 10 seconds apart');
 
-    // Both clashing routes must display the <20s clash tag in the Launch In column
+    // Both clashing routes must display the <10s clash tag in the Launch In column
     const clashTags = container.querySelectorAll('.op-launch-clash-tag');
     expect(clashTags.length).toBe(2);
-    expect(clashTags[0].textContent).toContain('<20s');
-    expect(clashTags[1].textContent).toContain('<20s');
+    expect(clashTags[0].textContent).toContain('<10s');
+    expect(clashTags[1].textContent).toContain('<10s');
   });
 
   it('shows confirmation popup before deleting attacker army, defender account, or target village', () => {
@@ -1017,9 +1018,11 @@ describe('the operation planner', () => {
       setInputValue(textarea, 'invalid_gibberish');
       expect(importModal?.textContent).toContain('Could not detect room backup JSON');
 
-      // Paste a valid plan URL with 1 attacker and 1 target
+      // Paste a valid plan URL with 2 attackers: one past and one upcoming to test the continuous arrow
+      const nowMs = Date.now();
+      const futureDate = new Date(nowMs + 86400000 * 5).toISOString().slice(0, 16);
       const sampleEncoded = encodeCompactPlan({
-        landing: '2026-08-20T18:00',
+        landing: futureDate,
         serverSpeed: 3,
         attackers: [
           {
@@ -1027,6 +1030,18 @@ describe('the operation planner', () => {
             name: 'Alpha Strike',
             x: 50,
             y: 50,
+            unitRef: 'embermark_dominion/emberblade',
+            artifactMultiplier: 1,
+            bannerfieldLevel: 0,
+            safeEnabled: true,
+            safeStart: '22:00',
+            safeEnd: '04:00',
+          },
+          {
+            id: 'atk_seed_2',
+            name: 'Bravo Vanguard',
+            x: 52,
+            y: 52,
             unitRef: 'embermark_dominion/emberblade',
             artifactMultiplier: 1,
             bannerfieldLevel: 0,
@@ -1075,6 +1090,26 @@ describe('the operation planner', () => {
       expect(container.querySelector('.op-workspace-bar')).toBeTruthy();
       expect(container.textContent).toContain('Alpha Strike');
       expect(container.textContent).toContain('Capital City');
+
+      // Switch to Routes view to inspect routes table
+      const routesTab = [...container.querySelectorAll('.op-workspace-nav button')].find(
+        (button) => button.textContent?.includes('Routes'),
+      ) as HTMLButtonElement;
+      expect(routesTab).toBeTruthy();
+      click(routesTab);
+
+      // Verify simplified Safetime column header and cell (Clear badge, no permanent A B C dots)
+      const safetimeTh = container.querySelector('.op-safetime-th');
+      expect(safetimeTh?.textContent).toContain('Safetime');
+      expect(safetimeTh?.textContent).not.toContain('Safetime (A/B/C)');
+
+      const safetimeCell = container.querySelector('.op-checks-cell');
+      expect(['Clear', 'Blocked']).toContain(safetimeCell?.querySelector('.op-check-pill')?.textContent);
+      expect(safetimeCell?.querySelector('.op-check-dots')).toBeNull();
+
+      // Verify next upcoming attack highlighted row
+      expect(container.querySelector('.op-route-row.is-next-launch')).toBeTruthy();
+      expect(container.querySelector('.op-next-launch-pointer')).toBeNull();
     } finally {
       globalThis.fetch = originalFetch;
     }

@@ -543,7 +543,7 @@ function SafetimeHeaderTooltip() {
       aria-label="Safetime checks explanation. Hover for details."
       onClick={(e) => e.stopPropagation()}
     >
-      <span>Safetime (A/B/C)</span>
+      <span>Safetime</span>
       <span className="op-help-icon" aria-hidden="true">?</span>
 
       {show &&
@@ -664,17 +664,6 @@ function SafetimeCheckCell({
       aria-label={`Safetime checks: ${route.possible ? 'Clear' : 'Blocked'}. Hover for details.`}
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="op-check-dots">
-        {checks.map((c) => (
-          <span
-            key={c.code}
-            className={`op-check-dot ${c.blocked ? 'is-blocked' : 'is-clear'}`}
-            title={`${c.code}: ${c.title} — ${c.blocked ? 'BLOCKED' : 'CLEAR'}`}
-          >
-            {c.code}
-          </span>
-        ))}
-      </div>
       <span className={`op-check-pill ${route.possible ? 'is-clear' : 'is-blocked'}`}>
         {route.possible ? 'Clear' : 'Blocked'}
       </span>
@@ -1893,7 +1882,15 @@ export function OperationPlanner({
   }, [activeOp.landing]);
 
   const { date: landingDate, time: landingTime } = useMemo(() => {
-    return splitUtcDateAndTime(parsedLanding);
+    return splitUtcDateAndTime(parsedLanding, true);
+  }, [parsedLanding]);
+
+  const landingSecondsOfDay = useMemo(() => {
+    return (
+      parsedLanding.getUTCHours() * 3600 +
+      parsedLanding.getUTCMinutes() * 60 +
+      parsedLanding.getUTCSeconds()
+    );
   }, [parsedLanding]);
 
   const updateLanding = (newDate: string, newTime: string) => {
@@ -1907,22 +1904,13 @@ export function OperationPlanner({
     }
   };
 
-  const shiftLandingHours = (hoursToAdd: number) => {
-    const next = new Date(parsedLanding.getTime() + hoursToAdd * 3_600_000);
-    const nextLanding = toUtcDatetimeInput(next);
-    const currentOpId = activeOpId || activeOp.id;
-    setOperations((prev) =>
-      prev.map((o) => (o.id === currentOpId ? { ...o, landing: nextLanding, updatedAt: Date.now() } : o)),
-    );
-  };
-
-  const setLandingNow = () => {
-    const now = new Date();
-    const nextLanding = toUtcDatetimeInput(now);
-    const currentOpId = activeOpId || activeOp.id;
-    setOperations((prev) =>
-      prev.map((o) => (o.id === currentOpId ? { ...o, landing: nextLanding, updatedAt: Date.now() } : o)),
-    );
+  const handleSliderChange = (totalSeconds: number) => {
+    const clamped = Math.max(0, Math.min(86399, totalSeconds));
+    const h = Math.floor(clamped / 3600);
+    const m = Math.floor((clamped % 3600) / 60);
+    const s = clamped % 60;
+    const timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    updateLanding(landingDate, timeStr);
   };
 
   const updateServerSpeed = (speed: number) => {
@@ -1996,13 +1984,26 @@ export function OperationPlanner({
     });
   }, [routes, filterAttacker, filterTarget, filterStatus, filterType]);
 
-  // Detect rapid consecutive attacks by the same attacker (under 20 seconds apart)
+  // Identify the next upcoming attack to launch (earliest send time >= now)
+  const nextUpcomingRouteKey = useMemo(() => {
+    const nowMs = now.getTime();
+    // visibleRoutes is already sorted by send time ascending
+    const nextRoute = visibleRoutes.find((r) => r.send.getTime() >= nowMs);
+    return nextRoute ? nextRoute.key : null;
+  }, [visibleRoutes, now]);
+
+  // Detect rapid consecutive attacks by the same attacker (under 10 seconds apart), excluding attacks already in the past
   const routeClashes = useMemo(() => {
     const clashes = new Map<string, { gapSeconds: number; attackerName: string; partnerRouteKey: string }>();
-    // Group routes by attacker identity (player ID if linked to a player, otherwise attacker village ID)
+    const nowMs = now.getTime();
+
+    // Group active/future routes by attacker identity (player ID if linked to a player, otherwise attacker village ID)
     const groupedByPlayer = new Map<string, typeof routes>();
 
     for (const r of routes) {
+      // Don't show warning card on passed attacks
+      if (r.send.getTime() < nowMs) continue;
+
       const playerKey = r.attacker.playerId || r.attacker.id;
       const group = groupedByPlayer.get(playerKey) ?? [];
       group.push(r);
@@ -2017,7 +2018,7 @@ export function OperationPlanner({
         const curr = sorted[i];
         const next = sorted[i + 1];
         const diffMs = next.send.getTime() - curr.send.getTime();
-        if (diffMs >= 0 && diffMs < 20_000) {
+        if (diffMs >= 0 && diffMs < 10_000) {
           const gapSec = Math.round(diffMs / 1000);
           const attackerDisplayName = curr.attackerSafe.sourceName || curr.attacker.name;
 
@@ -2036,7 +2037,7 @@ export function OperationPlanner({
     }
 
     return clashes;
-  }, [routes]);
+  }, [routes, now]);
 
   // Audio alert tracking for 1-minute chime & 5-second countdown ticks
   const alerted1MinRef = useRef<Set<string>>(new Set());
@@ -2246,25 +2247,29 @@ export function OperationPlanner({
                   <Time24Input
                     value={landingTime}
                     onChange={(newTime) => updateLanding(landingDate, newTime)}
-                    placeholder="14:00"
+                    placeholder="14:00:00"
+                    withSeconds
                   />
+                </div>
+                <div className="op-time-slider-wrap">
+                  <span className="op-time-slider-label">00:00</span>
+                  <input
+                    type="range"
+                    className="op-time-slider"
+                    min={0}
+                    max={86100}
+                    step={300}
+                    value={Math.round(landingSecondsOfDay / 300) * 300}
+                    onChange={(e) => handleSliderChange(Number(e.target.value))}
+                    aria-label="Adjust landing time slider (5-minute increments)"
+                  />
+                  <span className="op-time-slider-label">23:55</span>
                 </div>
                 {showLocal && (
                   <span className="op-landing-local">
                     = {formatLocalDateTime(parsedLanding)} · {zoneLabel}
                   </span>
                 )}
-                <details className="op-time-adjust">
-                  <summary>Adjust time</summary>
-                  <div className="op-landing-shortcuts">
-                    <button type="button" className="pill pill--tiny" onClick={() => shiftLandingHours(1)}>+1h</button>
-                    <button type="button" className="pill pill--tiny" onClick={() => shiftLandingHours(4)}>+4h</button>
-                    <button type="button" className="pill pill--tiny" onClick={() => shiftLandingHours(8)}>+8h</button>
-                    <button type="button" className="pill pill--tiny" onClick={() => shiftLandingHours(12)}>+12h</button>
-                    <button type="button" className="pill pill--tiny" onClick={() => shiftLandingHours(24)}>+24h</button>
-                    <button type="button" className="pill pill--tiny" onClick={setLandingNow}>Now</button>
-                  </div>
-                </details>
               </div>
 
               {(!isV2Active || !roomSession) && (
@@ -2589,10 +2594,10 @@ export function OperationPlanner({
                 <span className="op-route-clash-banner__icon">⚠️</span>
                 <div className="op-route-clash-banner__content">
                   <strong className="op-route-clash-banner__title">
-                    Warning: Fast Attack Conflict Detected (&lt; 20s gap)
+                    Warning: Fast Attack Conflict Detected (&lt; 10s gap)
                   </strong>
                   <p className="op-route-clash-banner__desc">
-                    One or more attackers have multiple attacks scheduled less than 20 seconds apart. Sending attacks this quickly is difficult in-game; check the flagged routes in the table below.
+                    One or more attackers have multiple upcoming attacks scheduled less than 10 seconds apart. Sending attacks this quickly is difficult in-game; check the flagged routes in the table below.
                   </p>
                 </div>
               </div>
@@ -2632,10 +2637,14 @@ export function OperationPlanner({
                           ? `${route.attackerSafe.sourceName}: ${route.attacker.name}`
                           : route.attacker.name;
 
+                      const isNextUpcoming = route.key === nextUpcomingRouteKey;
+                      const isPast = route.send.getTime() < now.getTime();
+                      const statusClass = isPast ? 'is-past-route' : 'is-future-route';
+
                       return (
                         <tr
                           key={route.key}
-                          className={`op-route-row ${(selectedRoute?.key === route.key ? 'is-selected ' : '') + (route.possible ? 'is-possible' : 'is-blocked')}`}
+                          className={`op-route-row ${(selectedRoute?.key === route.key ? 'is-selected ' : '') + (route.possible ? 'is-possible' : 'is-blocked')}${isNextUpcoming ? ' is-next-launch' : ''} ${statusClass}`}
                           onClick={() => handleInspectRoute(route.key)}
                           role="button"
                           tabIndex={0}
@@ -2655,13 +2664,13 @@ export function OperationPlanner({
                                 {tgtMeta.isCapital && <span className="op-badge-tag op-badge-tag--cap">👑 Cap</span>}
                                 {tgtMeta.isCity && <span className="op-badge-tag op-badge-tag--city">🏛️ City</span>}
                                 {tgtMeta.artifactName && (
-                                  <span className="op-badge-tag op-badge-tag--art" title={`Artifact: ${tgtMeta.artifactName}`}>
-                                    🏺 {tgtMeta.artifactName}
-                                  </span>
-                                )}
-                                <span className={`op-hit-tag ${route.target.fake ? 'is-fake' : 'is-real'}`}>
-                                  {route.target.fake ? 'Fake' : 'Real'}
-                                </span>
+                                   <span className="op-badge-tag op-badge-tag--art" title={`Artifact: ${tgtMeta.artifactName}`}>
+                                     🏺 {tgtMeta.artifactName}
+                                   </span>
+                                 )}
+                                 <span className={`op-hit-tag ${route.target.fake ? 'is-fake' : 'is-real'}`}>
+                                   {route.target.fake ? 'Fake' : 'Real'}
+                                 </span>
                               </div>
                               {hasDifferentVillageName && (
                                 <span className="op-route-village-subtext">
@@ -2698,7 +2707,7 @@ export function OperationPlanner({
                                   className="op-launch-clash-tag"
                                   title={`Warning: Another attack by ${routeClashes.get(route.key)?.attackerName} launches only ${routeClashes.get(route.key)?.gapSeconds}s apart!`}
                                 >
-                                  ⚠️ &lt;20s ({routeClashes.get(route.key)?.gapSeconds}s)
+                                  ⚠️ &lt;10s ({routeClashes.get(route.key)?.gapSeconds}s)
                                 </span>
                               )}
                             </div>

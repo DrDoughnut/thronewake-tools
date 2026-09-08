@@ -59,12 +59,14 @@ export function Time24Input({
   className = 'text-input text-input--time24',
   placeholder = '14:00',
   disabled = false,
+  withSeconds = false,
 }: {
   value: string;
   onChange: (val: string) => void;
   className?: string;
   placeholder?: string;
   disabled?: boolean;
+  withSeconds?: boolean;
 }) {
   const [localText, setLocalText] = useState(value);
 
@@ -75,25 +77,52 @@ export function Time24Input({
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value;
     setLocalText(raw);
-    if (/^([01]?\d|2[0-3]):[0-5]\d$/.test(raw)) {
-      onChange(raw);
+    if (withSeconds) {
+      if (/^([01]?\d|2[0-3]):[0-5]\d:[0-5]\d$/.test(raw)) {
+        onChange(raw);
+      }
+    } else {
+      if (/^([01]?\d|2[0-3]):[0-5]\d$/.test(raw)) {
+        onChange(raw);
+      }
     }
   };
 
   const handleBlur = () => {
-    const match = /^(\d{1,2}):?(\d{0,2})$/.exec(localText.trim());
-    if (match) {
-      let h = parseInt(match[1], 10);
-      let m = parseInt(match[2] || '0', 10);
-      if (isNaN(h) || h < 0) h = 0;
-      if (h > 23) h = 23;
-      if (isNaN(m) || m < 0) m = 0;
-      if (m > 59) m = 59;
-      const formatted = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-      setLocalText(formatted);
-      onChange(formatted);
+    const trimmed = localText.trim();
+    if (withSeconds) {
+      const match = /^(\d{1,2}):?(\d{0,2}):?(\d{0,2})$/.exec(trimmed);
+      if (match) {
+        let h = parseInt(match[1], 10);
+        let m = parseInt(match[2] || '0', 10);
+        let s = parseInt(match[3] || '0', 10);
+        if (isNaN(h) || h < 0) h = 0;
+        if (h > 23) h = 23;
+        if (isNaN(m) || m < 0) m = 0;
+        if (m > 59) m = 59;
+        if (isNaN(s) || s < 0) s = 0;
+        if (s > 59) s = 59;
+        const formatted = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        setLocalText(formatted);
+        onChange(formatted);
+      } else {
+        setLocalText(value);
+      }
     } else {
-      setLocalText(value);
+      const match = /^(\d{1,2}):?(\d{0,2})$/.exec(trimmed);
+      if (match) {
+        let h = parseInt(match[1], 10);
+        let m = parseInt(match[2] || '0', 10);
+        if (isNaN(h) || h < 0) h = 0;
+        if (h > 23) h = 23;
+        if (isNaN(m) || m < 0) m = 0;
+        if (m > 59) m = 59;
+        const formatted = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+        setLocalText(formatted);
+        onChange(formatted);
+      } else {
+        setLocalText(value);
+      }
     }
   };
 

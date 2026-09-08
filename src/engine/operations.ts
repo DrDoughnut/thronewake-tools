@@ -156,43 +156,48 @@ export function formatClock(minutes: number, includeSeconds = false): string {
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const;
 
-/** Converts a UTC instant to the zone-less value accepted by datetime-local or internal state. */
-export function toUtcDatetimeInput(date: Date): string {
+/** Converts a UTC instant to the zone-less value accepted by datetime-local or internal state (includes seconds if non-zero, or standard ISO). */
+export function toUtcDatetimeInput(date: Date, includeSeconds = false): string {
+  if (includeSeconds || date.getUTCSeconds() > 0) {
+    return date.toISOString().slice(0, 19);
+  }
   return date.toISOString().slice(0, 16);
 }
 
-/** Returns date string "YYYY-MM-DD" and 24h clock string "HH:mm" in UTC. */
-export function splitUtcDateAndTime(date: Date): { date: string; time: string } {
+/** Returns date string "YYYY-MM-DD" and 24h clock string "HH:mm" or "HH:mm:ss" in UTC. */
+export function splitUtcDateAndTime(date: Date, includeSeconds = false): { date: string; time: string } {
   const iso = date.toISOString();
   return {
     date: iso.slice(0, 10),
-    time: iso.slice(11, 16),
+    time: includeSeconds ? iso.slice(11, 19) : iso.slice(11, 16),
   };
 }
 
-/** Combines "YYYY-MM-DD" and "HH:mm" into a UTC Date object. */
+/** Combines "YYYY-MM-DD" and "HH:mm" or "HH:mm:ss" into a UTC Date object. */
 export function combineUtcDateAndTime(dateStr: string, timeStr: string): Date | null {
   const matchDate = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr);
-  const matchTime = /^(\d{1,2}):(\d{2})$/.exec(timeStr);
+  const matchTime = /^(\d{1,2}):(\d{2})(?::(\d{2}))?$/.exec(timeStr);
   if (!matchDate || !matchTime) return null;
   const [, year, month, day] = matchDate;
-  const [, hours, minutes] = matchTime;
+  const [, hours, minutes, seconds] = matchTime;
   const h = Number(hours);
   const m = Number(minutes);
-  if (h < 0 || h > 23 || m < 0 || m > 59) return null;
-  const result = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day), h, m));
+  const s = seconds ? Number(seconds) : 0;
+  if (h < 0 || h > 23 || m < 0 || m > 59 || s < 0 || s > 59) return null;
+  const result = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day), h, m, s));
   return Number.isFinite(result.getTime()) ? result : null;
 }
 
-/** Interprets a datetime-local string (or YYYY-MM-DDTHH:mm) as UTC. */
+/** Interprets a datetime-local string (or YYYY-MM-DDTHH:mm / YYYY-MM-DDTHH:mm:ss) as UTC. */
 export function parseUtcDatetime(value: string): Date | null {
-  const match = /^(\d{4})-(\d{2})-(\d{2})(?:T|\s+)(\d{1,2}):(\d{2})$/.exec(value);
+  const match = /^(\d{4})-(\d{2})-(\d{2})(?:T|\s+)(\d{1,2}):(\d{2})(?::(\d{2}))?$/.exec(value);
   if (!match) return null;
-  const [, year, month, day, hours, minutes] = match;
+  const [, year, month, day, hours, minutes, seconds] = match;
   const h = Number(hours);
   const m = Number(minutes);
-  if (h < 0 || h > 23 || m < 0 || m > 59) return null;
-  const result = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day), h, m));
+  const s = seconds ? Number(seconds) : 0;
+  if (h < 0 || h > 23 || m < 0 || m > 59 || s < 0 || s > 59) return null;
+  const result = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day), h, m, s));
   return Number.isFinite(result.getTime()) ? result : null;
 }
 
