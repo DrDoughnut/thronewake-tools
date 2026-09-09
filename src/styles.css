@@ -2449,6 +2449,110 @@ select:focus, .select:focus, .text-input:focus {
   outline-offset: -2px;
 }
 
+.op-route-card {
+  display: grid;
+  grid-template-columns: minmax(130px, 1fr) auto minmax(180px, 1.3fr) auto;
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 3px;
+  min-width: 320px;
+  max-width: 520px;
+}
+
+.op-route-source-top {
+  grid-column: 1;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.op-route-arrow-cell {
+  grid-column: 2;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.op-route-target-top {
+  grid-column: 3;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.op-route-tag-cell {
+  grid-column: 4;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+}
+
+.op-route-source-sub {
+  grid-column: 1;
+  grid-row: 2;
+  display: flex;
+  align-items: center;
+  padding-left: 17px;
+  min-width: 0;
+}
+
+.op-route-target-sub {
+  grid-column: 3 / span 2;
+  grid-row: 2;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding-left: 17px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.op-route-side-icon {
+  font-size: 12px;
+  line-height: 1;
+  flex: 0 0 auto;
+}
+
+.op-route-player {
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.op-route-player--attacker {
+  color: #f28b72;
+}
+
+.op-route-player--target {
+  color: #72c2dd;
+}
+
+.op-route-arrow {
+  color: var(--text-faint);
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+.op-route-sub-name {
+  color: var(--text-faint);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 190px;
+}
+
 .op-route-summary {
   display: flex;
   flex-direction: column;
@@ -2467,7 +2571,6 @@ select:focus, .select:focus, .text-input:focus {
   margin-top: 1px;
 }
 .op-route-attacker { color: #f28b72; font-weight: 700; font-size: 13px; }
-.op-route-arrow { color: var(--text-faint); font-size: 12px; }
 .op-route-target { color: #72c2dd; font-weight: 700; font-size: 13px; }
 .op-route-unit-hint { color: var(--text-faint); font-size: 11.5px; }
 .op-hit-tag {

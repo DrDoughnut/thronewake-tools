@@ -2628,14 +2628,11 @@ export function OperationPlanner({
                   ) : (
                     visibleRoutes.map((route) => {
                       const countdown = getCountdownInfo(route.send, now);
-                      const defenderName = route.targetSafe.sourceName || route.target.name;
+                      const defenderPlayer = route.targetSafe.sourceName || null;
+                      const defenderVillage = route.target.name;
                       const tgtMeta = extractLegacyTags(route.target);
-                      const hasDifferentVillageName =
-                        route.targetSafe.sourceName && route.targetSafe.sourceName !== route.target.name;
-                      const attackerName =
-                        route.attackerSafe.sourceName && route.attackerSafe.sourceName !== route.attacker.name
-                          ? `${route.attackerSafe.sourceName}: ${route.attacker.name}`
-                          : route.attacker.name;
+                      const attackerPlayer = route.attackerSafe.sourceName || null;
+                      const attackerVillage = route.attacker.name;
 
                       const isNextUpcoming = route.key === nextUpcomingRouteKey;
                       const isPast = route.send.getTime() < now.getTime();
@@ -2656,27 +2653,48 @@ export function OperationPlanner({
                           }}
                         >
                           <td data-label="Route">
-                            <div className="op-route-summary">
-                              <div className="op-route-button__names">
-                                <strong className="op-route-attacker">{attackerName}</strong>
+                            <div className="op-route-card">
+                              <div className="op-route-source-top">
+                                <span className="op-route-side-icon" aria-hidden="true">⚔️</span>
+                                <strong className="op-route-player op-route-player--attacker">
+                                  {attackerPlayer || attackerVillage}
+                                </strong>
+                              </div>
+                              <div className="op-route-arrow-cell">
                                 <span className="op-route-arrow" aria-hidden="true">➔</span>
-                                <strong className="op-route-target">{defenderName}</strong>
+                              </div>
+                              <div className="op-route-target-top">
+                                <span className="op-route-side-icon" aria-hidden="true">🎯</span>
+                                <strong className="op-route-player op-route-player--target">
+                                  {defenderPlayer || defenderVillage}
+                                </strong>
+                              </div>
+                              <div className="op-route-tag-cell">
+                                <span className={`op-hit-tag ${route.target.fake ? 'is-fake' : 'is-real'}`}>
+                                  {route.target.fake ? 'Fake' : 'Real'}
+                                </span>
+                              </div>
+                              <div className="op-route-source-sub">
+                                {attackerPlayer && (
+                                  <span className="op-route-sub-name" title={attackerVillage}>
+                                    {attackerVillage}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="op-route-target-sub">
+                                {defenderPlayer && (
+                                  <span className="op-route-sub-name" title={defenderVillage}>
+                                    {defenderVillage}
+                                  </span>
+                                )}
                                 {tgtMeta.isCapital && <span className="op-badge-tag op-badge-tag--cap">👑 Cap</span>}
                                 {tgtMeta.isCity && <span className="op-badge-tag op-badge-tag--city">🏛️ City</span>}
                                 {tgtMeta.artifactName && (
-                                   <span className="op-badge-tag op-badge-tag--art" title={`Artifact: ${tgtMeta.artifactName}`}>
-                                     🏺 {tgtMeta.artifactName}
-                                   </span>
-                                 )}
-                                 <span className={`op-hit-tag ${route.target.fake ? 'is-fake' : 'is-real'}`}>
-                                   {route.target.fake ? 'Fake' : 'Real'}
-                                 </span>
+                                  <span className="op-badge-tag op-badge-tag--art" title={`Artifact: ${tgtMeta.artifactName}`}>
+                                    🏺 {tgtMeta.artifactName}
+                                  </span>
+                                )}
                               </div>
-                              {hasDifferentVillageName && (
-                                <span className="op-route-village-subtext">
-                                  {route.target.name}
-                                </span>
-                              )}
                             </div>
                           </td>
                           <td data-label="Distance / Map Pin">
