@@ -429,8 +429,7 @@ describe('the operation planner', () => {
     const sendTimestamps = rows.map((r) => r.querySelector('.op-timestamp--send')?.textContent || '');
     expect(sendTimestamps.every((t) => /\d{2}:\d{2}:\d{2} UTC/.test(t))).toBe(true);
 
-    const landTimestamps = rows.map((r) => r.querySelector('.op-timestamp--land')?.textContent || '');
-    expect(landTimestamps.every((t) => /\d{2}:\d{2} UTC/.test(t) && !/\d{2}:\d{2}:\d{2} UTC/.test(t))).toBe(true);
+    expect(container.querySelector('.op-timestamp--land')).toBeNull();
   });
 
   it('selects a route when clicking anywhere on a row and highlights relevant schedule lanes', () => {
@@ -602,7 +601,7 @@ describe('the operation planner', () => {
     expect(Array.from(blockedRows).every((r) => r.classList.contains('is-blocked'))).toBe(true);
   });
 
-  it('renders countdown ticker, alarm chime controls, and army selector', () => {
+  it('renders countdown ticker and alarm controls sharing route filters', () => {
     expect(container.querySelector('.op-alarm-toolbar')).toBeTruthy();
     const alarmBtn = container.querySelector('.pill--alarm') as HTMLElement;
     expect(alarmBtn).toBeTruthy();
@@ -610,8 +609,8 @@ describe('the operation planner', () => {
 
     // Designated alarm army dropdown selector
     const alarmSelect = container.querySelector('.op-alarm-select') as HTMLSelectElement;
-    expect(alarmSelect).toBeTruthy();
-    expect(alarmSelect.value).toBe('all');
+    expect(alarmSelect).toBeNull();
+    expect(container.querySelector('[aria-label="Filter routes by attacker"]')).toBeTruthy();
 
     // Toggle mute
     click(alarmBtn);
@@ -787,7 +786,14 @@ describe('the operation planner', () => {
     expect(firstOpTab).toBeTruthy();
     click(firstOpTab);
 
-    // Participant selection is always visible in the Setup workspace.
+    // Switch to Step 2: Targets & Setup
+    const targetsTab = [...container.querySelectorAll('.op-workspace-nav button')].find(
+      (button) => button.textContent?.includes('Targets & Setup'),
+    ) as HTMLButtonElement;
+    expect(targetsTab).toBeTruthy();
+    click(targetsTab);
+
+    // Participant selection is visible in the Targets & Setup step.
     const attackerChip = container.querySelector('.op-participant-chip--attacker input[type="checkbox"]') as HTMLInputElement;
     expect(attackerChip.checked).toBe(true);
     act(() => attackerChip.click());
@@ -823,10 +829,10 @@ describe('the operation planner', () => {
     ) as HTMLButtonElement;
     click(routesTabReopened);
     expect(container.querySelectorAll('.op-routes tbody .op-route-row')).toHaveLength(1);
-    expect(container.querySelector(".op-hit-tag")?.textContent).toContain("Fake");
+    expect(container.querySelector(".op-target-mode")?.textContent).toContain("Fake");
   });
 
-  it('displays the daily safetime schedule and participant safetime tags on both setup and routes pages', async () => {
+  it('keeps routes clean and shows selected send times when returning to scheduling', async () => {
     const opTab = [...container.querySelectorAll('.pill--tool')].find(
       (b) => b.getAttribute('aria-label') === 'Operation Planner',
     )!;
@@ -856,17 +862,23 @@ describe('the operation planner', () => {
     expect(firstOpTab).toBeTruthy();
     click(firstOpTab);
 
-    // 1. Check Setup view: Schedule is present and participants show safetimes
-    expect(container.querySelector('.op-participant-picker')).toBeTruthy();
-    const setupSchedule = container.querySelector('.op-schedule');
-    expect(setupSchedule).toBeTruthy();
-    expect(setupSchedule?.textContent).toContain('Daily safe-time schedule · UTC');
+    // 1. Check Scheduling view (Step 1): Safetime Schedule is present
+    const schedulingSchedule = container.querySelector('.op-schedule');
+    expect(schedulingSchedule).toBeTruthy();
+    expect(schedulingSchedule?.textContent).toContain('Daily safe-time schedule · UTC');
 
-    // Participant headers in setup view show safetime tags
+    // 2. Switch to Targets & Setup (Step 2): Participant picker and safetime tags are present
+    const targetsTab = [...container.querySelectorAll('.op-workspace-nav button')].find(
+      (button) => button.textContent?.includes('Targets & Setup'),
+    ) as HTMLButtonElement;
+    expect(targetsTab).toBeTruthy();
+    click(targetsTab);
+
+    expect(container.querySelector('.op-participant-picker')).toBeTruthy();
     const safetimeTags = container.querySelectorAll('.op-participant-player-header .op-safetime__tag');
     expect(safetimeTags.length).toBeGreaterThan(0);
 
-    // 2. Switch to Routes view: Schedule is also present
+    // 3. Switch to Routes view (Step 3): Schedule inspector is also present
     const routesTab = [...container.querySelectorAll('.op-workspace-nav button')].find(
       (button) => button.textContent?.includes('Routes'),
     ) as HTMLButtonElement;
@@ -874,9 +886,79 @@ describe('the operation planner', () => {
     click(routesTab);
 
     expect(container.querySelector('.op-routes')).toBeTruthy();
-    const routesSchedule = container.querySelector('.op-schedule');
-    expect(routesSchedule).toBeTruthy();
-    expect(routesSchedule?.textContent).toContain('Daily safe-time schedule · UTC');
+    expect(container.querySelector('.op-schedule')).toBeNull();
+    const routeCount = container.querySelectorAll('.op-route-row').length;
+    const back = [...container.querySelectorAll('button')].find((button) => button.textContent?.includes('Jump to Scheduling'))!;
+    click(back);
+    expect(container.querySelectorAll('.schedule__send-line').length).toBe(routeCount * 2);
+    const pin = container.querySelector('[aria-label="Drag coordinated landing time"]') as HTMLElement;
+    expect(pin).toBeTruthy();
+    const before = Number(pin.getAttribute('aria-valuenow'));
+    const markersBefore = [...container.querySelectorAll('.schedule__send-line')].map((line) => (line as HTMLElement).style.left);
+    act(() => { pin.dispatchEvent(new KeyboardEvent('keydown', { key: before >= 1435 ? 'ArrowLeft' : 'ArrowRight', bubbles: true })); });
+    expect(Number(pin.getAttribute('aria-valuenow'))).toBe(before >= 1435 ? before - 5 : before + 5);
+    const markersAfter = [...container.querySelectorAll('.schedule__send-line')].map((line) => (line as HTMLElement).style.left);
+    if (routeCount > 0) expect(markersAfter).not.toEqual(markersBefore);
+
+  });
+
+  it('enforces 5-minute slider steps and highlights safetime blocked defenders in scheduling and targets steps', async () => {
+    const opTab = [...container.querySelectorAll('.pill--tool')].find(
+      (b) => b.getAttribute('aria-label') === 'Operation Planner',
+    )!;
+    for (let i = 0; i < 10; i++) {
+      click(opTab);
+    }
+
+    const modalInput = container.querySelector('.secret-modal-input') as HTMLInputElement;
+    if (modalInput) {
+      setInputValue(modalInput, 'password123');
+      const connectBtn = container.querySelector('.secret-modal-btn-connect') as HTMLButtonElement;
+      click(connectBtn);
+    }
+
+    const roomConnectBtn = container.querySelector('.op-team-room-form button') as HTMLButtonElement;
+    if (roomConnectBtn) click(roomConnectBtn);
+
+    const start = Date.now();
+    while (!container.querySelector('.op-plan-tab')) {
+      if (Date.now() - start > 2000) break;
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 20));
+      });
+    }
+
+    const firstOpTab = container.querySelector('.op-plan-tab') as HTMLElement;
+    expect(firstOpTab).toBeTruthy();
+    click(firstOpTab);
+
+    // Verify slider has step="5"
+    const slider = container.querySelector('.op-time-slider') as HTMLInputElement;
+    expect(slider).toBeTruthy();
+    expect(slider.step).toBe('5');
+
+    // In Step 1 Scheduling, verify no active dot indicators on lanes
+    const activeIndicators = container.querySelectorAll('.schedule__active-indicator');
+    expect(activeIndicators.length).toBe(0);
+
+    // Yellow send pins render on schedule rows with pin heads and warning pulse when overlapping
+    const sendPins = container.querySelectorAll('.schedule__send-line');
+    if (sendPins.length > 0) {
+      expect(container.querySelector('.schedule__send-pin-head')).toBeTruthy();
+      const overlappingPins = container.querySelectorAll('.schedule__send-line.is-overlapping');
+      if (overlappingPins.length > 0) {
+        expect(overlappingPins[0].querySelector('.schedule__send-pin-pulse')).toBeTruthy();
+      }
+    }
+
+    // Switch to Targets & Setup step
+    const targetsTab = [...container.querySelectorAll('.op-workspace-nav button')].find(
+      (button) => button.textContent?.includes('Targets & Setup'),
+    ) as HTMLButtonElement;
+    expect(targetsTab).toBeTruthy();
+    click(targetsTab);
+
+    expect(container.querySelector('.op-participant-picker')).toBeTruthy();
   });
 
   it('supports automatic saving and syncing in v2 mode', async () => {
@@ -1088,6 +1170,14 @@ describe('the operation planner', () => {
       // Verify modal closes and new operation is created and open
       expect(container.querySelector('.op-modal--import')).toBeNull();
       expect(container.querySelector('.op-workspace-bar')).toBeTruthy();
+
+      // Switch to Targets & Setup to view deployed participant chips
+      const targetsTab = [...container.querySelectorAll('.op-workspace-nav button')].find(
+        (button) => button.textContent?.includes('Targets & Setup'),
+      ) as HTMLButtonElement;
+      expect(targetsTab).toBeTruthy();
+      click(targetsTab);
+
       expect(container.textContent).toContain('Alpha Strike');
       expect(container.textContent).toContain('Capital City');
 

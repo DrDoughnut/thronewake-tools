@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { playableFactions, lookup, type UnitRef } from '../data/factions';
 import {
@@ -12,6 +12,7 @@ import {
   formatDuration,
   formatLocalClock,
   formatLocalDateTime,
+  isInSafeWindow,
   localZoneLabel,
   minuteOfDay,
   parseClock,
@@ -339,21 +340,7 @@ export function decodeState(rawHash?: string): PlannerState {
 
 const nextId = (prefix: string) => prefix + Math.random().toString(36).slice(2, 8);
 
-const LOCAL_PREF_KEY = 'thronewake.showLocalTime';
 
-function readShowLocal(): boolean {
-  try {
-    return window.localStorage.getItem(LOCAL_PREF_KEY) === '1';
-  } catch {
-    return false;
-  }
-}
-
-function writeShowLocal(value: boolean): void {
-  try {
-    window.localStorage.setItem(LOCAL_PREF_KEY, value ? '1' : '0');
-  } catch {}
-}
 
 const plannerHash = (state: PlannerState) => `tool=operations&p=${encodeCompactPlan(state)}`;
 
@@ -723,12 +710,20 @@ function TimelineLane({
   isSelected,
   type,
   onClick,
+  landPosition,
+  isBlocked,
+  sendRoutes = [],
+  onSelectRoute,
 }: {
   label: string;
   window: SafeWindow;
   isSelected?: boolean;
   type: 'attacker' | 'defender';
   onClick?: () => void;
+  landPosition?: number | null;
+  isBlocked?: boolean;
+  sendRoutes?: PlannedRoute[];
+  onSelectRoute?: (routeKey: string) => void;
 }) {
   const segments = safeSegments(window);
   const isInteractive = Boolean(onClick);
@@ -738,6 +733,7 @@ function TimelineLane({
       className={
         `schedule__row schedule__row--${type} ` +
         (isSelected ? 'is-selected-lane ' : '') +
+        (isBlocked ? 'is-safetime-blocked ' : '') +
         (isInteractive ? 'schedule__row--interactive' : '')
       }
       onClick={onClick}
@@ -777,6 +773,32 @@ function TimelineLane({
             } as CSSProperties}
           />
         ))}
+        {sendRoutes.map((route) => {
+          const isOverlapping = (type === 'attacker' ? route.checks.sendAttacker : route.checks.sendDefender) || isInSafeWindow(route.send, window);
+          return (
+            <span
+              key={route.key}
+              className={`schedule__send-line ${isOverlapping ? 'is-overlapping' : ''}`}
+              data-route-key={route.key}
+              style={{ left: `${minuteOfDay(route.send) / 14.4}%` }}
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelectRoute?.(route.key);
+              }}
+              title={`${route.attacker.name} → ${route.target.name}: send ${formatDateTime(route.send)} UTC${isOverlapping ? ' · ⚠️ OVERLAPS SAFE TIME (Conflict)' : ''}`}
+            >
+              <span className="schedule__send-pin-head" />
+              {isOverlapping && <span className="schedule__send-pin-pulse" aria-hidden="true" />}
+            </span>
+          );
+        })}
+        {landPosition !== null && landPosition !== undefined && (
+          <div
+            className="schedule__landing-line"
+            style={{ left: `${landPosition}%` }}
+            title={`Coordinated Landing at ${landPosition.toFixed(1)}%`}
+          />
+        )}
       </div>
     </div>
   );
@@ -794,6 +816,10 @@ function ScheduleTimeline({
   landingDate,
   landingTime,
   parsedLanding,
+  onToggleTargetFake,
+  mode = 'full',
+  onChangeLandingMinutes,
+  onReviewRoutes,
 }: {
   routes: PlannedRoute[];
   route?: PlannedRoute;
@@ -806,7 +832,17 @@ function ScheduleTimeline({
   landingDate?: string;
   landingTime?: string;
   parsedLanding?: Date;
+  onToggleTargetFake?: (targetId: string) => void;
+  mode?: 'planning' | 'inspector' | 'full';
+  onChangeLandingMinutes?: (minutes: number) => void;
+  onReviewRoutes?: () => void;
 }) {
+  const axisRef = useRef<HTMLDivElement>(null);
+  const dragLanding = (clientX: number) => {
+    const bounds = axisRef.current?.getBoundingClientRect();
+    if (!bounds?.width) return;
+    onChangeLandingMinutes?.(Math.max(0, Math.min(1435, Math.round((clientX - bounds.left) / bounds.width * 1440 / 5) * 5)));
+  };
   const defenderKey = (target: Target) => target.playerId || target.id;
 
   const defenders = useMemo(() => {
@@ -817,7 +853,7 @@ function ScheduleTimeline({
       allPlayers.forEach((player) => {
         seenKeys.add(player.id);
         const hasRoutes = routes.some(
-          (r) => (r.target.playerId && r.target.playerId === player.id) || r.targetSafe.sourceName === player.name,
+          (r) => r.target.playerId === player.id,
         );
         list.push({
           key: player.id,
@@ -863,7 +899,7 @@ function ScheduleTimeline({
       allAttackerPlayers.forEach((player) => {
         seenIds.add(player.id);
         const hasRoutes = routes.some(
-          (r) => (r.attacker.playerId && r.attacker.playerId === player.id) || r.attackerSafe.sourceName === player.name,
+          (r) => r.attacker.playerId === player.id,
         );
         list.push({
           id: player.id,
@@ -911,9 +947,17 @@ function ScheduleTimeline({
     ])).values()];
   }, [allAttackerPlayers, allAttackers, routes]);
 
+  const groupByParticipation = mode === 'planning' && routes.length > 0;
+  const orderedAttackers = groupByParticipation
+    ? [...attackers].sort((a, b) => Number(b.hasRoutes) - Number(a.hasRoutes) || a.name.localeCompare(b.name))
+    : attackers;
+  const orderedDefenders = groupByParticipation
+    ? [...defenders].sort((a, b) => Number(b.hasRoutes) - Number(a.hasRoutes) || a.label.localeCompare(b.label))
+    : defenders;
+
   const selectedDefenderKey = route ? defenderKey(route.target) : null;
   const sendPosition = route ? Math.min(100, Math.max(0, minuteOfDay(route.send) / 14.4)) : null;
-  const targetLandingDate = route ? route.land : parsedLanding;
+  const targetLandingDate = (mode === 'planning' || !route) ? parsedLanding : route.land;
   const landPosition = targetLandingDate ? Math.min(100, Math.max(0, minuteOfDay(targetLandingDate) / 14.4)) : null;
 
   const defenderVillages = route
@@ -955,228 +999,334 @@ function ScheduleTimeline({
       <div className="op-section-head op-schedule__header-wrap">
         <div className="op-schedule__header-left">
           <h2 className="panel__title">Daily safe-time schedule · UTC</h2>
-          {route ? (
-            <div className="op-schedule__journey-readout">
-              <span className="op-schedule__journey-label">Selected Route:</span>
-              <strong className="op-route-attacker">
-                {route.attackerSafe.sourceName && route.attackerSafe.sourceName !== route.attacker.name
-                  ? `${route.attackerSafe.sourceName}: ${route.attacker.name}`
-                  : route.attacker.name}
-              </strong>
-              <span className="op-route-arrow" aria-hidden="true">➔</span>
-              <strong className="op-route-target">
-                {route.targetSafe.sourceName && route.targetSafe.sourceName !== route.target.name
-                  ? `${route.targetSafe.sourceName}: ${route.target.name}`
-                  : route.target.name}
-              </strong>
-              {(() => {
-                const meta = extractLegacyTags(route.target);
-                return (
-                  <>
-                    {meta.isCapital && <span className="op-badge-tag op-badge-tag--cap">👑 Cap</span>}
-                    {meta.isCity && <span className="op-badge-tag op-badge-tag--city">🏛️ City</span>}
-                    {meta.artifactName && (
-                      <span className="op-badge-tag op-badge-tag--art" title={`Artifact: ${meta.artifactName}`}>
-                        🏺 {meta.artifactName}
-                      </span>
-                    )}
-                  </>
-                );
-              })()}
-              <a
-                href={`https://www.thronewake.com/map/tile/${route.target.x}/${route.target.y}?center=true`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="op-map-pin-link"
-                title={`Open in-game map centered on (${route.target.x}|${route.target.y})`}
-                onClick={(e) => e.stopPropagation()}
-              >
-                📍 ({route.target.x}|{route.target.y})
-              </a>
-              <span className={`op-hit-tag ${route.target.fake ? 'is-fake' : 'is-real'}`}>
-                {route.target.fake ? 'Fake' : 'Real'}
-              </span>
-            </div>
-          ) : (
-            <div className="op-schedule__journey-readout">
-              <span className="op-schedule__journey-label">Coordinated Landing:</span>
-              <strong className="op-route-target">
-                {landingTime ? `${landingTime} UTC` : 'Pending'}
-              </strong>
-              {landingDate && <span className="op-schedule__sep">·</span>}
-              {landingDate && <span>{landingDate}</span>}
-              <span className="op-schedule__journey-hint">
-                (Pick marching armies & targets to preview route paths)
-              </span>
-            </div>
-          )}
-
-          {route ? (
-            <div className="op-schedule__times-row">
-              <span>
-                Send: <strong>{formatClock(minuteOfDay(route.send), true)} UTC</strong>
-                {showLocal && ` (${formatLocalClock(route.send, true)} local)`}
-              </span>
-              <span className="op-schedule__sep">·</span>
-              <span>
-                Land: <strong>{formatClock(minuteOfDay(route.land))} UTC</strong>
-                {showLocal && ` (${formatLocalClock(route.land)} local)`}
-              </span>
-              <span className="op-schedule__sep">·</span>
-              <span>Travel: <strong>{formatDuration(route.travel)}</strong></span>
-            </div>
-          ) : (
-            targetLandingDate && (
-              <div className="op-schedule__times-row">
-                <span>
-                  Target Land Time: <strong>{formatClock(minuteOfDay(targetLandingDate))} UTC</strong>
-                  {showLocal && ` (${formatLocalClock(targetLandingDate)} local)`}
+          {mode !== 'planning' && (
+            route ? (
+              <div className="op-schedule__journey-readout">
+                <span className="op-schedule__journey-label">Selected Route:</span>
+                <strong className="op-route-attacker">
+                  {route.attackerSafe.sourceName && route.attackerSafe.sourceName !== route.attacker.name
+                    ? `${route.attackerSafe.sourceName}: ${route.attacker.name}`
+                    : route.attacker.name}
+                </strong>
+                <span className="op-route-arrow" aria-hidden="true">➔</span>
+                <strong className="op-route-target">
+                  {route.targetSafe.sourceName && route.targetSafe.sourceName !== route.target.name
+                    ? `${route.targetSafe.sourceName}: ${route.target.name}`
+                    : route.target.name}
+                </strong>
+                {(() => {
+                  const meta = extractLegacyTags(route.target);
+                  return (
+                    <>
+                      {meta.isCapital && <span className="op-badge-tag op-badge-tag--cap">👑 Cap</span>}
+                      {meta.isCity && <span className="op-badge-tag op-badge-tag--city">🏛️ City</span>}
+                      {meta.artifactName && (
+                        <span className="op-badge-tag op-badge-tag--art" title={`Artifact: ${meta.artifactName}`}>
+                          🏺 {meta.artifactName}
+                        </span>
+                      )}
+                    </>
+                  );
+                })()}
+                <a
+                  href={`https://www.thronewake.com/map/tile/${route.target.x}/${route.target.y}?center=true`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="op-map-pin-link"
+                  title={`Open in-game map centered on (${route.target.x}|${route.target.y})`}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  📍 ({route.target.x}|{route.target.y})
+                </a>
+                <button
+                  type="button"
+                  className={`pill pill--tiny op-target-mode ${route.target.fake ? 'is-fake' : 'is-real'}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleTargetFake?.(route.target.id);
+                  }}
+                  title={`Click to toggle ${route.target.name} between Real and Fake`}
+                >
+                  {route.target.fake ? 'Fake' : 'Real'}
+                </button>
+              </div>
+            ) : (
+              <div className="op-schedule__journey-readout">
+                <span className="op-schedule__journey-label">Coordinated Landing:</span>
+                <strong className="op-route-target">
+                  {landingTime ? `${landingTime} UTC` : 'Pending'}
+                </strong>
+                {landingDate && <span className="op-schedule__sep">·</span>}
+                {landingDate && <span>{landingDate}</span>}
+                <span className="op-schedule__journey-hint">
+                  (Pick marching armies & targets to preview route paths)
                 </span>
               </div>
             )
           )}
-        </div>
 
-        <div className="op-schedule__status-group">
-          {route ? (
-            <span className={'op-status ' + (route.possible ? 'is-possible' : 'is-blocked')}>
-              {route.possible ? 'All Checks Clear ✓' : 'Route Blocked ✕'}
-            </span>
-          ) : (
-            <span className="op-status is-idle">
-              Setup Preview
-            </span>
+          {mode !== 'planning' && (
+            route ? (
+              <div className="op-schedule__times-row">
+                <span>
+                  Send: <strong>{formatClock(minuteOfDay(route.send), true)} UTC</strong>
+                  {showLocal && ` (${formatLocalClock(route.send, true)} local)`}
+                </span>
+                <span className="op-schedule__sep">·</span>
+                <span>
+                  Land: <strong>{formatClock(minuteOfDay(route.land))} UTC</strong>
+                  {showLocal && ` (${formatLocalClock(route.land)} local)`}
+                </span>
+                <span className="op-schedule__sep">·</span>
+                <span>Travel: <strong>{formatDuration(route.travel)}</strong></span>
+              </div>
+            ) : (
+              targetLandingDate && (
+                <div className="op-schedule__times-row">
+                  <span>
+                    Target Land Time: <strong>{formatClock(minuteOfDay(targetLandingDate))} UTC</strong>
+                    {showLocal && ` (${formatLocalClock(targetLandingDate)} local)`}
+                  </span>
+                </div>
+              )
+            )
           )}
         </div>
+
+        {mode === 'planning' && routes.length > 0 && (
+          <button type="button" className={`pill is-active ${routes.some((r) => !r.possible) ? 'pill--blocked-filter' : 'pill--clear-filter'}`} onClick={onReviewRoutes}>
+            {routes.some((r) => !r.possible) ? `${routes.filter((r) => !r.possible).length} routes blocked` : 'All routes cleared'} · Review routes →
+          </button>
+        )}
+        {mode !== 'planning' && (
+          <div className="op-schedule__status-group">
+            {route ? (
+              <span className={'op-status ' + (route.possible ? 'is-possible' : 'is-blocked')}>
+                {route.possible ? 'All Checks Clear ✓' : 'Route Blocked ✕'}
+              </span>
+            ) : (
+              <span className="op-status is-idle">
+                Setup Preview
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
-      <div className="schedule__axis-row" aria-hidden="true">
+      {mode === 'planning' && routes.length > 0 && (
+        <p className="hint">
+          Yellow pins show send times for selected routes. Pulsing animated pins indicate a conflict where a send time overlaps safe hours. Drag the green landing pin or slider to clear them.
+        </p>
+      )}
+      <div className="schedule__axis-row">
         <span className="schedule__axis-spacer" />
-        <div className="schedule__axis-track">
+        <div className="schedule__axis-track" ref={axisRef}>
           <span className="schedule__axis-tick" style={{ left: '0%' }}>00:00</span>
           <span className="schedule__axis-tick" style={{ left: '25%' }}>06:00</span>
           <span className="schedule__axis-tick" style={{ left: '50%' }}>12:00</span>
           <span className="schedule__axis-tick" style={{ left: '75%' }}>18:00</span>
           <span className="schedule__axis-tick" style={{ left: '100%' }}>24:00</span>
+          {landPosition !== null && (
+            <div className={`schedule__axis-land-pin ${onChangeLandingMinutes ? 'is-draggable' : ''}`} style={{ left: `${landPosition}%` }}
+              role={onChangeLandingMinutes ? 'slider' : undefined}
+              tabIndex={onChangeLandingMinutes ? 0 : undefined}
+              aria-label={onChangeLandingMinutes ? 'Drag coordinated landing time' : undefined}
+              aria-valuemin={0} aria-valuemax={1435}
+              aria-valuenow={targetLandingDate ? minuteOfDay(targetLandingDate) : 0}
+              aria-valuetext={landingTime ? `${landingTime} UTC` : undefined}
+              onPointerDown={onChangeLandingMinutes ? (event) => { event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId); dragLanding(event.clientX); } : undefined}
+              onPointerMove={onChangeLandingMinutes ? (event) => { if (event.currentTarget.hasPointerCapture(event.pointerId)) dragLanding(event.clientX); } : undefined}
+              onPointerUp={onChangeLandingMinutes ? (event) => { if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId); } : undefined}
+              onKeyDown={onChangeLandingMinutes ? (event) => {
+                const current = targetLandingDate ? minuteOfDay(targetLandingDate) : 0;
+                const next = event.key === 'Home' ? 0 : event.key === 'End' ? 1435 : ['ArrowRight', 'ArrowUp'].includes(event.key) ? current + 5 : ['ArrowLeft', 'ArrowDown'].includes(event.key) ? current - 5 : null;
+                if (next !== null) { event.preventDefault(); onChangeLandingMinutes(Math.max(0, Math.min(1435, next))); }
+              } : undefined}
+            >
+              <span className="schedule__axis-land-badge">
+                🎯 {landingTime ? `${landingTime} UTC` : 'Land'}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
       <p className="schedule__group">Attackers</p>
-      {attackers.map((attacker) => (
+      {orderedAttackers.map((attacker, index) => (
+        <Fragment key={attacker.id}>
+        {groupByParticipation && !attacker.hasRoutes && (index === 0 || orderedAttackers[index - 1].hasRoutes) && (
+          <div className="schedule__no-routes">no routes</div>
+        )}
         <TimelineLane
-          key={attacker.id}
           label={attacker.name}
+          sendRoutes={mode === 'planning' ? routes.filter((r) => r.attacker.id === attacker.id || r.attacker.playerId === attacker.id) : []}
           window={attacker.window}
-          isSelected={route ? attacker.id === route.attacker.id || attacker.id === route.attacker.playerId : false}
+          isSelected={mode !== 'planning' && Boolean(route && (attacker.id === route.attacker.id || attacker.id === route.attacker.playerId))}
           type="attacker"
-          onClick={routes.length > 0 ? () => handleSelectAttacker(attacker.id) : undefined}
+          onClick={routes.length > 0 && mode !== 'planning' ? () => handleSelectAttacker(attacker.id) : undefined}
+          onSelectRoute={onSelectRoute}
+          landPosition={landPosition}
         />
+        </Fragment>
       ))}
 
       <p className="schedule__group">Defenders</p>
-      {defenders.map((defender) => (
-        <TimelineLane
-          key={defender.key}
-          label={defender.label}
-          window={defender.window}
-          isSelected={route ? defender.key === selectedDefenderKey : false}
-          type="defender"
-          onClick={routes.length > 0 ? () => handleSelectDefender(defender.key) : undefined}
-        />
-      ))}
-
-      <div className="schedule__row schedule__row--events">
-        <span className="schedule__label">Movement</span>
-        <div className="schedule__track schedule__track--events">
-          {route?.attackerWindow.enabled && safeSegments(route.attackerWindow).map((seg) => (
-            <span
-              key={`mov-atk-${seg.start}-${seg.end}`}
-              className="schedule__movement-safe schedule__movement-safe--attacker"
-              style={{
-                '--left': (seg.start / 14.4) + '%',
-                '--width': ((seg.end - seg.start) / 14.4) + '%',
-              } as CSSProperties}
-            />
-          ))}
-          {route?.targetWindow.enabled && safeSegments(route.targetWindow).map((seg) => (
-            <span
-              key={`mov-def-${seg.start}-${seg.end}`}
-              className="schedule__movement-safe schedule__movement-safe--defender"
-              style={{
-                '--left': (seg.start / 14.4) + '%',
-                '--width': ((seg.end - seg.start) / 14.4) + '%',
-              } as CSSProperties}
-            />
-          ))}
-
-          {/* Send Pin */}
-          {route && sendPosition !== null && (
-            <div
-              className="schedule__pin schedule__pin--send"
-              style={{ left: `${sendPosition}%` }}
-              title={'Send ' + formatDateTime(route.send, true)}
-            >
-              <div className="schedule__pin-badge">
-                <span className="schedule__pin-dot" />
-                <span>
-                  Send {formatClock(minuteOfDay(route.send), true)} UTC
-                  {showLocal && (
-                    <span className="schedule__pin-local">{formatLocalClock(route.send, true)} local</span>
-                  )}
-                </span>
-              </div>
-              <div className="schedule__pin-line" />
-              <div className="schedule__pin-head" />
-            </div>
+      {orderedDefenders.map((defender, index) => {
+        const isBlocked = targetLandingDate ? isInSafeWindow(targetLandingDate, defender.window) : false;
+        return (
+          <Fragment key={defender.key}>
+          {groupByParticipation && !defender.hasRoutes && (index === 0 || orderedDefenders[index - 1].hasRoutes) && (
+            <div className="schedule__no-routes">no routes</div>
           )}
+          <TimelineLane
+            label={defender.label}
+            sendRoutes={mode === 'planning' ? routes.filter((r) => defenderKey(r.target) === defender.key) : []}
+            window={defender.window}
+            isSelected={mode !== 'planning' && Boolean(route && defender.key === selectedDefenderKey)}
+            isBlocked={isBlocked}
+            type="defender"
+            onClick={routes.length > 0 && mode !== 'planning' ? () => handleSelectDefender(defender.key) : undefined}
+            onSelectRoute={onSelectRoute}
+            landPosition={landPosition}
+          />
+          </Fragment>
+        );
+      })}
 
-          {/* Land Pin */}
-          {landPosition !== null && (
-            <div
-              className="schedule__pin schedule__pin--land"
-              style={{ left: `${landPosition}%` }}
-              title={route ? 'Land ' + formatDateTime(route.land) : `Landing ${landingTime || ''} UTC`}
-            >
-              <div className="schedule__pin-head" />
-              <div className="schedule__pin-line" />
-              <div className="schedule__pin-badge">
-                <span className="schedule__pin-dot" />
-                <span>
-                  Land {route ? formatClock(minuteOfDay(route.land)) : landingTime || ''} UTC
-                  {showLocal && targetLandingDate && (
-                    <span className="schedule__pin-local">{formatLocalClock(targetLandingDate)} local</span>
-                  )}
-                </span>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+      {mode !== 'planning' && (
+        <>
+          <div className="schedule__row schedule__row--events">
+            <span className="schedule__label">Movement</span>
+            <div className="schedule__track schedule__track--events">
+              {route?.attackerWindow.enabled && safeSegments(route.attackerWindow).map((seg) => (
+                <span
+                  key={`mov-atk-${seg.start}-${seg.end}`}
+                  className="schedule__movement-safe schedule__movement-safe--attacker"
+                  style={{
+                    '--left': (seg.start / 14.4) + '%',
+                    '--width': ((seg.end - seg.start) / 14.4) + '%',
+                  } as CSSProperties}
+                />
+              ))}
+              {route?.targetWindow.enabled && safeSegments(route.targetWindow).map((seg) => (
+                <span
+                  key={`mov-def-${seg.start}-${seg.end}`}
+                  className="schedule__movement-safe schedule__movement-safe--defender"
+                  style={{
+                    '--left': (seg.start / 14.4) + '%',
+                    '--width': ((seg.end - seg.start) / 14.4) + '%',
+                  } as CSSProperties}
+                />
+              ))}
 
-      {/* Village switcher bar */}
-      {route && defenderVillages.length > 1 && (
-        <div className="schedule__villages-footer">
-          <span className="schedule__villages-label">Villages ({route.targetSafe.sourceName ?? route.target.name}):</span>
-          <div className="schedule__village-pills">
-            {defenderVillages.map((village) => {
-              const isCurrent = village.id === route.target.id;
-              const vRoute = routes.find((r) => r.attacker.id === route.attacker.id && r.target.id === village.id);
-              return (
-                <button
-                  key={village.id}
-                  type="button"
-                  className={`pill pill--tiny ${isCurrent ? 'pill--primary' : ''}`}
-                  onClick={() => vRoute && onSelectRoute(vRoute.key)}
-                  title={vRoute ? `Send: ${formatClock(minuteOfDay(vRoute.send), true)} UTC` : undefined}
+              {/* Send Pin */}
+              {route && sendPosition !== null && (
+                <div
+                  className="schedule__pin schedule__pin--send"
+                  style={{ left: `${sendPosition}%` }}
+                  title={'Send ' + formatDateTime(route.send, true)}
                 >
-                  {isCurrent ? '● ' : '○ '}{village.name} ({village.x}|{village.y}){village.fake ? ' [Fake]' : ''}
-                  {vRoute && <span className="schedule__pill-time"> · {formatClock(minuteOfDay(vRoute.send), true)} UTC</span>}
-                </button>
-              );
-            })}
+                  <div className="schedule__pin-badge">
+                    <span className="schedule__pin-dot" />
+                    <span>
+                      Send {formatClock(minuteOfDay(route.send), true)} UTC
+                      {showLocal && (
+                        <span className="schedule__pin-local">{formatLocalClock(route.send, true)} local</span>
+                      )}
+                    </span>
+                  </div>
+                  <div className="schedule__pin-line" />
+                  <div className="schedule__pin-head" />
+                </div>
+              )}
+
+              {/* Land Pin */}
+              {landPosition !== null && (
+                <div
+                  className="schedule__pin schedule__pin--land"
+                  style={{ left: `${landPosition}%` }}
+                  title={route ? 'Land ' + formatDateTime(route.land) : `Landing ${landingTime || ''} UTC`}
+                >
+                  <div className="schedule__pin-head" />
+                  <div className="schedule__pin-line" />
+                  <div className="schedule__pin-badge">
+                    <span className="schedule__pin-dot" />
+                    <span>
+                      Land {route ? formatClock(minuteOfDay(route.land)) : landingTime || ''} UTC
+                      {showLocal && targetLandingDate && (
+                        <span className="schedule__pin-local">{formatLocalClock(targetLandingDate)} local</span>
+                      )}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+
+          {/* Village switcher bar */}
+          {route && defenderVillages.length > 1 && (
+            <div className="schedule__villages-footer">
+              <span className="schedule__villages-label">Villages ({route.targetSafe.sourceName ?? route.target.name}):</span>
+              <div className="schedule__village-pills">
+                {defenderVillages.map((village) => {
+                  const isCurrent = village.id === route.target.id;
+                  const vRoute = routes.find((r) => r.attacker.id === route.attacker.id && r.target.id === village.id);
+                  return (
+                    <button
+                      key={village.id}
+                      type="button"
+                      className={`pill pill--tiny ${isCurrent ? 'pill--primary' : ''}`}
+                      onClick={() => vRoute && onSelectRoute(vRoute.key)}
+                      title={vRoute ? `Send: ${formatClock(minuteOfDay(vRoute.send), true)} UTC` : undefined}
+                    >
+                      {isCurrent ? '● ' : '○ '}{village.name} ({village.x}|{village.y}){village.fake ? ' [Fake]' : ''}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </>
       )}
+    </section>
+  );
+}
+
+function routeBlockerText(route: PlannedRoute) {
+  return [
+    route.checks.sendAttacker && 'attacker is in safe time at send',
+    route.checks.sendDefender && 'defender is in safe time at send',
+    route.checks.landDefender && 'defender is in safe time at landing',
+  ].filter(Boolean).join('; ');
+}
+
+function OperationRouteWarnings({ routes }: { routes: PlannedRoute[] }) {
+  const blocked = routes.filter((route) => !route.possible);
+  if (!blocked.length) return null;
+  const targets = [...new Map(routes.map((r) => [r.target.id, r.target])).values()];
+  const attackers = [...new Map(routes.map((r) => [r.attacker.id, r.attacker])).values()];
+  const unreachable = targets.filter((target) => !routes.some((r) => r.target.id === target.id && r.possible));
+  const stranded = attackers.filter((attacker) => !routes.some((r) => r.attacker.id === attacker.id && r.possible));
+  const affected = attackers.filter((attacker) => blocked.some((r) => r.attacker.id === attacker.id));
+  return (
+    <section className="op-route-clash-banner" aria-label="Blocked routes" role="alert">
+      <span className="op-route-clash-banner__icon" aria-hidden="true">⚠️</span>
+      <div className="op-route-clash-banner__content">
+        <strong className="op-route-clash-banner__title">{blocked.length} routes blocked at this operation time</strong>
+        <p className="op-route-clash-banner__desc">Adjust the landing time in Scheduling or update the selections below.</p>
+        <ul>
+          {unreachable.map((target) => <li key={target.id}>Consider removing target {target.name}: none of the selected armies can attack it at this operation time.</li>)}
+          {stranded.map((attacker) => <li key={attacker.id}>Consider removing army {attacker.name}: it has no clear route to any selected target.</li>)}
+          {affected.length === 1 && attackers.length > 1 && !stranded.some((a) => a.id === affected[0].id) && (
+            <li>Only army {affected[0].name} has blocked routes. Consider changing its troop speed or removing it; the other armies’ routes are clear.</li>
+          )}
+          {!unreachable.length && !stranded.length && affected.length !== 1 && <li>Every army and target has a clear route, but some pairings are blocked. Try another landing time before removing participants.</li>}
+        </ul>
+        <details>
+          <summary>Blocked route details ({blocked.length})</summary>
+          <ul>{blocked.map((route) => <li key={route.key}>{route.attacker.name} → {route.target.name}: {routeBlockerText(route)}.</li>)}</ul>
+        </details>
+      </div>
     </section>
   );
 }
@@ -1232,15 +1382,14 @@ export function OperationPlanner({
   const [isTargetsModalOpen, setIsTargetsModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
-  const [showLocal, setShowLocal] = useState<boolean>(readShowLocal);
+  const showLocal = true;
   const [selectedKey, setSelectedKey] = useState('');
-  const [workspaceView, setWorkspaceView] = useState<'setup' | 'routes'>('setup');
+  const [workspaceView, setWorkspaceView] = useState<'scheduling' | 'targets' | 'routes'>('scheduling');
   const [filterAttacker, setFilterAttacker] = useState<string>('all');
   const [filterTarget, setFilterTarget] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<'all' | 'possible' | 'blocked'>('all');
   const [filterType, setFilterType] = useState<'all' | 'real' | 'fake'>('all');
   const [alarmEnabled, setAlarmEnabled] = useState<boolean>(true);
-  const [alarmAttackerId, setAlarmAttackerId] = useState<string>('all');
   const [now, setNow] = useState<Date>(() => new Date());
   const zoneLabel = useMemo(() => localZoneLabel(), []);
 
@@ -1387,9 +1536,7 @@ export function OperationPlanner({
     }
   }, [isV2Active, roomSession, activeOp, marchingAttackers, activeTargets, roster.players]);
 
-  useEffect(() => {
-    writeShowLocal(showLocal);
-  }, [showLocal]);
+
 
   const [lastSavedSnapshot, setLastSavedSnapshot] = useState<string>('');
 
@@ -1449,7 +1596,7 @@ export function OperationPlanner({
   // Operation Tab Handlers
   const handleSelectOp = (opId: string) => {
     setActiveOpId(opId || null);
-    if (opId) setWorkspaceView('setup');
+    if (opId) setWorkspaceView('scheduling');
   };
 
   const handleCreateOp = (name: string, icon?: string) => {
@@ -1468,7 +1615,7 @@ export function OperationPlanner({
     };
     setOperations((prev) => [...prev, newOp]);
     setActiveOpId(newId);
-    setWorkspaceView('setup');
+    setWorkspaceView('scheduling');
   };
 
   const handleDuplicateOp = (opId: string) => {
@@ -1486,7 +1633,7 @@ export function OperationPlanner({
     };
     setOperations((prev) => [...prev, newOp]);
     setActiveOpId(newId);
-    setWorkspaceView('setup');
+    setWorkspaceView('scheduling');
   };
 
   const handleRenameOp = (opId: string, newName: string) => {
@@ -1514,7 +1661,7 @@ export function OperationPlanner({
     setOperations(result.operations);
     if (result.activeOpId !== null) {
       setActiveOpId(result.activeOpId);
-      setWorkspaceView('setup');
+      setWorkspaceView('scheduling');
     }
   };
 
@@ -1527,7 +1674,7 @@ export function OperationPlanner({
       } else if (importedRoom.operations.length > 0) {
         setActiveOpId(importedRoom.operations[0].id);
       }
-      setWorkspaceView('setup');
+      setWorkspaceView('scheduling');
     } else {
       const currentData: TeamRoomData = {
         version: 2,
@@ -1543,7 +1690,7 @@ export function OperationPlanner({
       if (merged.activeOpId) {
         setActiveOpId(merged.activeOpId);
       }
-      setWorkspaceView('setup');
+      setWorkspaceView('scheduling');
     }
   };
 
@@ -1885,13 +2032,10 @@ export function OperationPlanner({
     return splitUtcDateAndTime(parsedLanding, true);
   }, [parsedLanding]);
 
-  const landingSecondsOfDay = useMemo(() => {
-    return (
-      parsedLanding.getUTCHours() * 3600 +
-      parsedLanding.getUTCMinutes() * 60 +
-      parsedLanding.getUTCSeconds()
-    );
+  const sliderMinutes = useMemo(() => {
+    return parsedLanding.getUTCHours() * 60 + parsedLanding.getUTCMinutes();
   }, [parsedLanding]);
+
 
   const updateLanding = (newDate: string, newTime: string) => {
     const combined = combineUtcDateAndTime(newDate, newTime);
@@ -1902,15 +2046,6 @@ export function OperationPlanner({
         prev.map((o) => (o.id === currentOpId ? { ...o, landing: nextLanding, updatedAt: Date.now() } : o)),
       );
     }
-  };
-
-  const handleSliderChange = (totalSeconds: number) => {
-    const clamped = Math.max(0, Math.min(86399, totalSeconds));
-    const h = Math.floor(clamped / 3600);
-    const m = Math.floor((clamped % 3600) / 60);
-    const s = clamped % 60;
-    const timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-    updateLanding(landingDate, timeStr);
   };
 
   const updateServerSpeed = (speed: number) => {
@@ -2046,10 +2181,7 @@ export function OperationPlanner({
   useEffect(() => {
     if (!alarmEnabled) return;
     const nowMs = now.getTime();
-    for (const route of routes) {
-      if (alarmAttackerId !== 'all' && route.attacker.id !== alarmAttackerId) {
-        continue;
-      }
+    for (const route of visibleRoutes) {
       const diffSec = Math.floor((route.send.getTime() - nowMs) / 1000);
       const alertKey = `${route.key}_${route.send.getTime()}`;
 
@@ -2065,7 +2197,7 @@ export function OperationPlanner({
         }
       }
     }
-  }, [now, routes, alarmEnabled, alarmAttackerId]);
+  }, [now, visibleRoutes, alarmEnabled]);
 
   const handleRoomServerSpeedChange = (speed: number) => {
     setOperations((prev) =>
@@ -2192,17 +2324,24 @@ export function OperationPlanner({
               <nav className="op-workspace-nav" aria-label="Planner workspace">
                 <button
                   type="button"
-                  className={workspaceView === 'setup' ? 'is-active' : ''}
-                  onClick={() => setWorkspaceView('setup')}
+                  className={workspaceView === 'scheduling' ? 'is-active' : ''}
+                  onClick={() => setWorkspaceView('scheduling')}
                 >
-                  ⚙️ Setup
+                  🕒 1. Scheduling
+                </button>
+                <button
+                  type="button"
+                  className={workspaceView === 'targets' ? 'is-active' : ''}
+                  onClick={() => setWorkspaceView('targets')}
+                >
+                  🎯 2. Targets & Setup
                 </button>
                 <button
                   type="button"
                   className={workspaceView === 'routes' ? 'is-active' : ''}
                   onClick={() => setWorkspaceView('routes')}
                 >
-                  🗺️ Routes & Schedule ({routes.length})
+                  🗺️ 3. Routes ({routes.length})
                 </button>
               </nav>
               <button
@@ -2211,145 +2350,98 @@ export function OperationPlanner({
                 onClick={() => setActiveOpId(null)}
                 title="Close operation"
               >
-                ✕
+✕
               </button>
             </div>
           )}
 
-          {(!isV2Active || workspaceView === 'setup') && (
+          {/* In Standalone v1 mode, render everything inline on a single page */}
+          {!isV2Active && (
             <>
-          {/* Active Operation Wave Command Center */}
-          <section className="panel op-command">
-            <div className="op-command__main">
-              <div className="op-landing-control">
-                <div className="op-landing-control__label-row">
-                  <span className="op-command__label">Coordinated Landing Time</span>
-                  <span className="op-utc-badge">24h UTC</span>
-                  <label
-                    className="op-local-toggle"
-                    title={`Also show every time in ${zoneLabel}. Stays on this device — shared links carry only the plan.`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={showLocal}
-                      onChange={(event) => setShowLocal(event.target.checked)}
-                    />
-                    <span>Show local time</span>
-                  </label>
-                </div>
-                <div className="op-landing-control__inputs">
-                  <input
-                    className="text-input text-input--date"
-                    type="date"
-                    value={landingDate}
-                    onChange={(event) => updateLanding(event.target.value, landingTime)}
-                  />
-                  <Time24Input
-                    value={landingTime}
-                    onChange={(newTime) => updateLanding(landingDate, newTime)}
-                    placeholder="14:00:00"
-                    withSeconds
-                  />
-                </div>
-                <div className="op-time-slider-wrap">
-                  <span className="op-time-slider-label">00:00</span>
-                  <input
-                    type="range"
-                    className="op-time-slider"
-                    min={0}
-                    max={86100}
-                    step={300}
-                    value={Math.round(landingSecondsOfDay / 300) * 300}
-                    onChange={(e) => handleSliderChange(Number(e.target.value))}
-                    aria-label="Adjust landing time slider (5-minute increments)"
-                  />
-                  <span className="op-time-slider-label">23:55</span>
-                </div>
-                {showLocal && (
-                  <span className="op-landing-local">
-                    = {formatLocalDateTime(parsedLanding)} · {zoneLabel}
-                  </span>
-                )}
-              </div>
-
-              {(!isV2Active || !roomSession) && (
-                <div className="op-speed-control">
-                  <span className="op-command__label">Server Speed</span>
-                  <div className="speed-group" role="group" aria-label="Server speed">
-                    {[1, 3, 10].map((speed) => (
-                      <button
-                        key={speed}
-                        type="button"
-                        className={'pill pill--speed ' + (activeOp.serverSpeed === speed ? 'is-active' : '')}
-                        aria-pressed={activeOp.serverSpeed === speed}
-                        onClick={() => updateServerSpeed(speed)}
-                      >
-                        {speed}×
-                      </button>
-                    ))}
+              {/* Command Center */}
+              <section className="panel op-command">
+                <div className="op-command__main">
+                  <div className="op-landing-control">
+                    <div className="op-landing-control__label-row">
+                      <span className="op-command__label">Coordinated Landing Time</span>
+                      <span className="op-utc-badge">24h UTC</span>
+                    </div>
+                    <div className="op-landing-control__inputs">
+                      <input
+                        className="text-input text-input--date"
+                        type="date"
+                        value={landingDate}
+                        onChange={(event) => updateLanding(event.target.value, landingTime)}
+                      />
+                      <Time24Input
+                        value={landingTime}
+                        onChange={(newTime) => updateLanding(landingDate, newTime)}
+                        placeholder="14:00:00"
+                        withSeconds
+                      />
+                    </div>
+                    <div className="op-time-slider-wrap">
+                      <span className="op-time-slider-label">00:00</span>
+                      <input
+                        type="range"
+                        className="op-time-slider"
+                        min={0}
+                        max={1435}
+                        step={5}
+                        value={sliderMinutes}
+                        onChange={(e) => {
+                          const totalMins = Number(e.target.value);
+                          const h = Math.floor(totalMins / 60).toString().padStart(2, '0');
+                          const m = (totalMins % 60).toString().padStart(2, '0');
+                          const s = '00';
+                          updateLanding(landingDate, `${h}:${m}:${s}`);
+                        }}
+                        aria-label="Coordinated Landing Time 24h Slider"
+                      />
+                      <span className="op-time-slider-label">23:59</span>
+                    </div>
+                    <div className="op-landing-control__local">
+                      Local: <strong>{formatLocalDateTime(parsedLanding)}</strong> ({zoneLabel})
+                    </div>
                   </div>
-                  <span className="op-speed-note">
-                    {activeOp.serverSpeed === 1 ? '1× troop speed' : activeOp.serverSpeed === 3 ? '2× troop speed' : '4× troop speed'}
-                  </span>
+
+                  <div className="op-speed-control">
+                    <label className="op-command__label" htmlFor="server-speed-select">
+                      Server Speed
+                    </label>
+                    <div className="op-speed-pills" id="server-speed-select" role="group" aria-label="Server Speed">
+                      {([1, 2, 3, 5] as const).map((spd) => (
+                        <button
+                          key={spd}
+                          type="button"
+                          className={`pill pill--small ${activeOp.serverSpeed === spd ? 'pill--primary' : 'pill--secondary'}`}
+                          onClick={() => updateServerSpeed(spd)}
+                        >
+                          {spd}×
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="op-share-control">
+                    <span className="op-command__label">Share Plan</span>
+                    <button
+                      type="button"
+                      className={`pill pill--share ${copied ? 'is-copied' : ''}`}
+                      onClick={copyShareLink}
+                      title="Copy short shareable link with current plan settings"
+                    >
+                      {copied ? '✓ Link Copied!' : '🔗 Copy Share Link'}
+                    </button>
+                  </div>
                 </div>
-              )}
 
-              <div className="op-share-control">
-                <span className="op-command__label">
-                  {isV2Active && roomSession ? 'Share Room' : 'Share Plan'}
-                </span>
-                <button
-                  type="button"
-                  className={`pill pill--share ${copied ? 'is-copied' : ''}`}
-                  onClick={copyShareLink}
-                  title={
-                    isV2Active && roomSession
-                      ? 'Copy Team Room link for teammates (prompts for passcode to enter room)'
-                      : 'Copy short shareable link with current plan settings'
-                  }
-                >
-                  {copied
-                    ? isV2Active && roomSession
-                      ? '✓ Room Link Copied!'
-                      : '✓ Link Copied!'
-                    : isV2Active && roomSession
-                    ? '🔗 Copy Room Invite Link'
-                    : '🔗 Copy Share Link'}
-                </button>
-              </div>
-            </div>
+                <p className="op-command__sub">
+                  Drag the slider to coordinate attacks across safe hours. All calculations update live.
+                </p>
+              </section>
 
-            <p className="hint">
-              All times and safe windows use 24-hour UTC. Coordinate distances are calculated Euclidean.
-            </p>
-          </section>
-
-          {/* Mode-Specific Participant Configuration */}
-          {isV2Active && roomSession ? (
-            /* Top-Secret v2: Operation March Participant Selector Checklist */
-            <OperationParticipantPicker
-              attackers={roster.attackers}
-              attackerPlayers={roster.attackerPlayers || []}
-              players={roster.players}
-              targets={roster.targets}
-              assignedAttackerIds={activeOp.assignedAttackerIds || []}
-              assignedTargetIds={activeOp.assignedTargetIds || []}
-              fakeTargetIds={activeOp.fakeTargetIds || []}
-              attackerUnitOverrides={activeOp.attackerUnitOverrides || {}}
-              onToggleAttacker={handleToggleAttacker}
-              onToggleTarget={handleToggleTarget}
-              onToggleTargetFake={handleToggleTargetFake}
-              onUpdateAttackerUnit={handleUpdateAttackerUnit}
-              onSelectAllAttackers={handleSelectAllAttackers}
-              onDeselectAllAttackers={handleDeselectAllAttackers}
-              onSelectAllTargets={handleSelectAllTargets}
-              onDeselectAllTargets={handleDeselectAllTargets}
-              onOpenAttackerModal={() => setIsArmiesModalOpen(true)}
-              onOpenTargetModal={() => setIsTargetsModalOpen(true)}
-            />
-          ) : (
-            /* Standard v1: Direct Inline Attacking Armies and Target Defenders Panels */
-            <>
+              {/* Standard v1: Direct Inline Attacking Armies and Target Defenders Panels */}
               <section className="panel op-section">
                 <div className="op-section-head">
                   <div className="op-section-head__title-group">
@@ -2411,34 +2503,178 @@ export function OperationPlanner({
             </>
           )}
 
-          {/* In v2 Setup view: render ScheduleTimeline so users can see safe times while picking villages */}
-          {isV2Active && workspaceView === 'setup' && (
-            <ScheduleTimeline
-              routes={routes}
-              route={selectedRoute}
-              onSelectRoute={setSelectedKey}
-              showLocal={showLocal}
-              allAttackers={roster.attackers}
-              allAttackerPlayers={roster.attackerPlayers}
-              allPlayers={roster.players}
-              allTargets={roster.targets}
-              landingDate={landingDate}
-              landingTime={landingTime}
-              parsedLanding={parsedLanding}
-            />
+          {/* ── STEP 1: SCHEDULING (V2) ───────────────────────────── */}
+          {isV2Active && workspaceView === 'scheduling' && (
+            <>
+              {/* Active Operation Wave Command Center */}
+              <section className="panel op-command">
+                <div className="op-command__main">
+                  <div className="op-landing-control">
+                    <div className="op-landing-control__label-row">
+                      <span className="op-command__label">Coordinated Landing Time</span>
+                      <span className="op-utc-badge">24h UTC</span>
+                    </div>
+                    <div className="op-landing-control__inputs">
+                      <input
+                        className="text-input text-input--date"
+                        type="date"
+                        value={landingDate}
+                        onChange={(event) => updateLanding(event.target.value, landingTime)}
+                      />
+                      <Time24Input
+                        value={landingTime}
+                        onChange={(newTime) => updateLanding(landingDate, newTime)}
+                        placeholder="14:00:00"
+                        withSeconds
+                      />
+                    </div>
+                    <div className="op-time-slider-wrap">
+                      <span className="op-time-slider-label">00:00</span>
+                      <input
+                        type="range"
+                        className="op-time-slider"
+                        min={0}
+                        max={1435}
+                        step={5}
+                        value={sliderMinutes}
+                        onChange={(e) => {
+                          const totalMins = Number(e.target.value);
+                          const h = Math.floor(totalMins / 60).toString().padStart(2, '0');
+                          const m = (totalMins % 60).toString().padStart(2, '0');
+                          const s = '00';
+                          updateLanding(landingDate, `${h}:${m}:${s}`);
+                        }}
+                        aria-label="Coordinated Landing Time 24h Slider"
+                      />
+                      <span className="op-time-slider-label">23:59</span>
+                    </div>
+                    <div className="op-landing-control__local">
+                      Local: <strong>{formatLocalDateTime(parsedLanding)}</strong> ({zoneLabel})
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              {/* Safe-Time Schedule Planning Matrix: Shows all directory participants with synchronized landing line */}
+              <ScheduleTimeline
+                routes={routes}
+                route={selectedRoute}
+                onSelectRoute={setSelectedKey}
+                showLocal={showLocal}
+                allAttackers={roster.attackers}
+                allAttackerPlayers={roster.attackerPlayers}
+                allPlayers={roster.players}
+                allTargets={roster.targets}
+                landingDate={landingDate}
+                landingTime={landingTime}
+                parsedLanding={parsedLanding}
+                onToggleTargetFake={handleToggleTargetFake}
+                onChangeLandingMinutes={(minutes) => updateLanding(landingDate, `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}:00`)}
+                onReviewRoutes={() => setWorkspaceView('routes')}
+                mode="planning"
+              />
+
+              <div className="op-step-nav-bar">
+                <span className="hint" style={{ margin: 0 }}>
+                  Step 1 of 3: Coordinated Landing & Safetime Planning
+                </span>
+                <div className="op-step-nav-bar__right">
+                  <button
+                    type="button"
+                    className="pill pill--primary"
+                    onClick={() => setWorkspaceView('targets')}
+                  >
+                    Next: Target Selection →
+                  </button>
+                </div>
+              </div>
+            </>
           )}
+
+          {/* ── STEP 2: TARGET & ATTACKER SELECTION (V2) ───────────── */}
+          {isV2Active && workspaceView === 'targets' && (
+            <>
+              <div className="op-step-context-banner">
+                <div>
+                  <span>Coordinated Landing: </span>
+                  <strong>{landingDate} · {landingTime} UTC</strong>
+                  {showLocal && <span style={{ opacity: 0.7 }}> ({formatLocalDateTime(parsedLanding)})</span>}
+                </div>
+                <button
+                  type="button"
+                  className="btn-link"
+                  onClick={() => setWorkspaceView('scheduling')}
+                >
+                  ✏️ Adjust Landing Time
+                </button>
+              </div>
+
+
+              <OperationRouteWarnings routes={routes} />
+
+              {/* Mode-Specific Participant Configuration */}
+              <OperationParticipantPicker
+                attackerWarnings={Object.fromEntries(marchingAttackers.map((attacker) => [attacker.id, routes.filter((r) => r.attacker.id === attacker.id && !r.possible).map((r) => `${r.target.name}: ${routeBlockerText(r)}`).join('\n')]))}
+                targetWarnings={Object.fromEntries(activeTargets.map((target) => [target.id, routes.filter((r) => r.target.id === target.id && !r.possible).map((r) => `${r.attacker.name}: ${routeBlockerText(r)}`).join('\n')]))}
+                attackers={roster.attackers}
+                attackerPlayers={roster.attackerPlayers || []}
+                players={roster.players}
+                targets={roster.targets}
+                assignedAttackerIds={activeOp.assignedAttackerIds || []}
+                assignedTargetIds={activeOp.assignedTargetIds || []}
+                fakeTargetIds={activeOp.fakeTargetIds || []}
+                attackerUnitOverrides={activeOp.attackerUnitOverrides || {}}
+                parsedLanding={parsedLanding}
+                onToggleAttacker={handleToggleAttacker}
+                onToggleTarget={handleToggleTarget}
+                onToggleTargetFake={handleToggleTargetFake}
+                onUpdateAttackerUnit={handleUpdateAttackerUnit}
+                onSelectAllAttackers={handleSelectAllAttackers}
+                onDeselectAllAttackers={handleDeselectAllAttackers}
+                onSelectAllTargets={handleSelectAllTargets}
+                onDeselectAllTargets={handleDeselectAllTargets}
+                onOpenAttackerModal={() => setIsArmiesModalOpen(true)}
+                onOpenTargetModal={() => setIsTargetsModalOpen(true)}
+              />
+
+
+              <div className="op-step-nav-bar">
+                <button
+                  type="button"
+                  className="pill pill--secondary"
+                  onClick={() => setWorkspaceView('scheduling')}
+                >
+                  ← Back: Scheduling
+                </button>
+                <div className="op-step-nav-bar__right">
+                  <button
+                    type="button"
+                    className="pill pill--primary"
+                    onClick={() => setWorkspaceView('routes')}
+                  >
+                    Proceed to Routes & Launch ({routes.length}) →
+                  </button>
+                </div>
+              </div>
             </>
           )}
 
           {(!isV2Active || workspaceView === 'routes') && (
             <>
+          {isV2Active && routes.some((route) => !route.possible) && (
+            <section className="panel" aria-label="Resolve blocked routes">
+              <strong>{routes.filter((route) => !route.possible).length} routes blocked</strong>
+              <p>Go back to Scheduling and try another landing time. The selected routes’ send lines move with it. If no time works, remove the affected armies or targets from this operation; they cannot participate with blocked routes.</p>
+              <button type="button" className="pill pill--primary" onClick={() => setWorkspaceView('scheduling')}>← Back to Scheduling</button>
+            </section>
+          )}
           {/* Results Section */}
           <section className="panel op-results">
             <div className="op-section-head op-results__head-wrap">
               <div>
                 <h2 className="panel__title">Route Plan (Sorted by Send Time)</h2>
                 <p className="op-section-copy">
-                  Click anywhere on a row to inspect its schedule. {routes.filter((route) => route.possible).length} of {routes.length} routes clear all safetime checks
+                  {!isV2Active && 'Click anywhere on a row to inspect its schedule. '}{routes.filter((route) => route.possible).length} of {routes.length} routes clear all safetime checks
                   {' · '}{routes.filter((route) => !route.target.fake).length} real, {routes.filter((route) => route.target.fake).length} fake.
                 </p>
               </div>
@@ -2453,22 +2689,7 @@ export function OperationPlanner({
                 >
                   {alarmEnabled ? '🔔 Alarm: ON' : '🔕 Alarm: Muted'}
                 </button>
-                <label className="op-alarm-select-label" title="Choose which attacker army triggers launch sound alarms">
-                  <span className="op-alarm-select-tag">Army:</span>
-                  <select
-                    className="select op-select-solid-sm op-alarm-select"
-                    value={alarmAttackerId}
-                    onChange={(e) => setAlarmAttackerId(e.target.value)}
-                    aria-label="Select attacker army for audio alarm"
-                  >
-                    <option value="all">All Armies</option>
-                    {roster.attackers.map((atk) => (
-                      <option key={atk.id} value={atk.id}>
-                        {atk.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <span className="hint">Alarms follow the route filters below.</span>
                 <div className="op-alarm-test-group">
                   <button
                     type="button"
@@ -2608,11 +2829,11 @@ export function OperationPlanner({
                 <thead>
                   <tr>
                     <th>Route</th>
-                    <th>Distance / Map Pin</th>
-                    <th>Travel Duration</th>
+                    <th>Type</th>
+                    <th>Map Pin</th>
                     <th>Launch In</th>
+                    <th>Travel</th>
                     <th>Send Time (UTC)</th>
-                    <th>Land Time (UTC)</th>
                     <th>
                       <SafetimeHeaderTooltip />
                     </th>
@@ -2653,38 +2874,25 @@ export function OperationPlanner({
                           }}
                         >
                           <td data-label="Route">
-                            <div className="op-route-card">
-                              <div className="op-route-source-top">
-                                <span className="op-route-side-icon" aria-hidden="true">⚔️</span>
-                                <strong className="op-route-player op-route-player--attacker">
+                            <div className="op-route-b">
+                              <div className="op-route-b__row op-route-b__row--source">
+                                <strong className="op-route-b__player op-route-b__player--attacker">
                                   {attackerPlayer || attackerVillage}
                                 </strong>
-                              </div>
-                              <div className="op-route-arrow-cell">
-                                <span className="op-route-arrow" aria-hidden="true">➔</span>
-                              </div>
-                              <div className="op-route-target-top">
-                                <span className="op-route-side-icon" aria-hidden="true">🎯</span>
-                                <strong className="op-route-player op-route-player--target">
-                                  {defenderPlayer || defenderVillage}
-                                </strong>
-                              </div>
-                              <div className="op-route-tag-cell">
-                                <span className={`op-hit-tag ${route.target.fake ? 'is-fake' : 'is-real'}`}>
-                                  {route.target.fake ? 'Fake' : 'Real'}
-                                </span>
-                              </div>
-                              <div className="op-route-source-sub">
                                 {attackerPlayer && (
-                                  <span className="op-route-sub-name" title={attackerVillage}>
-                                    {attackerVillage}
+                                  <span className="op-route-b__village" title={attackerVillage}>
+                                    · {attackerVillage}
                                   </span>
                                 )}
                               </div>
-                              <div className="op-route-target-sub">
+                              <div className="op-route-b__row op-route-b__row--target">
+                                <span className="op-route-b__arrow" aria-hidden="true">➔</span>
+                                <strong className="op-route-b__player op-route-b__player--target">
+                                  {defenderPlayer || defenderVillage}
+                                </strong>
                                 {defenderPlayer && (
-                                  <span className="op-route-sub-name" title={defenderVillage}>
-                                    {defenderVillage}
+                                  <span className="op-route-b__village" title={defenderVillage}>
+                                    · {defenderVillage}
                                   </span>
                                 )}
                                 {tgtMeta.isCapital && <span className="op-badge-tag op-badge-tag--cap">👑 Cap</span>}
@@ -2697,23 +2905,33 @@ export function OperationPlanner({
                               </div>
                             </div>
                           </td>
-                          <td data-label="Distance / Map Pin">
-                            <div className="op-distance-cell">
-                              <span className="tabular-stat">{route.distance.toFixed(1)} fields</span>
-                              <a
-                                href={`https://www.thronewake.com/map/tile/${route.target.x}/${route.target.y}?center=true`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="op-map-pin-link"
-                                title={`Open in-game map centered on (${route.target.x}|${route.target.y})`}
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                📍 ({route.target.x}|{route.target.y})
-                              </a>
-                            </div>
+                          <td data-label="Type">
+                            <button
+                              type="button"
+                              className={`pill pill--tiny op-target-mode ${route.target.fake ? 'is-fake' : 'is-real'}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleToggleTargetFake(route.target.id);
+                              }}
+                              title={`Click to toggle ${route.target.name} between Real and Fake`}
+                            >
+                              {route.target.fake ? 'Fake' : 'Real'}
+                            </button>
                           </td>
-                          <td data-label="Travel Duration">
-                            <span className="travel-stat">{formatDuration(route.travel)}</span>
+                          <td data-label="Map Pin">
+                            <a
+                              href={`https://www.thronewake.com/map/tile/${route.target.x}/${route.target.y}?center=true`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="op-map-pin-btn"
+                              title={`Open in-game map centered on target (${route.target.x}|${route.target.y})`}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <span className="op-map-pin-icon" aria-hidden="true">📍</span>
+                              <span className="op-map-pin-label">Link:</span>
+                              <span className="op-map-pin-coords">({route.target.x}|{route.target.y})</span>
+                              <span className="op-map-pin-arrow" aria-hidden="true">↗</span>
+                            </a>
                           </td>
                           <td data-label="Launch In">
                             <div className="op-launch-cell">
@@ -2730,11 +2948,14 @@ export function OperationPlanner({
                               )}
                             </div>
                           </td>
+                          <td data-label="Travel">
+                            <div className="op-dist-travel-cell">
+                              <span className="travel-stat">{formatDuration(route.travel)}</span>
+                              <span className="op-dist-sub">{route.distance.toFixed(1)} fields</span>
+                            </div>
+                          </td>
                           <td data-label="Send Time (UTC)">
                             <Stamp date={route.send} showLocal={showLocal} seconds className="op-timestamp op-timestamp--send" />
-                          </td>
-                          <td data-label="Land Time (UTC)">
-                            <Stamp date={route.land} showLocal={showLocal} className="op-timestamp op-timestamp--land" />
                           </td>
                           <td data-label="Safetime Checks">
                             <SafetimeCheckCell route={route} showLocal={showLocal} />
@@ -2749,7 +2970,7 @@ export function OperationPlanner({
           </section>
 
           {/* Schedule Timeline: Rendered directly below the Route Table on the same view */}
-          {(!isV2Active || workspaceView === 'routes') && (
+          {!isV2Active && (
             <ScheduleTimeline
               routes={routes}
               route={selectedRoute}
@@ -2762,8 +2983,29 @@ export function OperationPlanner({
               landingDate={landingDate}
               landingTime={landingTime}
               parsedLanding={parsedLanding}
+              onToggleTargetFake={handleToggleTargetFake}
+              mode="inspector"
             />
           )}
+
+          <div className="op-step-nav-bar">
+            <button
+              type="button"
+              className="pill pill--secondary"
+              onClick={() => setWorkspaceView('targets')}
+            >
+              ← Back: Target Selection
+            </button>
+            <div className="op-step-nav-bar__right">
+              <button
+                type="button"
+                className="pill pill--secondary"
+                onClick={() => setWorkspaceView('scheduling')}
+              >
+                🕒 Jump to Scheduling
+              </button>
+            </div>
+          </div>
             </>
           )}
         </>
