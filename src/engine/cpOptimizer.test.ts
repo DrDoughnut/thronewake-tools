@@ -308,13 +308,14 @@ describe('CP Build-Order Optimizer Engine', () => {
     expect(verdant.find((r) => r.gid === 41)).toBeFalsy();   // Rider's Wells, not
   });
 
-  it('correctly includes Trapper for Vaeloria, Stormbrew Works for Stormfang, and Riders Wells for Embermark', () => {
-    // 1. Vaeloria -> Trapper (gid 36)
-    const recsVaeloria = getRecommendations({
+  it('correctly includes Trapper for Verdant Wardens, Stormbrew Works for Stormfang, and Riders Wells for Embermark', () => {
+    // Villages saved before the rename still carry 'vaeloria' for Verdant
+    // Wardens, so the dead key has to keep resolving to the Trapper.
+    const recsLegacyKey = getRecommendations({
       ...baseVillage,
       faction: 'vaeloria',
     });
-    const trapperStep = recsVaeloria.find((r) => r.gid === 36);
+    const trapperStep = recsLegacyKey.find((r) => r.gid === 36);
     expect(trapperStep).toBeTruthy();
     expect(trapperStep!.name).toBe('Trapper');
     // Scenario A: User added Stormbrew Works to their current village buildings

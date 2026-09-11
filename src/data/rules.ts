@@ -49,12 +49,12 @@ export const rules = {
    * The catalog publishes nothing for it: all twenty of the tower's levels
    * carry an empty `effects` object, unlike the 32 buildings that do. So these
    * come from the game this one is modelled on, whose three walls map onto the
-   * factions by the repo's own tribe ids (1 Embermark, 2 Stormfang,
-   * 3 Vaeloria — the faction the CP optimizer gives the Trapper to):
+   * factions by the repo's own tribe ids (1 Embermark, 2 Stormfang, 3 Verdant
+   * Wardens — the faction the CP optimizer gives the Trapper to):
    *
-   *     Embermark   ← City Wall   1.030, +10 flat per level
-   *     Vaeloria    ← Palisade    1.025, +8  flat per level
-   *     Stormfang   ← Earth Wall  1.020, +6  flat per level
+   *     Embermark Dominion  ← City Wall   1.030, +10 flat per level
+   *     Verdant Wardens     ← Palisade    1.025, +8  flat per level
+   *     Stormfang Clans     ← Earth Wall  1.020, +6  flat per level
    *
    * The tower's own level-1 cost in the catalog (160/100/80/60) is the
    * Palisade's to the resource, which is some comfort that the two line up.

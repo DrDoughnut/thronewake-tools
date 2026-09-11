@@ -62,7 +62,10 @@ export interface VillageBuilding {
 export interface VillageState {
   id: string;
   name: string;
-  faction: string; // 'embermark_dominion' | 'stormfang_clans' | 'vaeloria'
+  // 'embermark_dominion' | 'stormfang_clans' | 'verdant_wardens'. Villages
+  // saved before the rename carry 'vaeloria' for Verdant Wardens, which
+  // FACTION_TRIBE_MAP still resolves.
+  faction: string;
   isCapital: boolean;
   isCity: boolean;
   fieldLevel: number; // 0-20
