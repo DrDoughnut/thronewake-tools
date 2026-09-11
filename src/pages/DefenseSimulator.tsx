@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { BUILDINGS } from '../data/buildingCatalog';
 import { playableFactions } from '../data/factions';
+import { watchTowerBonus } from '../data/rules';
 import type { Faction, Unit } from '../data/types';
 import type { Village } from '../engine/combat';
 import { buildingCumulativeCost } from '../engine/cpOptimizer';
@@ -18,7 +19,7 @@ interface SimState {
   defenceUnit: string;
   troops: number;
   smithy: number;
-  wallBonusPercent: number;
+  wallLevel: number;
   stonemason: number;
   targetGid: number;
   targetLevel: number;
@@ -43,7 +44,7 @@ const initialState: SimState = {
   defenceUnit: 'briar_guard',
   troops: 20_000,
   smithy: 20,
-  wallBonusPercent: 0,
+  wallLevel: 20,
   stonemason: 0,
   targetGid: 15,
   targetLevel: 20,
@@ -95,8 +96,9 @@ export function DefenseSimulator() {
   const result = useMemo(() => {
     const village: Village = {
       pop: 0,
-      wallLevel: 20,
-      wallDefBonus: state.wallBonusPercent / 100,
+      wallLevel: state.wallLevel,
+      // Your villages, so the tower is your own faction's.
+      wallDefBonus: watchTowerBonus(state.defenceFaction, state.wallLevel),
       wallDefFlat: 0,
       wallDurability: 1,
       durability: durabilityFor(state.stonemason),
@@ -190,10 +192,14 @@ export function DefenseSimulator() {
           <h2 className="panel__title">The villages</h2>
           <NumberField label="Villages with incoming" value={state.villages} max={40} min={1}
             onChange={(v) => set('villages', Math.max(1, v))} />
-          <NumberField label="Wall defence bonus (%)" value={state.wallBonusPercent} max={300}
-            onChange={(v) => set('wallBonusPercent', v)} />
+          <NumberField label="Watch Tower level" value={state.wallLevel} max={20}
+            onChange={(v) => set('wallLevel', v)} />
           <NumberField label="Stonemason's Lodge level" value={state.stonemason} max={20}
             onChange={(v) => set('stonemason', v)} />
+          <p className="hint">
+            {faction.name}'s tower at level {state.wallLevel} defends at{' '}
+            <strong>+{(watchTowerBonus(faction.key, state.wallLevel) * 100).toFixed(1)}%</strong>.
+          </p>
           <label className="ds-field">
             <span className="ds-field__label">Catapults aim at</span>
             <select className="ds-field__input" value={state.targetGid}

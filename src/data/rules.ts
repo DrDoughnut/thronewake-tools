@@ -42,7 +42,45 @@ export const rules = {
     scouting: 35,
     counterScouting: 20,
   },
+
+  /**
+   * Watch Tower — this game's wall, and the building the rams come for.
+   *
+   * Defence bonus is `growth ^ level`, so a level-20 tower at 1.03 is +80.6%.
+   * The building catalog carries nothing to check these against: all twenty of
+   * the Watch Tower's levels have an empty `effects` object, unlike the 32
+   * buildings that do publish per-level effects.
+   *
+   * ⚠ These bases came from a player, and they are the opposite way round from
+   * the game this one is modelled on, where the faction with the Trapper has
+   * the 1.025 wall and the faction with the cavalry-upkeep building has 1.03.
+   * The repo's own tribe ids agree with that older mapping — Embermark is 1
+   * (the Trapper belongs to Vaeloria, id 3, per the CP optimizer's tests). If a
+   * battle report ever disagrees with the tools, swap these two first.
+   */
+  watchTower: {
+    maxLevel: 20,
+    growth: {
+      verdant_wardens: 1.03,
+      embermark_dominion: 1.025,
+      stormfang_clans: 1.02,
+    } as Record<string, number>,
+    fallbackGrowth: 1.025,
+  },
 } as const;
+
+/**
+ * Fractional defence bonus of a Watch Tower: 0.806 means +80.6%.
+ *
+ * Flat defence is deliberately not modelled — the catalog declares a `defFlat`
+ * effect for the tower but publishes no values, and it is small enough to sit
+ * out until real numbers turn up.
+ */
+export function watchTowerBonus(factionKey: string, level: number): number {
+  const growth = rules.watchTower.growth[factionKey] ?? rules.watchTower.fallbackGrowth;
+  const capped = Math.max(0, Math.min(rules.watchTower.maxLevel, Math.floor(level) || 0));
+  return growth ** capped - 1;
+}
 
 /**
  * Buildings that only benefit their own faction's troops.

@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.10.1] - 2026-09-11
+
+### Added
+- **Watch Tower defence**: Both battle tools now read the tower's bonus from its level and the defending faction (`growth ^ level`) instead of taking a typed-in percentage — Verdant Wardens 1.03, Embermark Dominion 1.025, Stormfang Clans 1.02, so a level-20 Verdant tower defends at +80.6%. Flat tower defence is still not modelled.
+
 ## [1.10.0] - 2026-09-11
 
 ### Added
@@ -22,7 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Casualty exponent confirmed**: `immensity` is a flat 1.5 in T4 and only scaled with battle size in T3, so the curve is no longer marked unverified and its tunable in `rules.ts` has been removed in favour of the engine constant.
 
 ### Known gaps
-- The **Watch Tower** carries no defence values in the building catalog — all twenty levels have an empty `effects` object — so its bonus is entered by hand in both tools rather than read from the level.
+- **Ram durability** is not yet per-faction, so the Watch Tower resists rams identically for everyone.
 
 ## [1.9.0] - 2026-09-11
 
