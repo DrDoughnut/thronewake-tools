@@ -1,77 +1,103 @@
-import { rules } from '../data/rules';
+import { resolveBattle, type Regiment, type Village, type Wave } from './combat';
 
 /**
  * How many villages is it worth defending?
  *
- * The tension the simulator exists to resolve: defence spread across many
- * villages covers more of the incoming, but a stack that loses is a *total*
- * loss — the defence dies and the village falls anyway. Concentrating makes
- * each stack survivable but leaves most villages naked, and you cannot tell
- * a real hammer from a fake when you commit.
+ * The tension: defence spread across many villages covers more of the
+ * incoming, but a stack that loses is a total loss — the troops die and the
+ * catapults land anyway — and you cannot tell a real hammer from a fake when
+ * you commit. So `pool / hammer` is the break-even split, where every stack
+ * fights at 1:1 and is annihilated winning, not the answer.
  *
- * So the answer is not `pool / hammer`. That is the break-even split, where
- * every stack fights at a 1:1 power ratio and is annihilated winning.
+ * Everything is counted in resources. Troops lost are priced at what they cost
+ * to train, buildings at what they cost to rebuild, so the two sides of the
+ * trade are finally in the same units.
  */
 
+export interface Hammer {
+  /** Total offense points, as scouted. */
+  offense: number;
+  /** Share of that offense that is mounted, 0–1. Decides which defence answers it. */
+  cavalryShare: number;
+  /** Catapults riding along — the part that actually costs buildings. */
+  catapults: number;
+  /** Smithy level of the siege. */
+  catapultUpgrade: number;
+}
+
+export interface DefenseUnit {
+  key: string;
+  defInf: number;
+  defCav: number;
+  /** Resources to replace one. */
+  cost: number;
+}
+
 export interface DefenseQuery {
-  /** Villages showing incoming attacks — real and fake together. */
+  /** Villages showing incoming, real and fake together. */
   villages: number;
-  /** How many of those incoming are real hammers. The rest are fakes. */
-  realHammers: number;
-  /** Offense power of one real hammer, weighted for your defence mix. */
-  hammerOffense: number;
-  /** Total defence points you can commit across all villages. */
-  defensePool: number;
-  /** Wall, hero and terrain bonus as a multiplier: 1.2 means +20%. */
-  defenseBonus: number;
-  /** See `rules.battle` — UNVERIFIED. */
-  casualtyExponent: number;
-  /** What losing one village costs, expressed in defence points. */
-  villageValue: number;
+  /** One entry per real hammer. Sizes and compositions may all differ. */
+  hammers: Hammer[];
+  /** What the defence is made of, which decides both its blend and its price. */
+  unit: DefenseUnit;
+  /** Troops available in total, to be divided across the villages you defend. */
+  troops: number;
+  village: Village;
+  /** Level of the building the catapults are aimed at. */
+  targetLevel: number;
+  /** Cumulative resources to build each level, indexed by level. */
+  targetCost: number[];
+  /** Extra resources a village is worth beyond its buildings — an artifact, say. */
+  villagePremium: number;
   trials: number;
   seed: number;
 }
 
 export interface SplitOutcome {
-  /** Villages defended. Each gets an equal share of the pool. */
+  /** Villages defended. Each gets an equal share of the troops. */
   split: number;
-  /** Defence points standing in each defended village. */
+  /** Troops standing in each defended village. */
   stack: number;
-  /** Stack power against a single hammer. Below 1.0 it cannot hold even one. */
+  /** Stack defence against the average hammer. Below 1.0 it holds nothing. */
   ratio: number;
-  villagesLost: number;
-  villagesSaved: number;
-  defenseLost: number;
-  /** `defenseLost + villagesLost · villageValue`. Lower is better. */
+  troopsLost: number;
+  /** Resources burnt replacing dead defenders. */
+  troopCost: number;
+  buildingLevelsLost: number;
+  /** Resources burnt rebuilding what the catapults flattened. */
+  buildingCost: number;
+  /** Villages that took any building damage at all. */
+  villagesDamaged: number;
+  /**
+   * Villages whose target was levelled outright. Catapults still land after a
+   * battle they lost — only the damage shrinks — so "damaged" barely moves
+   * with the split and cannot carry a village's value. Being flattened does:
+   * it is the point at which an artifact is actually gone.
+   */
+  villagesFlattened: number;
+  /** troopCost + buildingCost + premium on every village levelled. */
   totalCost: number;
-  /** Of the defended villages that were hit, the share that held. */
-  holdRate: number;
   /** Share of real hammers that landed somewhere you had defence. */
   coverage: number;
+  /** Of the defended villages that were hit, the share that held. */
+  holdRate: number;
 }
 
 export interface Breakeven {
-  /** Village value, in defence points, at which the two splits swap. */
-  villageValue: number;
-  /** The split that wins when a village is worth more than that. */
+  /** Village premium at which the two best splits swap. */
+  premium: number;
   favouredAbove: number;
-  /** The split that wins when a village is worth less. */
   favouredBelow: number;
 }
 
 export interface DefenseResult {
   outcomes: SplitOutcome[];
   best: SplitOutcome;
-  /** Best split ignoring village value entirely — pure defence preservation. */
+  /** Best split counting only troops — what pure defence preservation wants. */
   cheapest: SplitOutcome;
-  /**
-   * Where the recommendation flips to the next-best split. Absent when the
-   * two lose the same number of villages, so no village price separates them.
-   */
   breakeven?: Breakeven;
 }
 
-/** Deterministic PRNG, so a given seed always produces the same table. */
 function mulberry32(seed: number): () => number {
   let a = seed >>> 0;
   return () => {
@@ -85,127 +111,218 @@ function mulberry32(seed: number): () => number {
 const clampInt = (n: number, lo: number, hi: number) =>
   Math.min(hi, Math.max(lo, Math.floor(Number.isFinite(n) ? n : lo)));
 
-function sanitize(query: DefenseQuery): DefenseQuery {
-  const villages = clampInt(query.villages, 1, 60);
+/** Turn a scouted estimate into the regiments the combat engine resolves. */
+function hammerRegiments(hammer: Hammer): Regiment[] {
+  const share = Math.min(1, Math.max(0, hammer.cavalryShare));
+  const regiments: Regiment[] = [];
+
+  // Offense is carried as a single notional unit per arm: the engine only ever
+  // reads count × off, so one unit of N points behaves as N units of 1.
+  if (share < 1) {
+    regiments.push({
+      key: 'foot', count: 1, off: hammer.offense * (1 - share),
+      defInf: 0, defCav: 0, cavalry: false, upgrade: 0,
+    });
+  }
+  if (share > 0) {
+    regiments.push({
+      key: 'horse', count: 1, off: hammer.offense * share,
+      defInf: 0, defCav: 0, cavalry: true, upgrade: 0,
+    });
+  }
+  if (hammer.catapults > 0) {
+    regiments.push({
+      key: 'cat', count: hammer.catapults, off: 0,
+      defInf: 0, defCav: 0, cavalry: false,
+      siege: 'catapult', upgrade: hammer.catapultUpgrade,
+    });
+  }
+  return regiments;
+}
+
+interface VillageOutcome {
+  troopsLost: number;
+  levelsLost: number;
+  /** Resources to put those levels back. Priced here, where the actual levels
+   *  are known: level costs escalate, so averaging levels first and pricing
+   *  afterwards understates the damage. */
+  rebuild: number;
+  damaged: boolean;
+  flattened: boolean;
+  held: boolean;
+}
+
+/**
+ * Resolve one village: a stack of `troops`, against however many hammers
+ * happened to land on it, as consecutive waves.
+ */
+function resolveVillage(
+  query: DefenseQuery,
+  troops: number,
+  incoming: number[],
+  rebuildCost: (levelsLost: number) => number,
+): VillageOutcome {
+  const defenders: Regiment[] =
+    troops > 0
+      ? [{
+          key: query.unit.key, count: troops, off: 0,
+          defInf: query.unit.defInf, defCav: query.unit.defCav,
+          cavalry: false, upgrade: 0,
+        }]
+      : [];
+
+  const waves: Wave[] = incoming.map((i) => ({
+    regiments: hammerRegiments(query.hammers[i]),
+    pop: 0,
+    type: 'attack' as const,
+    targets: [query.targetLevel],
+    // Morale needs both populations; a defence planner has neither to hand, so
+    // it is left out rather than guessed at from a village count.
+    morale: false,
+  }));
+
+  const battle = resolveBattle(query.village, defenders, waves);
+  const survivors = battle.defenderSurvivors[0]?.count ?? 0;
+  const finalLevel = battle.targets[0] ?? query.targetLevel;
+
+  const levelsLost = Math.max(0, query.targetLevel - finalLevel);
   return {
-    villages,
-    realHammers: clampInt(query.realHammers, 0, 200),
-    hammerOffense: Math.max(0, query.hammerOffense || 0),
-    defensePool: Math.max(0, query.defensePool || 0),
-    defenseBonus: Math.max(0.01, query.defenseBonus || 1),
-    casualtyExponent: Math.max(0.1, query.casualtyExponent || rules.battle.casualtyExponent),
-    villageValue: Math.max(0, query.villageValue || 0),
-    trials: clampInt(query.trials, 1, 200_000),
+    troopsLost: Math.max(0, troops - survivors),
+    levelsLost,
+    rebuild: rebuildCost(levelsLost),
+    damaged: finalLevel < query.targetLevel,
+    flattened: query.targetLevel > 0 && finalLevel === 0,
+    held: troops > 0 && survivors > 0,
+  };
+}
+
+function sanitize(query: DefenseQuery): DefenseQuery {
+  return {
+    ...query,
+    villages: clampInt(query.villages, 1, 40),
+    hammers: query.hammers.slice(0, 40),
+    troops: Math.max(0, Math.floor(query.troops) || 0),
+    targetLevel: clampInt(query.targetLevel, 0, 25),
+    villagePremium: Math.max(0, query.villagePremium || 0),
+    trials: clampInt(query.trials, 1, 50_000),
     seed: Math.floor(query.seed) || 1,
   };
 }
 
-interface Tally {
-  villagesLost: number;
-  villagesSaved: number;
-  defenseLost: number;
-  hitDefended: number;
-  heldDefended: number;
-  coveredHammers: number;
-}
+export function simulateDefense(raw: DefenseQuery): DefenseResult {
+  const query = sanitize(raw);
+  const rand = mulberry32(query.seed);
+  const { villages, hammers } = query;
 
-/**
- * Resolve one trial for one split.
- *
- * Villages are interchangeable before the attack lands, so "which k do you
- * defend" is just the first k — randomising the hammers instead gives the
- * same distribution at a fraction of the work.
- */
-function resolveSplit(
-  q: DefenseQuery,
-  split: number,
-  hits: Int32Array,
-  tally: Tally,
-): void {
-  const stack = q.defensePool / split;
-  const power = stack * q.defenseBonus;
+  const rebuildCost = (levelsLost: number) => {
+    if (levelsLost <= 0) return 0;
+    const from = query.targetCost[query.targetLevel] ?? 0;
+    const to = query.targetCost[Math.max(0, query.targetLevel - levelsLost)] ?? 0;
+    return Math.max(0, from - to);
+  };
 
-  for (let v = 0; v < q.villages; v++) {
-    const landing = hits[v];
-    if (landing === 0) continue;
-
-    const incoming = landing * q.hammerOffense;
-
-    if (v >= split) {
-      // Undefended. The village falls and no defence is spent on it.
-      tally.villagesLost++;
-      continue;
+  // A village's fate depends only on its stack and which hammers landed on it,
+  // so identical situations are resolved once. Most villages take zero or one
+  // hammer, which makes this cache hit almost every time.
+  const memo = new Map<string, VillageOutcome>();
+  const outcomeFor = (troops: number, incoming: number[]): VillageOutcome => {
+    const key = `${troops}|${incoming.join(',')}`;
+    let cached = memo.get(key);
+    if (!cached) {
+      cached = resolveVillage(query, troops, incoming, rebuildCost);
+      memo.set(key, cached);
     }
+    return cached;
+  };
 
-    tally.coveredHammers += landing;
-    tally.hitDefended++;
-
-    if (power >= incoming && power > 0) {
-      // Held. Casualties scale with how close the fight was: winning by a
-      // hair still costs nearly the whole stack.
-      tally.heldDefended++;
-      tally.villagesSaved++;
-      tally.defenseLost += stack * Math.pow(incoming / power, q.casualtyExponent);
-    } else {
-      // Broken. The stack is wiped and the village falls regardless.
-      tally.defenseLost += stack;
-      tally.villagesLost++;
-    }
-  }
-}
-
-export function simulateDefense(rawQuery: DefenseQuery): DefenseResult {
-  const q = sanitize(rawQuery);
-  const rand = mulberry32(q.seed);
-
-  const tallies: Tally[] = Array.from({ length: q.villages }, () => ({
-    villagesLost: 0,
-    villagesSaved: 0,
-    defenseLost: 0,
+  const tallies = Array.from({ length: villages }, () => ({
+    troopsLost: 0,
+    levelsLost: 0,
+    rebuild: 0,
+    damaged: 0,
+    flattened: 0,
     hitDefended: 0,
     heldDefended: 0,
-    coveredHammers: 0,
+    covered: 0,
   }));
 
-  const hits = new Int32Array(q.villages);
+  const landing: number[][] = Array.from({ length: villages }, () => []);
 
-  for (let trial = 0; trial < q.trials; trial++) {
-    hits.fill(0);
-    for (let h = 0; h < q.realHammers; h++) {
-      // With replacement: two hammers can land on the same village, and a
-      // stack sized for one of them breaks against two.
-      hits[Math.floor(rand() * q.villages)]++;
+  for (let trial = 0; trial < query.trials; trial++) {
+    for (const village of landing) village.length = 0;
+    for (let h = 0; h < hammers.length; h++) {
+      // With replacement: two hammers can pick the same village, and a stack
+      // sized for one of them breaks against both.
+      landing[Math.floor(rand() * villages)].push(h);
     }
 
-    // Every split faces this same trial's hammers, so adjacent splits differ
-    // by their own merits rather than by sampling noise.
-    for (let split = 1; split <= q.villages; split++) {
-      resolveSplit(q, split, hits, tallies[split - 1]);
+    // Every split faces this same trial's hammers, so neighbouring splits
+    // differ on merit rather than on sampling noise.
+    for (let split = 1; split <= villages; split++) {
+      const stack = Math.floor(query.troops / split);
+      const tally = tallies[split - 1];
+
+      for (let v = 0; v < villages; v++) {
+        const incoming = landing[v];
+        if (incoming.length === 0) continue;
+
+        const defended = v < split;
+        const result = outcomeFor(defended ? stack : 0, incoming);
+
+        tally.troopsLost += result.troopsLost;
+        tally.levelsLost += result.levelsLost;
+        tally.rebuild += result.rebuild;
+        if (result.damaged) tally.damaged++;
+        if (result.flattened) tally.flattened++;
+        if (defended) {
+          tally.covered += incoming.length;
+          tally.hitDefended++;
+          if (result.held) tally.heldDefended++;
+        }
+      }
     }
   }
+
+  const totalHammers = hammers.length * query.trials;
+  const averageOffense =
+    hammers.reduce((sum, h) => sum + h.offense, 0) / Math.max(1, hammers.length);
+  const averageCav =
+    hammers.reduce((sum, h) => sum + h.cavalryShare, 0) / Math.max(1, hammers.length);
+  const perTroopDefence =
+    query.unit.defInf * (1 - averageCav) + query.unit.defCav * averageCav;
 
   const outcomes: SplitOutcome[] = tallies.map((t, i) => {
     const split = i + 1;
-    const stack = q.defensePool / split;
-    const villagesLost = t.villagesLost / q.trials;
-    const defenseLost = t.defenseLost / q.trials;
+    const stack = Math.floor(query.troops / split);
+    const troopsLost = t.troopsLost / query.trials;
+    const levelsLost = t.levelsLost / query.trials;
+    const villagesDamaged = t.damaged / query.trials;
+    const villagesFlattened = t.flattened / query.trials;
+
+    const troopCost = troopsLost * query.unit.cost;
+    const buildingCost = t.rebuild / query.trials;
 
     return {
       split,
       stack,
-      ratio: q.hammerOffense > 0 ? (stack * q.defenseBonus) / q.hammerOffense : Infinity,
-      villagesLost,
-      villagesSaved: t.villagesSaved / q.trials,
-      defenseLost,
-      totalCost: defenseLost + villagesLost * q.villageValue,
+      ratio:
+        averageOffense > 0
+          ? (stack * perTroopDefence * (1 + query.village.wallDefBonus)) / averageOffense
+          : Infinity,
+      troopsLost,
+      troopCost,
+      buildingLevelsLost: levelsLost,
+      buildingCost,
+      villagesDamaged,
+      villagesFlattened,
+      totalCost: troopCost + buildingCost + villagesFlattened * query.villagePremium,
+      coverage: totalHammers > 0 ? t.covered / totalHammers : 0,
       holdRate: t.hitDefended > 0 ? t.heldDefended / t.hitDefended : 0,
-      coverage:
-        q.realHammers > 0 ? t.coveredHammers / (q.realHammers * q.trials) : 0,
     };
   });
 
   const best = pickBest(outcomes, (o) => o.totalCost);
-  const cheapest = pickBest(outcomes, (o) => o.defenseLost);
+  const cheapest = pickBest(outcomes, (o) => o.troopCost);
 
   return { outcomes, best, cheapest, breakeven: findBreakeven(outcomes, best) };
 }
@@ -219,10 +336,10 @@ function pickBest(
 }
 
 /**
- * Total cost is linear in village value, so two splits cross at exactly one
- * price. Reporting that price answers "how many villages should I defend"
- * without anyone having to put a number on an artifact first — you only need
- * to know which side of the line you are on.
+ * Total cost is linear in the premium, so two splits cross at exactly one
+ * price. Reporting that price answers "how many should I defend" without
+ * anyone having to put a number on an artifact first — you only need to know
+ * which side of the line you are on.
  */
 function findBreakeven(
   outcomes: SplitOutcome[],
@@ -232,19 +349,14 @@ function findBreakeven(
   if (rivals.length === 0) return undefined;
 
   const runnerUp = pickBest(rivals, (o) => o.totalCost);
-  const lossGap = runnerUp.villagesLost - best.villagesLost;
-  if (Math.abs(lossGap) < 1e-9) return undefined;
+  const gap = runnerUp.villagesFlattened - best.villagesFlattened;
+  if (Math.abs(gap) < 1e-9) return undefined;
 
-  const value = (best.defenseLost - runnerUp.defenseLost) / lossGap;
-  if (!Number.isFinite(value) || value < 0) return undefined;
+  const fixed = (o: SplitOutcome) => o.troopCost + o.buildingCost;
+  const premium = (fixed(best) - fixed(runnerUp)) / gap;
+  if (!Number.isFinite(premium) || premium < 0) return undefined;
 
-  // Above the crossing price, whichever split loses fewer villages wins.
-  const fewerLosses = lossGap > 0 ? best : runnerUp;
-  const moreLosses = lossGap > 0 ? runnerUp : best;
-
-  return {
-    villageValue: value,
-    favouredAbove: fewerLosses.split,
-    favouredBelow: moreLosses.split,
-  };
+  const fewer = gap > 0 ? best : runnerUp;
+  const more = gap > 0 ? runnerUp : best;
+  return { premium, favouredAbove: fewer.split, favouredBelow: more.split };
 }

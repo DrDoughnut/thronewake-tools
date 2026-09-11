@@ -2,7 +2,7 @@
  * Player release notes. Bump `APP_VERSION` and add an entry here
  * whenever a change is worth telling returning players about.
  */
-export const APP_VERSION = '1.9.0';
+export const APP_VERSION = '1.10.0';
 
 export interface ChangelogEntry {
   version: string;
@@ -11,6 +11,17 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '1.10.0',
+    date: '2026-09-11',
+    changes: [
+      'New Combat Calculator: pick both armies from the real rosters, set the wall, stonemason and populations, and resolve a battle wave by wave with losses priced in resources on both sides.',
+      'Real Battle Maths: defence is blended by how much of the attacking army is mounted, so the same garrison answers a cavalry hammer and an infantry hammer with different numbers. Raids bleed both sides instead of wiping the loser, and morale penalises an attacker that outweighs its target.',
+      'Siege Modelled Properly: rams bring the wall down before the armies meet, and catapults peel building levels with the real demolition curve — which is what lets damage be priced as resources to rebuild.',
+      'Cata Trains: waves land in order against a garrison that carries its losses, a wall that stays where the last wave left it, and buildings already knocked down.',
+      'Defense Simulator Rebuilt: hammers now have individual sizes, cavalry shares and catapult counts, every fight goes through the combat engine, and the whole expected-value comparison is in resources instead of abstract defence points.',
+    ],
+  },
   {
     version: '1.9.0',
     date: '2026-09-11',

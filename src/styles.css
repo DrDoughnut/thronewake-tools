@@ -8250,3 +8250,68 @@ select:focus, .select:focus, .text-input:focus {
   color: var(--text-faint);
   font-size: 13px;
 }
+
+/* ── Defense Simulator: incoming hammers ─────────────────────────────── */
+
+.ds-hammers { margin-bottom: 10px; }
+
+.ds-hammers__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ds-hammers__head .panel__title { margin-bottom: 0; }
+.ds-hammers__actions { display: flex; gap: 6px; }
+
+.ds-hammer-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  /* Ten rows of five controls will not fit a phone; scroll the grid rather
+     than letting it stretch the whole results column. */
+  overflow-x: auto;
+}
+
+.ds-hammer {
+  display: grid;
+  grid-template-columns: 22px minmax(90px, 1fr) minmax(110px, 1fr) minmax(80px, 1fr) minmax(80px, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-width: 440px;
+}
+
+.ds-hammer--head {
+  font-size: 10.5px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  padding-bottom: 2px;
+}
+
+.ds-hammer--head span:not(:first-child) { text-align: right; }
+
+.ds-hammer__index {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-faint);
+}
+
+.ds-hammer .cc-unit__count { width: 100%; }
+
+.ds-hammer__share {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-dim);
+}
+
+.ds-hammer__share input[type='range'] { flex: 1; min-width: 50px; }
+.ds-hammer__share span { width: 34px; text-align: right; }

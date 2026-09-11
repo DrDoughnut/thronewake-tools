@@ -89,7 +89,7 @@ const TOOLS: Tool[] = [
     blurb:
       'Work out how many villages your defence can actually hold, when you cannot yet tell a real hammer from a fake.',
     footer:
-      'Casualty maths is unverified and adjustable; the hammer size is treated as known exactly, so a 1.00× stack is the optimistic case.',
+      'Every fight is resolved by the combat engine, so defence answers a hammer by how much of it is mounted. Hammer sizes are taken as scouted exactly, so a 1.00× stack is the optimistic case.',
     render: () => <DefenseSimulator />,
   },
   {

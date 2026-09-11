@@ -42,26 +42,6 @@ export const rules = {
     scouting: 35,
     counterScouting: 20,
   },
-
-  /**
-   * Battle resolution, used by the defense simulator.
-   *
-   * ⚠ Thronewake does not publish its casualty formula. These numbers are
-   * carried over from the game Thronewake is modelled on and are UNVERIFIED:
-   *
-   *     loser  loses 100% of its army
-   *     winner loses (loserPower / winnerPower) ^ casualtyExponent
-   *
-   * The exponent controls how brutal a narrow win is. At 1.5 a defender who
-   * wins by 10% still loses about 87% of the stack, which is why a split that
-   * looks survivable on paper is not. The simulator exposes it as a slider so
-   * a corrected value can be dialled in without a code change.
-   */
-  battle: {
-    casualtyExponent: 1.5,
-    minExponent: 1,
-    maxExponent: 2.5,
-  },
 } as const;
 
 /**
