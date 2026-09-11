@@ -7743,3 +7743,352 @@ select:focus, .select:focus, .text-input:focus {
 }
 .schedule__no-routes::before { width: 24px; }
 .schedule__no-routes::after { flex: 1; }
+
+/* ── Defense Simulator ───────────────────────────────────────────────── */
+
+/* Two series on the dark surface, checked with the palette validator:
+   normal-vision ΔE 26.0, worst CVD pair ΔE 17.9. The brand gold and danger
+   red were the obvious pick and failed — they sit ΔE 14.6 apart, below the
+   readability floor, so defence reads cool and losses read warm instead. */
+:root {
+  --ds-defense: #2f7fb8;
+  --ds-villages: #c9553f;
+}
+
+/* Grid items default to min-width:auto, so the widest cell of the results
+   table would stretch the column past the viewport and defeat the table's
+   own overflow-x. Scoped to this page so the other tools keep their sizing. */
+.ds-page > .app__controls,
+.ds-page > .app__results { min-width: 0; }
+
+.ds-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 9px;
+}
+
+.ds-field:last-child { margin-bottom: 0; }
+
+.ds-field__label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--text-dim);
+}
+
+.ds-field__value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  color: var(--text);
+}
+
+.ds-field__input {
+  width: 100%;
+  padding: 6px 9px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-sunken);
+  color: var(--text);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+.ds-field__input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.ds-field--slider input[type='range'] { width: 100%; }
+
+/* ── Verdict ─────────────────────────────────────────────────────────── */
+
+.ds-verdict {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px 24px;
+  padding: 14px 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--bg-raised);
+}
+
+.ds-verdict__headline {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+}
+
+.ds-verdict__count {
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.ds-verdict__of {
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
+.ds-verdict__facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  margin: 0;
+}
+
+.ds-verdict__facts dt {
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.ds-verdict__facts dd {
+  margin: 2px 0 0;
+  font-size: 16px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.ds-breakeven {
+  margin: 10px 0 0;
+  padding: 10px 13px;
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  background: var(--accent-soft);
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-dim);
+}
+
+.ds-breakeven strong { color: var(--text); }
+
+/* ── Chart ───────────────────────────────────────────────────────────── */
+
+.ds-chart { margin-top: 10px; }
+
+.ds-chart__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.ds-legend {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 6px;
+}
+
+.ds-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.ds-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex: none;
+}
+
+.ds-swatch--defense { background: var(--ds-defense); }
+.ds-swatch--villages { background: var(--ds-villages); }
+
+.ds-plot-wrap {
+  display: flex;
+  gap: 8px;
+  padding-top: 14px;
+}
+
+/* Two ticks only. The table carries every exact number, so the plot needs
+   just enough scale to read a bar against, and no more. */
+.ds-plot__scale {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 210px;
+  /* The split numbers sit inside the plot's height, so the scale reserves the
+     same room to keep its zero on the baseline rather than under it. */
+  padding-bottom: 19px;
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-faint);
+  text-align: right;
+  flex: none;
+}
+
+/* Centre each label on the line it names rather than beside it. */
+.ds-plot__scale span:first-child { transform: translateY(-50%); }
+.ds-plot__scale span:last-child { transform: translateY(50%); }
+
+.ds-plot {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 210px;
+  flex: 1;
+  min-width: 0;
+  border-bottom: 1px solid var(--border-strong);
+  border-top: 1px dashed var(--border);
+}
+
+.ds-bar {
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: 0;
+  margin: 0;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  cursor: pointer;
+  font: inherit;
+}
+
+.ds-bar__column {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+}
+
+.ds-bar__stack {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 2px;
+  min-height: 2px;
+  opacity: 0.62;
+  transition: opacity 0.12s;
+}
+
+.ds-bar__flag {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 4px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.ds-bar.is-best .ds-bar__stack,
+.ds-bar.is-hovered .ds-bar__stack { opacity: 1; }
+
+.ds-bar__seg {
+  display: block;
+  border-radius: 4px 4px 0 0;
+  min-height: 0;
+}
+
+.ds-bar__seg--defense { background: var(--ds-defense); }
+.ds-bar__seg--villages { background: var(--ds-villages); }
+
+.ds-bar__tick {
+  padding-top: 5px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-faint);
+}
+
+.ds-bar.is-best .ds-bar__tick {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.ds-bar:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.ds-readout {
+  margin: 9px 0 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-dim);
+  min-height: 34px;
+}
+
+.ds-readout strong { color: var(--text); }
+
+/* ── Table ───────────────────────────────────────────────────────────── */
+
+.ds-table-wrap {
+  margin-top: 10px;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-raised);
+}
+
+.ds-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ds-table__caption {
+  caption-side: bottom;
+  padding: 8px 12px 10px;
+  text-align: left;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--text-faint);
+}
+
+.ds-table th,
+.ds-table td {
+  padding: 6px 10px;
+  text-align: right;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--border);
+}
+
+.ds-table thead th {
+  font-size: 10.5px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  font-weight: 650;
+}
+
+.ds-table tbody th[scope='row'] {
+  text-align: left;
+  font-weight: 650;
+  color: var(--text);
+}
+
+.ds-table tbody tr:last-child th,
+.ds-table tbody tr:last-child td { border-bottom: 0; }
+
+.ds-table tbody tr:hover { background: var(--bg-sunken); }
+
+.ds-table tbody tr.is-best {
+  background: var(--accent-soft);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.ds-td--thin { color: var(--ds-villages); }
+
+@media (max-width: 760px) {
+  .ds-verdict { gap: 10px; }
+  .ds-verdict__count { font-size: 32px; }
+  .ds-plot { height: 160px; }
+}

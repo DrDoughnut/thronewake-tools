@@ -2,7 +2,7 @@
  * Player release notes. Bump `APP_VERSION` and add an entry here
  * whenever a change is worth telling returning players about.
  */
-export const APP_VERSION = '1.8.1';
+export const APP_VERSION = '1.9.0';
 
 export interface ChangelogEntry {
   version: string;
@@ -11,6 +11,17 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '1.9.0',
+    date: '2026-09-11',
+    changes: [
+      'New Defense Simulator: works out how many villages your defence can actually hold, simulating thousands of attacks where you cannot yet tell a real hammer from a fake.',
+      'Fake and Stacking Risk: hammers are spread at random across the villages showing incoming, so several can land on one village and break a stack sized for a single attacker.',
+      'Breakeven Pricing: rather than asking you to put a number on an artifact, the tool reports the village value at which defending one more village stops paying.',
+      'Adjustable Casualty Curve: the winner keeps (loser ÷ winner) to an adjustable power. Thronewake does not publish its casualty formula, so this default is carried over from the game it is modelled on and is unverified.',
+      'Dark Theme Everywhere: the interface no longer switches to a light palette when your system is set to light mode.',
+    ],
+  },
   {
     version: '1.8.1',
     date: '2026-09-06',
