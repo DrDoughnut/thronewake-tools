@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.10.2] - 2026-09-11
+
+### Fixed
+- **Watch Tower factions were the wrong way round.** Embermark Dominion is the 1.03 tower and Verdant Wardens the 1.025, not the reverse — matching the repo's own tribe ids and the reference model's City Wall / Palisade / Earth Wall. A level-20 Embermark tower is +80.6%; Verdant +63.9%; Stormfang +48.6%.
+
+### Added
+- **Tower flat defence**: read from the level and faction (Embermark 10 per level, Verdant 8, Stormfang 6), added before the bonus multiplies.
+- **Per-faction ram resistance**: the tower now resists rams by a faction multiplier, and it applies to the finishing ram pass as well as the early one — the reference applies it only to the early phase, which would let a tough wall be levelled as fast as a flimsy one once the fight is over. Marked UNVERIFIED in `rules.ts`: the reference gives all three walls a durability of 1, so these came from a player and setting them all to 1 restores the reference behaviour.
+- **Bonus rounding** now matches the reference, which rounds to three decimals before subtracting one, so a level-10 Palisade is +28.0% rather than +28.00845%.
+
 ## [1.10.1] - 2026-09-11
 
 ### Added

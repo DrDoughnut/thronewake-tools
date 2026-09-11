@@ -46,40 +46,76 @@ export const rules = {
   /**
    * Watch Tower — this game's wall, and the building the rams come for.
    *
-   * Defence bonus is `growth ^ level`, so a level-20 tower at 1.03 is +80.6%.
-   * The building catalog carries nothing to check these against: all twenty of
-   * the Watch Tower's levels have an empty `effects` object, unlike the 32
-   * buildings that do publish per-level effects.
+   * The catalog publishes nothing for it: all twenty of the tower's levels
+   * carry an empty `effects` object, unlike the 32 buildings that do. So these
+   * come from the game this one is modelled on, whose three walls map onto the
+   * factions by the repo's own tribe ids (1 Embermark, 2 Stormfang,
+   * 3 Vaeloria — the faction the CP optimizer gives the Trapper to):
    *
-   * ⚠ These bases came from a player, and they are the opposite way round from
-   * the game this one is modelled on, where the faction with the Trapper has
-   * the 1.025 wall and the faction with the cavalry-upkeep building has 1.03.
-   * The repo's own tribe ids agree with that older mapping — Embermark is 1
-   * (the Trapper belongs to Vaeloria, id 3, per the CP optimizer's tests). If a
-   * battle report ever disagrees with the tools, swap these two first.
+   *     Embermark   ← City Wall   1.030, +10 flat per level
+   *     Vaeloria    ← Palisade    1.025, +8  flat per level
+   *     Stormfang   ← Earth Wall  1.020, +6  flat per level
+   *
+   * The tower's own level-1 cost in the catalog (160/100/80/60) is the
+   * Palisade's to the resource, which is some comfort that the two line up.
    */
   watchTower: {
     maxLevel: 20,
+    /** Defence multiplier per level. Bonus is `growth ^ level`. */
     growth: {
-      verdant_wardens: 1.03,
-      embermark_dominion: 1.025,
+      embermark_dominion: 1.03,
+      verdant_wardens: 1.025,
       stormfang_clans: 1.02,
     } as Record<string, number>,
+    /** Flat defence the tower adds, per level, before the multiplier. */
+    flatPerLevel: {
+      embermark_dominion: 10,
+      verdant_wardens: 8,
+      stormfang_clans: 6,
+    } as Record<string, number>,
+    /**
+     * How much harder than baseline this tower is to ram down.
+     *
+     * ⚠ UNVERIFIED, and the one number here with no source behind it. The
+     * modelled game gives all three walls a durability of 1 — they differ only
+     * in bonus and flat defence — so these came from a player instead. They
+     * change how fast a wall falls but nothing else, and setting all three to
+     * 1 reproduces the reference behaviour exactly.
+     */
+    ramDurability: {
+      embermark_dominion: 2,
+      verdant_wardens: 3,
+      stormfang_clans: 5,
+    } as Record<string, number>,
     fallbackGrowth: 1.025,
+    fallbackFlat: 8,
+    fallbackDurability: 1,
   },
 } as const;
+
+const towerLevel = (level: number) =>
+  Math.max(0, Math.min(rules.watchTower.maxLevel, Math.floor(level) || 0));
 
 /**
  * Fractional defence bonus of a Watch Tower: 0.806 means +80.6%.
  *
- * Flat defence is deliberately not modelled — the catalog declares a `defFlat`
- * effect for the tower but publishes no values, and it is small enough to sit
- * out until real numbers turn up.
+ * Rounded to three decimals before the 1 comes off, which is what the
+ * reference does — so a level-20 City Wall is exactly +80.6%, not +80.6111%.
  */
 export function watchTowerBonus(factionKey: string, level: number): number {
   const growth = rules.watchTower.growth[factionKey] ?? rules.watchTower.fallbackGrowth;
-  const capped = Math.max(0, Math.min(rules.watchTower.maxLevel, Math.floor(level) || 0));
-  return growth ** capped - 1;
+  return Math.round(growth ** towerLevel(level) * 1000) / 1000 - 1;
+}
+
+/** Flat defence the tower contributes, added before the bonus multiplies. */
+export function watchTowerFlat(factionKey: string, level: number): number {
+  const perLevel = rules.watchTower.flatPerLevel[factionKey] ?? rules.watchTower.fallbackFlat;
+  return perLevel * towerLevel(level);
+}
+
+/** Ram resistance multiplier. See the warning on `ramDurability`. */
+export function watchTowerDurability(factionKey: string): number {
+  return rules.watchTower.ramDurability[factionKey] ?? rules.watchTower.fallbackDurability;
 }
 
 /**

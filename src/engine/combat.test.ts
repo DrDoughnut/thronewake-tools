@@ -260,6 +260,20 @@ describe('Combat Engine', () => {
       expect(result.defPoints).toBeLessThan((50 * 100 + BASE_VILLAGE_DEF) * 1.8);
     });
 
+    it('resists the finishing pass as well as the early one', () => {
+      const attack = [
+        unit({ off: 5000, count: 20, key: 'hammer' }),
+        unit({ key: 'ram', count: 60, off: 50, siege: 'ram', upgrade: 0 }),
+      ];
+      const flimsy = resolveWave(
+        village({ wallLevel: 20, wallDefBonus: 0.8, wallDurability: 1 }), [], wave(attack));
+      const tough = resolveWave(
+        village({ wallLevel: 20, wallDefBonus: 0.8, wallDurability: 5 }), [], wave(attack));
+
+      expect(tough.wallLevel).toBeGreaterThan(flimsy.wallLevel);
+      expect(tough.wallDuringBattle).toBeGreaterThanOrEqual(flimsy.wallDuringBattle);
+    });
+
     it('leaves the wall alone when there are no rams', () => {
       const result = resolveWave(village({ wallLevel: 15, wallDefBonus: 0.5 }), [],
         wave([unit({ off: 5000, count: 10 })]));

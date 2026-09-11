@@ -2,7 +2,7 @@
  * Player release notes. Bump `APP_VERSION` and add an entry here
  * whenever a change is worth telling returning players about.
  */
-export const APP_VERSION = '1.10.1';
+export const APP_VERSION = '1.10.2';
 
 export interface ChangelogEntry {
   version: string;
@@ -11,6 +11,15 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '1.10.2',
+    date: '2026-09-11',
+    changes: [
+      'Watch Tower factions corrected: Embermark Dominion has the 1.03 tower and Verdant Wardens the 1.025, not the other way round. At level 20 that is +80.6% for Embermark, +63.9% for Verdant and +48.6% for Stormfang.',
+      'Tower Flat Defence: the tower now also adds flat defence per level (Embermark 10, Verdant 8, Stormfang 6) before its bonus multiplies.',
+      'Ram Resistance: towers resist rams by a per-faction multiplier, applied to the finishing ram pass as well as the opening one. These multipliers are unverified — the game this one is modelled on treats all three walls alike.',
+    ],
+  },
   {
     version: '1.10.1',
     date: '2026-09-11',
