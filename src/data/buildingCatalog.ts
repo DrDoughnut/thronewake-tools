@@ -35,9 +35,19 @@ export interface CatalogBuilding {
   levels: BuildingLevel[];
 }
 
+/**
+ * Faction key to tribe id, for the tribe-exclusive building prerequisites.
+ *
+ * `verdant_wardens` is the key the roster uses and the one the faction pickers
+ * emit; `vaeloria` is an older name for the same faction that still appears in
+ * saved villages and in shared CP-optimizer links, so both have to resolve.
+ * Lookups here fall back to tribe 1, which is why a missing key did not fail
+ * loudly — it just quietly made the village Embermark.
+ */
 export const FACTION_TRIBE_MAP: Record<string, number> = {
   embermark_dominion: 1,
   stormfang_clans: 2,
+  verdant_wardens: 3,
   vaeloria: 3,
 };
 

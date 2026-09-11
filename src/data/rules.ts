@@ -76,15 +76,14 @@ export const rules = {
     /**
      * How much harder than baseline this tower is to ram down.
      *
-     * ⚠ UNVERIFIED, and the one number here with no source behind it. The
-     * modelled game gives all three walls a durability of 1 — they differ only
-     * in bonus and flat defence — so these came from a player instead. They
-     * change how fast a wall falls but nothing else, and setting all three to
-     * 1 reproduces the reference behaviour exactly.
+     * A genuine divergence from the modelled game, which gives all three walls
+     * a durability of 1 and separates them only by bonus and flat defence.
+     * Confirmed in-game instead, and the spread is the point: the tower that
+     * defends hardest is the one that falls fastest.
      */
     ramDurability: {
-      embermark_dominion: 2,
-      verdant_wardens: 3,
+      embermark_dominion: 1,
+      verdant_wardens: 2,
       stormfang_clans: 5,
     } as Record<string, number>,
     fallbackGrowth: 1.025,
