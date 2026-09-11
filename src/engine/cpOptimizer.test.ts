@@ -297,6 +297,17 @@ describe('CP Build-Order Optimizer Engine', () => {
     expect(wh2Index).toBeLessThan(emb9Index);
   });
 
+  it('gates faction buildings by the key the faction dropdown actually emits', () => {
+    // The picker is built from playableFactions, so it emits 'verdant_wardens'.
+    // FACTION_TRIBE_MAP knew only the older 'vaeloria', and its `|| 1` fallback
+    // quietly turned every Verdant village into an Embermark one — offering it
+    // Rider's Wells and never the Trapper.
+    const verdant = getRecommendations({ ...baseVillage, faction: 'verdant_wardens' });
+
+    expect(verdant.find((r) => r.gid === 36)).toBeTruthy();  // Trapper, theirs
+    expect(verdant.find((r) => r.gid === 41)).toBeFalsy();   // Rider's Wells, not
+  });
+
   it('correctly includes Trapper for Vaeloria, Stormbrew Works for Stormfang, and Riders Wells for Embermark', () => {
     // 1. Vaeloria -> Trapper (gid 36)
     const recsVaeloria = getRecommendations({

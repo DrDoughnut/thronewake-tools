@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.10.3] - 2026-09-11
+
+### Fixed
+- **Verdant Wardens villages were treated as Embermark in the CP Optimizer.** The faction picker emits `verdant_wardens`, but `FACTION_TRIBE_MAP` knew only the older name `vaeloria`, and its `|| 1` fallback silently resolved the miss to tribe 1 — so a Verdant village was offered Rider's Wells (Embermark-exclusive) and never the Trapper (its own). Both keys now resolve, so saved villages and older shared links keep working. The existing test passed only because it used the dead key the UI cannot produce.
+- **"Vaeloria" shown to players** in Building Stats — for the Cranny's protected resources and for tribe-exclusive prerequisites — is now "Verdant Wardens".
+
+### Changed
+- **Ram resistance confirmed in-game**: Embermark 1×, Verdant Wardens 2×, Stormfang Clans 5×, and no longer marked unverified.
+
 ## [1.10.2] - 2026-09-11
 
 ### Fixed

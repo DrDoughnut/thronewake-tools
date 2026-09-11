@@ -88,7 +88,7 @@ export function formatEffectLabel(
     case 'storageCranny':
       return `${value.toLocaleString()} Protected Res`;
     case 'storageCrannyGaul':
-      return `${value.toLocaleString()} Protected (Vaeloria)`;
+      return `${value.toLocaleString()} Protected (Verdant Wardens)`;
     case 'smallPartyTime':
       return `Small Party: ${formatTimeSeconds(value)}`;
     case 'largePartyTime':
@@ -130,7 +130,7 @@ export function describePrerequisites(building: CatalogBuilding): string[] {
       const tribeNames: Record<number, string> = {
         1: 'Embermark Dominion',
         2: 'Stormfang Clans',
-        3: 'Vaeloria',
+        3: 'Verdant Wardens',
       };
       const vids = p.vid || [];
       const names = vids.map((v) => tribeNames[v] || `Faction #${v}`).join(', ');

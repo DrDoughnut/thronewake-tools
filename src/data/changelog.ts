@@ -2,7 +2,7 @@
  * Player release notes. Bump `APP_VERSION` and add an entry here
  * whenever a change is worth telling returning players about.
  */
-export const APP_VERSION = '1.10.2';
+export const APP_VERSION = '1.10.3';
 
 export interface ChangelogEntry {
   version: string;
@@ -11,6 +11,15 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '1.10.3',
+    date: '2026-09-11',
+    changes: [
+      'Fixed: Verdant Wardens villages were being treated as Embermark Dominion in the CP Optimizer, so they were offered Rider\u2019s Wells and never the Trapper. Existing villages and shared links are unaffected.',
+      'Fixed: the Building Stats tool called the faction "Vaeloria" in Cranny protection and tribe-exclusive requirements. It is Verdant Wardens.',
+      'Ram Resistance Confirmed: Embermark Dominion 1\u00d7, Verdant Wardens 2\u00d7, Stormfang Clans 5\u00d7 \u2014 the tower that defends hardest is the one that falls fastest.',
+    ],
+  },
   {
     version: '1.10.2',
     date: '2026-09-11',
