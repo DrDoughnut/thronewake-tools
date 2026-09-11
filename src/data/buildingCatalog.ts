@@ -38,9 +38,10 @@ export interface CatalogBuilding {
 /**
  * Faction key to tribe id, for the tribe-exclusive building prerequisites.
  *
- * `verdant_wardens` is the key the roster uses and the one the faction pickers
- * emit; `vaeloria` is an older name for the same faction that still appears in
- * saved villages and in shared CP-optimizer links, so both have to resolve.
+ * The faction is Verdant Wardens: `verdant_wardens` is the key the roster uses
+ * and the one the faction pickers emit. `vaeloria` is a dead earlier name for
+ * it that is still written into saved villages and shared CP-optimizer links,
+ * so both have to resolve here even though only one is the real name.
  * Lookups here fall back to tribe 1, which is why a missing key did not fail
  * loudly — it just quietly made the village Embermark.
  */
