@@ -4,6 +4,7 @@ export const StorageKeys = {
   BUILDINGS_STATE: 'thronewake.buildings.state',
   LAST_TOOL: 'thronewake.lastTool',
   CP_OPTIMIZER: 'thronewake.cp.state',
+  DEFENSE_STATE: 'thronewake.defense.state',
   LOCAL_TIME: 'thronewake.showLocalTime',
   TEAMROOM_SESSION: 'thronewake.teamroom.session',
   V2_UNLOCKED: 'thronewake.v2.unlocked',

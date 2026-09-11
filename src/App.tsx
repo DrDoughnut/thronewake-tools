@@ -5,6 +5,7 @@ import { APP_VERSION } from './data/changelog';
 import { ArmyCalculator } from './pages/ArmyCalculator';
 import { BuildingStats } from './pages/BuildingStats';
 import { CpOptimizer } from './pages/CpOptimizer';
+import { DefenseSimulator } from './pages/DefenseSimulator';
 import { OperationPlanner } from './pages/OperationPlanner';
 import { UnitAttributes } from './pages/UnitAttributes';
 import { loadStoredJson, saveStoredJson, StorageKeys } from './storage';
@@ -69,6 +70,16 @@ const TOOLS: Tool[] = [
     footer:
       'Safe hours are interpreted in 24-hour UTC; local times are displayed for convenience and are not stored.',
     render: (v2) => <OperationPlanner isV2Unlocked={v2} />,
+  },
+  {
+    key: 'defense',
+    name: 'Defense Sim',
+    icon: '🛡️',
+    blurb:
+      'Work out how many villages your defence can actually hold, when you cannot yet tell a real hammer from a fake.',
+    footer:
+      'Casualty maths is unverified and adjustable; the hammer size is treated as known exactly, so a 1.00× stack is the optimistic case.',
+    render: () => <DefenseSimulator />,
   },
   {
     key: 'optimizer',

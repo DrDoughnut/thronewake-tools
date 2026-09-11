@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.9.0] - 2026-09-11
+
+### Added
+- **Defense Simulator Tool (`🛡️ Defense Sim`)**:
+  - **Monte Carlo Split Search**: Sweeps every way of dividing your defence pool across the villages showing incoming, simulating thousands of attacks per split and reporting expected villages lost, defence lost, and total cost. Every split faces the same sampled attacks, so neighbouring rows differ on merit rather than sampling noise.
+  - **Fakes and Stacking**: Real hammers are distributed at random across the villages showing incoming, so defence can be committed to a village that turns out to be a fake, and two real hammers can land on one village and break a stack sized for a single attacker.
+  - **Breakeven Village Pricing**: Total cost is linear in what a village is worth, so the tool reports the exact value at which the recommendation flips to the next split — answering "how many should I defend" without first having to price an artifact.
+  - **Adjustable Casualty Curve**: The loser is wiped and the winner keeps `(loser ÷ winner)` to an adjustable exponent, exposed as a slider. Thronewake does not publish its casualty formula; the 1.5 default is carried over from the game it is modelled on and is **unverified**.
+  - **Deep-Link State Sharing**: Syncs the whole scenario to the URL hash (`#tool=defense&d=…`) alongside local storage.
+
+### Changed
+- **Dark Theme Everywhere**: Removed the `prefers-color-scheme: light` override, so the interface stays on the dark palette regardless of the operating system setting.
+
 ## [1.8.1] - 2026-09-06
 
 - **Army Calculator Improvements**:

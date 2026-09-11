@@ -5,7 +5,7 @@ whole thing is static files, and every number is computed in your browser.
 Deploy it to GitHub Pages, Netlify, S3, or open `dist/index.html` from a USB
 stick; it works the same.
 
-Four tools so far:
+Six tools so far:
 
 - **Unit Attributes** — ranks every unit (or mixed pair) by whatever is actually
   limiting you: resources, grain, or hours.
@@ -15,9 +15,14 @@ Four tools so far:
 - **Operation Planner** — coordinates complex multi-army operations across
   attackers and targets with slowest troop speed, artifact speed multipliers,
   Bannerfield long-range bonus, and 24-hour UTC safe-time protection checks.
+- **Defense Simulator** — how many villages your defence can actually hold.
+  Simulates thousands of attacks in which you cannot yet tell a real hammer
+  from a fake, and prices the moment defending one more village stops paying.
 - **CP Build-Order Optimizer** — multi-village Culture Points (CP) production
   dashboard and build-order optimizer tailored for Thronewake mechanics, city
   bonuses, faction exclusives, dedicated slot handling, and storage prerequisite gating.
+- **Building Stats** — upgrade costs, construction times, culture points and
+  effects for every building across levels 1–22.
 
 All apply smithy upgrades and faction-specific buildings where relevant.
 
@@ -44,6 +49,7 @@ src/
     stats.ts        upgrade and modifier formulas
     value.ts        the rating calculation and ranking
     formula.ts      parser for user-written formulas
+    defense.ts      the defence split simulation
   components/     ← the UI
   assets/icons/   ← unit artwork (see docs/icons.md)
 ```
