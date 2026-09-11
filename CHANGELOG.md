@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.11.0] - 2026-09-11
+
+### Changed
+- **Combat Calculator laid out horizontally.** Troops now run across a row with the unit's icon and name above each count, so a whole army reads as one line instead of a column of seven. The attacker card, the village, and the defender card stack in that order, with the village between the two sides it belongs to.
+
+### Added
+- **Multiple attacking armies**: each attacker row is its own wave, landing in order against whatever the previous one left. Replaces the old "repeat this army N times" wave count, so a cata train can be built out of genuinely different armies.
+- **Multiple defending armies**: several rows stand in the same village and fight as one garrison, each with its own faction and smithy — which is what reinforcement actually looks like. The Watch Tower belongs to the first defender, as the village owner.
+
 ## [1.10.3] - 2026-09-11
 
 ### Fixed

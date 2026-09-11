@@ -197,7 +197,7 @@ export function DefenseSimulator() {
           <NumberField label="Stonemason's Lodge level" value={state.stonemason} max={20}
             onChange={(v) => set('stonemason', v)} />
           <p className="hint">
-            {faction.name}'s tower at level {state.wallLevel} defends at{' '}
+            {faction.name} tower at level {state.wallLevel} defends at{' '}
             <strong>+{(watchTowerBonus(faction.key, state.wallLevel) * 100).toFixed(1)}%</strong>{' '}
             plus {watchTowerFlat(faction.key, state.wallLevel)} flat, resisting rams at{' '}
             {watchTowerDurability(faction.key)}×.

@@ -2,7 +2,7 @@
  * Player release notes. Bump `APP_VERSION` and add an entry here
  * whenever a change is worth telling returning players about.
  */
-export const APP_VERSION = '1.10.3';
+export const APP_VERSION = '1.11.0';
 
 export interface ChangelogEntry {
   version: string;
@@ -11,6 +11,15 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '1.11.0',
+    date: '2026-09-11',
+    changes: [
+      'Combat Calculator Laid Out Horizontally: troops run across a row with each unit\u2019s icon and name above its count, so a whole army reads as one line. Attackers on top, the village in the middle, defenders below.',
+      'Multiple Attacking Waves: every attacker row lands as its own wave, in order, against whatever the last one left \u2014 so a cata train can be built out of genuinely different armies rather than one army repeated.',
+      'Multiple Defenders: several rows stand in the same village and fight as one garrison, each with its own faction and smithy, which is what reinforcement actually looks like.',
+    ],
+  },
   {
     version: '1.10.3',
     date: '2026-09-11',
