@@ -4,6 +4,7 @@ import { SecretUnlockModal } from './components/SecretUnlockModal';
 import { APP_VERSION } from './data/changelog';
 import { ArmyCalculator } from './pages/ArmyCalculator';
 import { BuildingStats } from './pages/BuildingStats';
+import { CombatCalculator } from './pages/CombatCalculator';
 import { CpOptimizer } from './pages/CpOptimizer';
 import { DefenseSimulator } from './pages/DefenseSimulator';
 import { OperationPlanner } from './pages/OperationPlanner';
@@ -70,6 +71,16 @@ const TOOLS: Tool[] = [
     footer:
       'Safe hours are interpreted in 24-hour UTC; local times are displayed for convenience and are not stored.',
     render: (v2) => <OperationPlanner isV2Unlocked={v2} />,
+  },
+  {
+    key: 'combat',
+    name: 'Combat Calculator',
+    icon: '⚒️',
+    blurb:
+      'Resolve a real battle: offense against the defence your own hammer draws out of a garrison, wave after wave, priced in resources.',
+    footer:
+      'Casualties use the T4 curve — the loser is wiped, the winner keeps (loser ÷ winner)^1.5. The Watch Tower has no defence values in the catalog yet, so its bonus is typed in.',
+    render: () => <CombatCalculator />,
   },
   {
     key: 'defense',

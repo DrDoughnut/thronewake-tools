@@ -8092,3 +8092,161 @@ select:focus, .select:focus, .text-input:focus {
   .ds-verdict__count { font-size: 32px; }
   .ds-plot { height: 160px; }
 }
+
+/* ── Combat Calculator ───────────────────────────────────────────────── */
+
+.cc-warning {
+  margin: 8px 0 0;
+  padding: 9px 11px;
+  border-left: 3px solid var(--danger);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+
+.cc-toggle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 4px;
+  font-size: 12.5px;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.cc-armies {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 10px;
+}
+
+.cc-army { min-width: 0; }
+
+/* The two sides are told apart by an edge stripe rather than by tinting the
+   whole panel, which would fight the table colours further down. */
+.cc-army--off { box-shadow: inset 3px 0 0 var(--ds-villages); }
+.cc-army--def { box-shadow: inset 3px 0 0 var(--ds-defense); }
+
+.cc-army__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.cc-army__head .panel__title { margin-bottom: 0; }
+
+.cc-army__controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 10px;
+  flex-wrap: wrap;
+}
+
+.cc-army__controls .ds-field__input { flex: 1 1 130px; width: auto; }
+
+.cc-smithy {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-dim);
+  flex: 1 1 140px;
+}
+
+.cc-smithy input[type='range'] { flex: 1; min-width: 60px; }
+
+.cc-units {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cc-unit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 5px;
+  border-radius: var(--radius);
+}
+
+.cc-unit:hover { background: var(--bg-sunken); }
+
+.cc-unit__name {
+  flex: 1;
+  min-width: 0;
+  font-size: 12.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cc-unit__count {
+  width: 84px;
+  flex: none;
+  padding: 4px 7px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-sunken);
+  color: var(--text);
+  font: inherit;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.cc-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.cc-summary__card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-raised);
+}
+
+.cc-summary__card--off { border-color: color-mix(in srgb, var(--ds-villages) 45%, var(--border)); }
+.cc-summary__card--def { border-color: color-mix(in srgb, var(--ds-defense) 45%, var(--border)); }
+
+.cc-summary__label {
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.cc-summary__value {
+  font-size: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+}
+
+.cc-summary__sub {
+  font-size: 11.5px;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.cc-empty {
+  margin: 14px 0 0;
+  padding: 20px;
+  text-align: center;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  color: var(--text-faint);
+  font-size: 13px;
+}
