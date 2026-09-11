@@ -8095,31 +8095,13 @@ select:focus, .select:focus, .text-input:focus {
 
 /* ── Combat Calculator ───────────────────────────────────────────────── */
 
-.cc-warning {
-  margin: 8px 0 0;
-  padding: 9px 11px;
-  border-left: 3px solid var(--danger);
-  border-radius: 0 var(--radius) var(--radius) 0;
-  background: color-mix(in srgb, var(--danger) 12%, transparent);
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--text-dim);
-}
-
-.cc-toggle {
+/* One column, not the usual sidebar-and-results split: the two armies read as
+   a fight with the village between them, so they need the full width. */
+.cc-page {
   display: flex;
-  align-items: center;
-  gap: 7px;
-  margin-top: 4px;
-  font-size: 12.5px;
-  color: var(--text-dim);
-  cursor: pointer;
-}
-
-.cc-armies {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  flex-direction: column;
   gap: 10px;
+  min-width: 0;
 }
 
 .cc-army { min-width: 0; }
@@ -8134,78 +8116,186 @@ select:focus, .select:focus, .text-input:focus {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  margin-bottom: 8px;
 }
 
 .cc-army__head .panel__title { margin-bottom: 0; }
 
-.cc-army__controls {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 8px 0 10px;
-  flex-wrap: wrap;
+.cc-rows { display: flex; flex-direction: column; gap: 8px; }
+
+.cc-row {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-sunken);
+  padding: 7px 9px 9px;
+  min-width: 0;
 }
 
-.cc-army__controls .ds-field__input { flex: 1 1 130px; width: auto; }
+.cc-row__bar {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+  margin-bottom: 7px;
+}
 
-.cc-smithy {
+.cc-row__index {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-strong);
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text-dim);
+}
+
+.cc-row__faction,
+.cc-troop__count {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-raised);
+  color: var(--text);
+  font: inherit;
+}
+
+.cc-row__faction {
+  padding: 4px 7px;
+  font-size: 12.5px;
+  flex: 0 1 180px;
+  min-width: 110px;
+}
+
+.cc-row__smithy {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: 11.5px;
   color: var(--text-dim);
-  flex: 1 1 140px;
+  flex: 1 1 150px;
+  min-width: 0;
 }
 
-.cc-smithy input[type='range'] { flex: 1; min-width: 60px; }
+.cc-row__smithy input[type='range'] { flex: 1; min-width: 50px; }
 
-.cc-units {
+.cc-row__total {
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-faint);
+  margin-left: auto;
+}
+
+.cc-row__remove {
+  appearance: none;
+  border: 1px solid var(--border-strong);
+  background: none;
+  color: var(--text-faint);
+  border-radius: var(--radius);
+  width: 22px;
+  height: 22px;
+  flex: none;
+  line-height: 1;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.cc-row__remove:hover { color: var(--danger); border-color: var(--danger); }
+
+/* Troops across, not down. Scrolls on narrow screens rather than wrapping,
+   so the units stay in roster order and a row is always one army. */
+.cc-troops {
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding: 0 0 2px;
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+}
+
+.cc-troop {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-}
-
-.cc-unit {
-  display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 3px 5px;
-  border-radius: var(--radius);
+  gap: 2px;
+  flex: 1 1 0;
+  min-width: 66px;
 }
 
-.cc-unit:hover { background: var(--bg-sunken); }
-
-.cc-unit__name {
-  flex: 1;
-  min-width: 0;
-  font-size: 12.5px;
+/* Seven small icons in a row are hard to tell apart, and the stat card only
+   appears on hover — the name keeps the column readable without it. */
+.cc-troop__name {
+  max-width: 100%;
+  font-size: 9.5px;
+  line-height: 1.2;
+  color: var(--text-faint);
+  text-align: center;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.cc-unit__count {
-  width: 84px;
-  flex: none;
-  padding: 4px 7px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
-  background: var(--bg-sunken);
-  color: var(--text);
-  font: inherit;
-  font-size: 12.5px;
+.cc-troop__count {
+  width: 100%;
+  padding: 4px 5px;
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
-  text-align: right;
+  text-align: center;
 }
+
+.cc-troop__count:focus-visible,
+.cc-row__faction:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* ── The village, between the two armies ─────────────────────────────── */
+
+.cc-village {
+  border-color: var(--border-strong);
+  background: var(--bg-sunken);
+}
+
+.cc-village__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px 12px;
+}
+
+.cc-village__grid .ds-field { margin-bottom: 0; }
+
+.cc-village__footer {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 9px;
+  padding-top: 9px;
+  border-top: 1px solid var(--border);
+}
+
+.cc-toggle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  color: var(--text-dim);
+  cursor: pointer;
+  flex: none;
+}
+
+.cc-village__footer .hint { flex: 1 1 260px; margin: 0; }
+
+/* ── Results ─────────────────────────────────────────────────────────── */
+
+.cc-results { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 
 .cc-summary {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 8px;
-  margin-top: 10px;
 }
 
 .cc-summary__card {
@@ -8242,7 +8332,7 @@ select:focus, .select:focus, .text-input:focus {
 }
 
 .cc-empty {
-  margin: 14px 0 0;
+  margin: 0;
   padding: 20px;
   text-align: center;
   border: 1px dashed var(--border-strong);
@@ -8251,67 +8341,7 @@ select:focus, .select:focus, .text-input:focus {
   font-size: 13px;
 }
 
-/* ── Defense Simulator: incoming hammers ─────────────────────────────── */
-
-.ds-hammers { margin-bottom: 10px; }
-
-.ds-hammers__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  flex-wrap: wrap;
+@media (max-width: 620px) {
+  .cc-row__total { margin-left: 0; }
+  .cc-troop { min-width: 56px; }
 }
-
-.ds-hammers__head .panel__title { margin-bottom: 0; }
-.ds-hammers__actions { display: flex; gap: 6px; }
-
-.ds-hammer-list {
-  list-style: none;
-  margin: 8px 0 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  /* Ten rows of five controls will not fit a phone; scroll the grid rather
-     than letting it stretch the whole results column. */
-  overflow-x: auto;
-}
-
-.ds-hammer {
-  display: grid;
-  grid-template-columns: 22px minmax(90px, 1fr) minmax(110px, 1fr) minmax(80px, 1fr) minmax(80px, 1fr);
-  align-items: center;
-  gap: 8px;
-  min-width: 440px;
-}
-
-.ds-hammer--head {
-  font-size: 10.5px;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--text-faint);
-  padding-bottom: 2px;
-}
-
-.ds-hammer--head span:not(:first-child) { text-align: right; }
-
-.ds-hammer__index {
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-  color: var(--text-faint);
-}
-
-.ds-hammer .cc-unit__count { width: 100%; }
-
-.ds-hammer__share {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-  color: var(--text-dim);
-}
-
-.ds-hammer__share input[type='range'] { flex: 1; min-width: 50px; }
-.ds-hammer__share span { width: 34px; text-align: right; }

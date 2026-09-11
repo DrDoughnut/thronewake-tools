@@ -79,7 +79,7 @@ const TOOLS: Tool[] = [
     blurb:
       'Resolve a real battle: offense against the defence your own hammer draws out of a garrison, wave after wave, priced in resources.',
     footer:
-      'Casualties use the T4 curve — the loser is wiped, the winner keeps (loser ÷ winner)^1.5. The Watch Tower has no defence values in the catalog yet, so its bonus is typed in.',
+      'Casualties use the T4 curve — the loser is wiped, the winner keeps (loser ÷ winner)^1.5. Attacker rows land as consecutive waves; defender rows all stand in the same village.',
     render: () => <CombatCalculator />,
   },
   {

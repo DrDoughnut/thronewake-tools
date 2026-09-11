@@ -1,26 +1,34 @@
 import { useEffect, useMemo, useState } from 'react';
 import { UnitIcon } from '../components/UnitIcon';
 import { BUILDINGS } from '../data/buildingCatalog';
-import { playableFactions, unitRef } from '../data/factions';
-import type { Faction, Unit } from '../data/types';
+import { factions, playableFactions, unitRef } from '../data/factions';
 import { watchTowerBonus, watchTowerDurability, watchTowerFlat } from '../data/rules';
+import type { Faction, Unit } from '../data/types';
 import { resolveBattle, type Regiment, type Village, type Wave } from '../engine/combat';
 import { buildingCumulativeCost } from '../engine/cpOptimizer';
 import { defaultModifiers, offenseFactor, totalCost, upgradeStat } from '../engine/stats';
 import { loadStoredJson, saveStoredJson, StorageKeys } from '../storage';
 
-
 /** Stonemason's Lodge: +10% building durability per level, from the catalog. */
 const durabilityFor = (level: number) => 1 + 0.1 * Math.max(0, level);
 
+/** Unit keys are unique across every roster, so one map prices them all. */
+const UNIT_COST = new Map(
+  factions.flatMap((f) => f.units.map((u) => [u.key, totalCost(u)] as const)),
+);
+
+interface Army {
+  id: string;
+  faction: string;
+  smithy: number;
+  counts: Record<string, number>;
+}
+
 interface CombatState {
-  attackerFaction: string;
-  defenderFaction: string;
-  attacker: Record<string, number>;
-  defender: Record<string, number>;
-  attackerSmithy: number;
-  defenderSmithy: number;
-  waves: number;
+  /** Each attacker is its own wave, landing in the order listed. */
+  attackers: Army[];
+  /** Defenders all stand in the same village and fight as one garrison. */
+  defenders: Army[];
   type: 'attack' | 'raid';
   morale: boolean;
   attackerPop: number;
@@ -32,14 +40,17 @@ interface CombatState {
   targetCount: number;
 }
 
+let nextId = 0;
+const makeArmy = (faction: string): Army => ({
+  id: `a${Date.now()}-${nextId++}`,
+  faction,
+  smithy: 20,
+  counts: {},
+});
+
 const initialState: CombatState = {
-  attackerFaction: 'embermark_dominion',
-  defenderFaction: 'verdant_wardens',
-  attacker: {},
-  defender: {},
-  attackerSmithy: 20,
-  defenderSmithy: 20,
-  waves: 1,
+  attackers: [{ ...makeArmy('embermark_dominion'), id: 'att-1' }],
+  defenders: [{ ...makeArmy('verdant_wardens'), id: 'def-1' }],
   type: 'attack',
   morale: true,
   attackerPop: 1500,
@@ -61,50 +72,49 @@ const siegeKind = (unit: Unit): 'ram' | 'catapult' | undefined => {
   return undefined;
 };
 
-/** Turn a roster selection into the flat stats the combat engine wants. */
-function toRegiments(
-  faction: Faction,
-  counts: Record<string, number>,
-  smithy: number,
-): Regiment[] {
-  const mods = { ...defaultModifiers, smithy };
+/** factionByKey throws, so a saved key from an older roster must not reach it. */
+const safeFaction = (key: string): Faction =>
+  playableFactions.find((f) => f.key === key) ?? playableFactions[0];
+
+/** Turn one army's roster selection into the flat stats the engine wants. */
+function toRegiments(army: Army): Regiment[] {
+  const faction = safeFaction(army.faction);
+  const mods = { ...defaultModifiers, smithy: army.smithy };
   const factor = offenseFactor(faction, mods);
 
   return fightable(faction)
-    .filter((unit) => (counts[unit.key] ?? 0) > 0)
+    .filter((unit) => (army.counts[unit.key] ?? 0) > 0)
     .map((unit) => ({
       key: unit.key,
-      count: counts[unit.key] ?? 0,
-      off: upgradeStat(unit, unit.off, smithy) * factor,
-      defInf: upgradeStat(unit, unit.defInf, smithy),
-      defCav: upgradeStat(unit, unit.defCav, smithy),
+      count: army.counts[unit.key] ?? 0,
+      off: upgradeStat(unit, unit.off, army.smithy) * factor,
+      defInf: upgradeStat(unit, unit.defInf, army.smithy),
+      defCav: upgradeStat(unit, unit.defCav, army.smithy),
       cavalry: Boolean(unit.stabled),
       siege: siegeKind(unit),
-      upgrade: unit.noUpgrade ? 0 : smithy,
+      upgrade: unit.noUpgrade ? 0 : army.smithy,
     }));
 }
 
 /** Resources burnt by the difference between two rosters. */
-function lossCost(faction: Faction, before: Regiment[], after: Regiment[]): number {
-  const units = new Map(faction.units.map((u) => [u.key, u]));
+function lossCost(before: Regiment[], after: Regiment[]): number {
   return before.reduce((sum, r, i) => {
-    const unit = units.get(r.key);
-    if (!unit) return sum;
     const lost = Math.max(0, r.count - (after[i]?.count ?? 0));
-    return sum + lost * totalCost(unit);
+    return sum + lost * (UNIT_COST.get(r.key) ?? 0);
   }, 0);
 }
 
 const unitsLost = (before: Regiment[], after: Regiment[]) =>
   before.reduce((n, r, i) => n + Math.max(0, r.count - (after[i]?.count ?? 0)), 0);
 
-/** factionByKey throws, so a saved key from an older roster must not reach it. */
-const safeFaction = (key: string): Faction =>
-  playableFactions.find((f) => f.key === key) ?? playableFactions[0];
-
 function loadInitialState(): CombatState {
   const saved = loadStoredJson<Partial<CombatState> | null>(StorageKeys.COMBAT_STATE, null);
-  return saved && typeof saved === 'object' ? { ...initialState, ...saved } : initialState;
+  // The shape changed when armies became lists; anything older starts fresh.
+  if (saved && Array.isArray(saved.attackers) && Array.isArray(saved.defenders)
+    && saved.attackers.length > 0 && saved.defenders.length > 0) {
+    return { ...initialState, ...saved };
+  }
+  return initialState;
 }
 
 const round = (n: number) => Math.round(n).toLocaleString();
@@ -126,50 +136,66 @@ export function CombatCalculator() {
     saveStoredJson(StorageKeys.COMBAT_STATE, state);
   }, [state]);
 
-  const attackerFaction = safeFaction(state.attackerFaction);
-  const defenderFaction = safeFaction(state.defenderFaction);
+  // The tower belongs to the village being defended, so it is the first
+  // defender's faction that owns it.
+  const villageFaction = safeFaction(state.defenders[0]?.faction ?? '');
 
   const battle = useMemo(() => {
-    const attackRegiments = toRegiments(attackerFaction, state.attacker, state.attackerSmithy);
-    const defendRegiments = toRegiments(defenderFaction, state.defender, state.defenderSmithy);
+    const waveArmies = state.attackers.map(toRegiments);
+    const defenders = state.defenders.flatMap(toRegiments);
 
     const village: Village = {
       pop: state.defenderPop,
       wallLevel: state.wallLevel,
-      // The tower belongs to whoever is being attacked, so its bonus follows
-      // the defender's faction, not the attacker's.
-      wallDefBonus: watchTowerBonus(defenderFaction.key, state.wallLevel),
-      wallDefFlat: watchTowerFlat(defenderFaction.key, state.wallLevel),
-      wallDurability: watchTowerDurability(defenderFaction.key),
+      wallDefBonus: watchTowerBonus(villageFaction.key, state.wallLevel),
+      wallDefFlat: watchTowerFlat(villageFaction.key, state.wallLevel),
+      wallDurability: watchTowerDurability(villageFaction.key),
       durability: durabilityFor(state.stonemason),
       extraDef: 0,
     };
 
     const targets = Array.from({ length: state.targetCount }, () => state.targetLevel);
-    const waves: Wave[] = Array.from({ length: state.waves }, () => ({
-      regiments: attackRegiments.map((r) => ({ ...r })),
+    const waves: Wave[] = waveArmies.map((regiments) => ({
+      regiments,
       pop: state.attackerPop,
       type: state.type,
       targets,
       morale: state.morale,
     }));
 
-    if (attackRegiments.length === 0) return null;
-    return { result: resolveBattle(village, defendRegiments, waves), attackRegiments, defendRegiments };
-  }, [state, attackerFaction, defenderFaction]);
+    if (waveArmies.every((a) => a.length === 0)) return null;
+    return { result: resolveBattle(village, defenders, waves), waveArmies, defenders };
+  }, [state, villageFaction]);
 
   const set = <K extends keyof CombatState>(key: K, value: CombatState[K]) =>
     setState((prev) => ({ ...prev, [key]: value }));
 
-  const setCount = (side: 'attacker' | 'defender', key: string, value: number) =>
-    setState((prev) => ({
-      ...prev,
-      [side]: { ...prev[side], [key]: Math.max(0, Math.floor(value) || 0) },
-    }));
+  const side = (kind: 'attackers' | 'defenders') => ({
+    add: () =>
+      setState((p) => ({
+        ...p,
+        [kind]: [...p[kind], makeArmy(p[kind][p[kind].length - 1]?.faction ?? 'embermark_dominion')],
+      })),
+    remove: (id: string) =>
+      setState((p) => ({ ...p, [kind]: p[kind].filter((a) => a.id !== id) })),
+    patch: (id: string, patch: Partial<Army>) =>
+      setState((p) => ({
+        ...p,
+        [kind]: p[kind].map((a) => (a.id === id ? { ...a, ...patch } : a)),
+      })),
+    count: (id: string, unitKey: string, value: number) =>
+      setState((p) => ({
+        ...p,
+        [kind]: p[kind].map((a) =>
+          a.id === id
+            ? { ...a, counts: { ...a.counts, [unitKey]: Math.max(0, Math.floor(value) || 0) } }
+            : a),
+      })),
+  });
 
-  const targetBuilding = BUILDINGS.find((b) => b.gid === state.targetGid);
+  const attackers = side('attackers');
+  const defenders = side('defenders');
 
-  // Rebuilding what the catapults knocked down, level by level.
   const damageCost = battle
     ? battle.result.targets.reduce((sum, level) => {
         const before = buildingCumulativeCost(state.targetGid, state.targetLevel).total;
@@ -180,35 +206,37 @@ export function CombatCalculator() {
 
   const attackerCost = battle
     ? battle.result.waves.reduce(
-        (sum, w) => sum + lossCost(attackerFaction, battle.attackRegiments, w.attackerSurvivors),
-        0,
-      )
+        (sum, w, i) => sum + lossCost(battle.waveArmies[i], w.attackerSurvivors), 0)
+    : 0;
+  const attackerUnits = battle
+    ? battle.result.waves.reduce(
+        (n, w, i) => n + unitsLost(battle.waveArmies[i], w.attackerSurvivors), 0)
     : 0;
 
-  const defenderCost = battle
-    ? lossCost(defenderFaction, battle.defendRegiments, battle.result.defenderSurvivors)
-    : 0;
+  const defenderCost = battle ? lossCost(battle.defenders, battle.result.defenderSurvivors) : 0;
+  const defenderUnits = battle ? unitsLost(battle.defenders, battle.result.defenderSurvivors) : 0;
 
   return (
-    <main className="app__body ds-page">
-      <aside className="app__controls">
-        <div className="panel">
-          <h2 className="panel__title">The village</h2>
-          <NumberField label="Watch Tower level" value={state.wallLevel} max={20}
-            onChange={(v) => set('wallLevel', v)} />
-          <NumberField label="Stonemason's Lodge level" value={state.stonemason} max={20}
-            onChange={(v) => set('stonemason', v)} />
-          <p className="hint">
-            {defenderFaction.name}'s tower at level {state.wallLevel} defends at{' '}
-            <strong>+{(watchTowerBonus(defenderFaction.key, state.wallLevel) * 100).toFixed(1)}%</strong>{' '}
-            plus {watchTowerFlat(defenderFaction.key, state.wallLevel)} flat, and resists rams at{' '}
-            {watchTowerDurability(defenderFaction.key)}×. Siege is divided by{' '}
-            {durabilityFor(state.stonemason).toFixed(1)}× building durability.
-          </p>
-        </div>
+    <main className="cc-page">
+      <ArmyCard
+        kind="off"
+        title="Attackers"
+        caption="Each row lands as its own wave, in order, against whatever the last one left."
+        armies={state.attackers}
+        controls={attackers}
+      />
 
-        <div className="panel">
-          <h2 className="panel__title">The attack</h2>
+      <section className="panel cc-village">
+        <h2 className="panel__title">The village</h2>
+        <div className="cc-village__grid">
+          <NumberField label="Watch Tower" value={state.wallLevel} max={20}
+            onChange={(v) => set('wallLevel', v)} />
+          <NumberField label="Stonemason" value={state.stonemason} max={20}
+            onChange={(v) => set('stonemason', v)} />
+          <NumberField label="Attacker pop" value={state.attackerPop} max={100_000}
+            onChange={(v) => set('attackerPop', v)} />
+          <NumberField label="Defender pop" value={state.defenderPop} max={100_000}
+            onChange={(v) => set('defenderPop', v)} />
           <label className="ds-field">
             <span className="ds-field__label">Attack type</span>
             <select className="ds-field__input" value={state.type}
@@ -217,26 +245,8 @@ export function CombatCalculator() {
               <option value="raid">Raid</option>
             </select>
           </label>
-          <NumberField label="Waves" value={state.waves} max={20} min={1}
-            onChange={(v) => set('waves', Math.max(1, v))} />
-          <NumberField label="Attacker population" value={state.attackerPop} max={100_000}
-            onChange={(v) => set('attackerPop', v)} />
-          <NumberField label="Defender population" value={state.defenderPop} max={100_000}
-            onChange={(v) => set('defenderPop', v)} />
-          <label className="cc-toggle">
-            <input type="checkbox" checked={state.morale}
-              onChange={(e) => set('morale', e.target.checked)} />
-            Morale malus
-          </label>
-          <p className="hint">
-            A bigger attacker fights at reduced offense, never below 0.667×.
-          </p>
-        </div>
-
-        <div className="panel">
-          <h2 className="panel__title">Catapult targets</h2>
           <label className="ds-field">
-            <span className="ds-field__label">Building</span>
+            <span className="ds-field__label">Catapults aim at</span>
             <select className="ds-field__input" value={state.targetGid}
               onChange={(e) => set('targetGid', Number(e.target.value))}>
               {BUILDINGS.map((b) => (
@@ -244,123 +254,212 @@ export function CombatCalculator() {
               ))}
             </select>
           </label>
-          <NumberField label="Starting level" value={state.targetLevel}
-            max={targetBuilding?.maxLevel ?? 20} onChange={(v) => set('targetLevel', v)} />
-          <NumberField label="How many targets" value={state.targetCount} max={10} min={1}
+          <NumberField label="Its level" value={state.targetLevel} max={22}
+            onChange={(v) => set('targetLevel', v)} />
+          <NumberField label="Targets" value={state.targetCount} max={10} min={1}
             onChange={(v) => set('targetCount', Math.max(1, v))} />
         </div>
-      </aside>
 
-      <section className="app__results">
-        <div className="cc-armies">
-          <ArmyPanel
-            title="Attacker"
-            tone="off"
-            faction={attackerFaction}
-            counts={state.attacker}
-            smithy={state.attackerSmithy}
-            onFaction={(k) => set('attackerFaction', k)}
-            onSmithy={(v) => set('attackerSmithy', v)}
-            onCount={(k, v) => setCount('attacker', k, v)}
-            onClear={() => set('attacker', {})}
-          />
-          <ArmyPanel
-            title="Defender"
-            tone="def"
-            faction={defenderFaction}
-            counts={state.defender}
-            smithy={state.defenderSmithy}
-            onFaction={(k) => set('defenderFaction', k)}
-            onSmithy={(v) => set('defenderSmithy', v)}
-            onCount={(k, v) => setCount('defender', k, v)}
-            onClear={() => set('defender', {})}
-          />
+        <div className="cc-village__footer">
+          <label className="cc-toggle">
+            <input type="checkbox" checked={state.morale}
+              onChange={(e) => set('morale', e.target.checked)} />
+            Morale malus
+          </label>
+          <p className="hint hint--tight">
+            {villageFaction.name} tower at level {state.wallLevel}:{' '}
+            <strong>+{(watchTowerBonus(villageFaction.key, state.wallLevel) * 100).toFixed(1)}%</strong>,{' '}
+            {watchTowerFlat(villageFaction.key, state.wallLevel)} flat, rams resisted at{' '}
+            {watchTowerDurability(villageFaction.key)}×. Siege divided by{' '}
+            {durabilityFor(state.stonemason).toFixed(1)}×.
+          </p>
         </div>
-
-        {!battle ? (
-          <p className="cc-empty">Give the attacker some troops to resolve a battle.</p>
-        ) : (
-          <>
-            <div className="cc-summary">
-              <div className="cc-summary__card cc-summary__card--off">
-                <span className="cc-summary__label">Attacker loses</span>
-                <span className="cc-summary__value">
-                  {round(battle.result.waves.reduce(
-                    (n, w) => n + unitsLost(battle.attackRegiments, w.attackerSurvivors), 0))}
-                </span>
-                <span className="cc-summary__sub">{compact(attackerCost)} resources</span>
-              </div>
-              <div className="cc-summary__card cc-summary__card--def">
-                <span className="cc-summary__label">Defender loses</span>
-                <span className="cc-summary__value">
-                  {round(unitsLost(battle.defendRegiments, battle.result.defenderSurvivors))}
-                </span>
-                <span className="cc-summary__sub">{compact(defenderCost)} resources</span>
-              </div>
-              <div className="cc-summary__card">
-                <span className="cc-summary__label">Buildings</span>
-                <span className="cc-summary__value">
-                  {battle.result.targets.map((l) => l).join(' · ') || '—'}
-                </span>
-                <span className="cc-summary__sub">{compact(damageCost)} to rebuild</span>
-              </div>
-              <div className="cc-summary__card">
-                <span className="cc-summary__label">Watch Tower</span>
-                <span className="cc-summary__value">{battle.result.wallLevel}</span>
-                <span className="cc-summary__sub">from level {state.wallLevel}</span>
-              </div>
-            </div>
-
-            <div className="ds-table-wrap">
-              <table className="ds-table">
-                <caption className="ds-table__caption">
-                  Each wave meets whatever the last one left: the garrison carries its losses
-                  forward, and the wall and buildings stay where the previous wave put them.
-                </caption>
-                <thead>
-                  <tr>
-                    <th scope="col">Wave</th>
-                    <th scope="col">Offense</th>
-                    <th scope="col">Defence</th>
-                    <th scope="col">Morale</th>
-                    <th scope="col">Att. losses</th>
-                    <th scope="col">Def. losses</th>
-                    <th scope="col">Wall</th>
-                    <th scope="col">Targets</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {battle.result.waves.map((w, i) => (
-                    <tr key={i}>
-                      <th scope="row">{i + 1}</th>
-                      <td>{compact(w.offPoints)}</td>
-                      <td>{compact(w.defPoints)}</td>
-                      <td>{w.morale === 1 ? '—' : `${w.morale.toFixed(3)}×`}</td>
-                      <td className={w.offLosses === 1 ? 'ds-td--thin' : undefined}>
-                        {pct(w.offLosses)}
-                      </td>
-                      <td className={w.defLosses === 1 ? 'ds-td--thin' : undefined}>
-                        {pct(w.defLosses)}
-                      </td>
-                      <td>{w.wallLevel}</td>
-                      <td>{w.targets.join(' · ') || '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <p className="hint">
-              Defence is blended by the attacker's own make-up:{' '}
-              <code>defInf × (offInf ÷ off) + defCav × (offCav ÷ off)</code>. The same garrison
-              answers a cavalry hammer and an infantry hammer with two different numbers, which
-              is why composition matters as much as size. Casualties use the T4 curve — the
-              loser is wiped, the winner keeps <code>(loser ÷ winner)^1.5</code>.
-            </p>
-          </>
-        )}
       </section>
+
+      <ArmyCard
+        kind="def"
+        title="Defenders"
+        caption="Every row stands in the same village and fights as one garrison."
+        armies={state.defenders}
+        controls={defenders}
+      />
+
+      {!battle ? (
+        <p className="cc-empty">Give an attacker some troops to resolve a battle.</p>
+      ) : (
+        <section className="cc-results">
+          <div className="cc-summary">
+            <div className="cc-summary__card cc-summary__card--off">
+              <span className="cc-summary__label">Attackers lose</span>
+              <span className="cc-summary__value">{round(attackerUnits)}</span>
+              <span className="cc-summary__sub">{compact(attackerCost)} resources</span>
+            </div>
+            <div className="cc-summary__card cc-summary__card--def">
+              <span className="cc-summary__label">Defenders lose</span>
+              <span className="cc-summary__value">{round(defenderUnits)}</span>
+              <span className="cc-summary__sub">{compact(defenderCost)} resources</span>
+            </div>
+            <div className="cc-summary__card">
+              <span className="cc-summary__label">Buildings</span>
+              <span className="cc-summary__value">
+                {battle.result.targets.join(' · ') || '—'}
+              </span>
+              <span className="cc-summary__sub">{compact(damageCost)} to rebuild</span>
+            </div>
+            <div className="cc-summary__card">
+              <span className="cc-summary__label">Watch Tower</span>
+              <span className="cc-summary__value">{battle.result.wallLevel}</span>
+              <span className="cc-summary__sub">from level {state.wallLevel}</span>
+            </div>
+          </div>
+
+          <div className="ds-table-wrap">
+            <table className="ds-table">
+              <caption className="ds-table__caption">
+                Each wave meets whatever the last one left: the garrison carries its losses
+                forward, and the wall and buildings stay where the previous wave put them.
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Wave</th>
+                  <th scope="col">Offense</th>
+                  <th scope="col">Defence</th>
+                  <th scope="col">Morale</th>
+                  <th scope="col">Att. losses</th>
+                  <th scope="col">Def. losses</th>
+                  <th scope="col">Wall</th>
+                  <th scope="col">Targets</th>
+                </tr>
+              </thead>
+              <tbody>
+                {battle.result.waves.map((w, i) => (
+                  <tr key={i}>
+                    <th scope="row">{i + 1}</th>
+                    <td>{compact(w.offPoints)}</td>
+                    <td>{compact(w.defPoints)}</td>
+                    <td>{w.morale === 1 ? '—' : `${w.morale.toFixed(3)}×`}</td>
+                    <td className={w.offLosses === 1 ? 'ds-td--thin' : undefined}>
+                      {pct(w.offLosses)}
+                    </td>
+                    <td className={w.defLosses === 1 ? 'ds-td--thin' : undefined}>
+                      {pct(w.defLosses)}
+                    </td>
+                    <td>{w.wallLevel}</td>
+                    <td>{w.targets.join(' · ') || '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <p className="hint">
+            Defence is blended by the attacker's own make-up:{' '}
+            <code>defInf × (offInf ÷ off) + defCav × (offCav ÷ off)</code>. The same garrison
+            answers a cavalry hammer and an infantry hammer with two different numbers, which
+            is why composition matters as much as size. Casualties use the T4 curve — the
+            loser is wiped, the winner keeps <code>(loser ÷ winner)^1.5</code>.
+          </p>
+        </section>
+      )}
     </main>
+  );
+}
+
+interface SideControls {
+  add: () => void;
+  remove: (id: string) => void;
+  patch: (id: string, patch: Partial<Army>) => void;
+  count: (id: string, unitKey: string, value: number) => void;
+}
+
+interface ArmyCardProps {
+  kind: 'off' | 'def';
+  title: string;
+  caption: string;
+  armies: Army[];
+  controls: SideControls;
+}
+
+function ArmyCard({ kind, title, caption, armies, controls }: ArmyCardProps) {
+  return (
+    <section className={`panel cc-army cc-army--${kind}`}>
+      <div className="cc-army__head">
+        <h2 className="panel__title">{title}</h2>
+        <button type="button" className="pill pill--tiny" onClick={controls.add}
+          disabled={armies.length >= 12}>
+          + Add {kind === 'off' ? 'wave' : 'defender'}
+        </button>
+      </div>
+
+      <div className="cc-rows">
+        {armies.map((army, index) => (
+          <ArmyRow key={army.id} army={army} index={index} kind={kind}
+            removable={armies.length > 1} controls={controls} />
+        ))}
+      </div>
+
+      <p className="hint hint--tight">{caption}</p>
+    </section>
+  );
+}
+
+interface ArmyRowProps {
+  army: Army;
+  index: number;
+  kind: 'off' | 'def';
+  removable: boolean;
+  controls: SideControls;
+}
+
+function ArmyRow({ army, index, kind, removable, controls }: ArmyRowProps) {
+  const faction = safeFaction(army.faction);
+  const units = fightable(faction);
+  const total = units.reduce((n, u) => n + (army.counts[u.key] ?? 0), 0);
+
+  return (
+    <div className="cc-row">
+      <div className="cc-row__bar">
+        <span className="cc-row__index">{index + 1}</span>
+        <select className="cc-row__faction" value={faction.key}
+          aria-label={`Row ${index + 1} faction`}
+          onChange={(e) => controls.patch(army.id, { faction: e.target.value, counts: {} })}>
+          {playableFactions.map((f) => (
+            <option key={f.key} value={f.key}>{f.name}</option>
+          ))}
+        </select>
+        <label className="cc-row__smithy">
+          Smithy
+          <input type="range" min={0} max={20} value={army.smithy}
+            aria-label={`Row ${index + 1} smithy`}
+            onChange={(e) => controls.patch(army.id, { smithy: Number(e.target.value) })} />
+          <span className="ds-field__value">{army.smithy}</span>
+        </label>
+        <span className="cc-row__total">{total > 0 ? `${total.toLocaleString()} troops` : '—'}</span>
+        {removable && (
+          <button type="button" className="cc-row__remove" title={`Remove row ${index + 1}`}
+            aria-label={`Remove ${kind === 'off' ? 'wave' : 'defender'} ${index + 1}`}
+            onClick={() => controls.remove(army.id)}>
+            ×
+          </button>
+        )}
+      </div>
+
+      {/* Troops run across rather than down, so a whole army reads at a glance
+          and several of them stack without the page becoming a column. */}
+      <ul className="cc-troops">
+        {units.map((unit) => (
+          <li key={unit.key} className="cc-troop">
+            <UnitIcon unitRef={unitRef(faction.key, unit.key)} size={28}
+              mods={{ ...defaultModifiers, smithy: army.smithy }} />
+            <span className="cc-troop__name" title={unit.name}>{unit.name}</span>
+            <input className="cc-troop__count" type="number" min={0}
+              value={army.counts[unit.key] ?? 0}
+              aria-label={`${unit.name}, row ${index + 1}`}
+              onChange={(e) => controls.count(army.id, unit.key, Number(e.target.value))} />
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
@@ -376,77 +475,8 @@ function NumberField({ label, value, max, min = 0, onChange }: NumberFieldProps)
   return (
     <label className="ds-field">
       <span className="ds-field__label">{label}</span>
-      <input
-        className="ds-field__input"
-        type="number"
-        min={min}
-        max={max}
-        value={value}
-        onChange={(e) => onChange(Math.min(max, Math.max(min, Number(e.target.value) || 0)))}
-      />
+      <input className="ds-field__input" type="number" min={min} max={max} value={value}
+        onChange={(e) => onChange(Math.min(max, Math.max(min, Number(e.target.value) || 0)))} />
     </label>
-  );
-}
-
-interface ArmyPanelProps {
-  title: string;
-  tone: 'off' | 'def';
-  faction: Faction;
-  counts: Record<string, number>;
-  smithy: number;
-  onFaction: (key: string) => void;
-  onSmithy: (value: number) => void;
-  onCount: (key: string, value: number) => void;
-  onClear: () => void;
-}
-
-function ArmyPanel({
-  title, tone, faction, counts, smithy, onFaction, onSmithy, onCount, onClear,
-}: ArmyPanelProps) {
-  const units = fightable(faction);
-  const total = units.reduce((n, u) => n + (counts[u.key] ?? 0), 0);
-
-  return (
-    <div className={`panel cc-army cc-army--${tone}`}>
-      <div className="cc-army__head">
-        <h2 className="panel__title">{title}</h2>
-        <button type="button" className="pill pill--tiny" onClick={onClear} disabled={total === 0}>
-          Clear
-        </button>
-      </div>
-
-      <div className="cc-army__controls">
-        <select className="ds-field__input" value={faction.key}
-          onChange={(e) => onFaction(e.target.value)} aria-label={`${title} faction`}>
-          {playableFactions.map((f) => (
-            <option key={f.key} value={f.key}>{f.name}</option>
-          ))}
-        </select>
-        <label className="cc-smithy">
-          Smithy
-          <input type="range" min={0} max={20} value={smithy}
-            onChange={(e) => onSmithy(Number(e.target.value))} />
-          <span className="ds-field__value">{smithy}</span>
-        </label>
-      </div>
-
-      <ul className="cc-units">
-        {units.map((unit) => (
-          <li key={unit.key} className="cc-unit">
-            <UnitIcon unitRef={unitRef(faction.key, unit.key)} size={26}
-              mods={{ ...defaultModifiers, smithy }} />
-            <span className="cc-unit__name" title={unit.description}>{unit.name}</span>
-            <input
-              className="cc-unit__count"
-              type="number"
-              min={0}
-              value={counts[unit.key] ?? 0}
-              onChange={(e) => onCount(unit.key, Number(e.target.value))}
-              aria-label={`${unit.name} count`}
-            />
-          </li>
-        ))}
-      </ul>
-    </div>
   );
 }
