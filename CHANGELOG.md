@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.10.0] - 2026-09-11
+
+### Added
+- **Combat Calculator Tool (`⚒️ Combat Calculator`)**:
+  - **Real T4 Battle Resolution**: Offense and defence points from the live rosters with smithy applied, the infantry/cavalry defence blend, the village's own base defence, wall bonus and flat defence, and the morale malus on an attacker that outweighs its target.
+  - **Normal Attacks and Raids**: Normal attacks wipe the loser and bill the winner `(loser ÷ winner)^1.5`; raids bleed both sides instead.
+  - **Rams and Catapults**: Rams take the wall down before the armies meet, so the reduced bonus applies to the fight itself. Catapults demolish with the real curve, levels costing their own number in points, split across every target and blunted by the Stonemason's Lodge.
+  - **Cata Trains**: Waves resolve in order against a garrison carrying its losses, a wall left where the previous wave put it, and buildings already knocked down.
+  - **Priced in Resources**: Losses on both sides are valued at what the troops cost to train, and building damage at what the levels cost to rebuild.
+
+### Changed
+- **Defense Simulator rebuilt on the combat engine**: Hammers now carry individual sizes, cavalry shares and catapult counts instead of one shared offense number, every village is resolved by the combat engine, and expected value is compared in resources rather than in "defence points" — which was comparing troops to buildings in units that do not convert. Two hammers landing on one village now fight as consecutive waves.
+- **Casualty exponent confirmed**: `immensity` is a flat 1.5 in T4 and only scaled with battle size in T3, so the curve is no longer marked unverified and its tunable in `rules.ts` has been removed in favour of the engine constant.
+
+### Known gaps
+- The **Watch Tower** carries no defence values in the building catalog — all twenty levels have an empty `effects` object — so its bonus is entered by hand in both tools rather than read from the level.
+
 ## [1.9.0] - 2026-09-11
 
 ### Added

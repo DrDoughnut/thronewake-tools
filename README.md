@@ -5,7 +5,7 @@ whole thing is static files, and every number is computed in your browser.
 Deploy it to GitHub Pages, Netlify, S3, or open `dist/index.html` from a USB
 stick; it works the same.
 
-Six tools so far:
+Seven tools so far:
 
 - **Unit Attributes** — ranks every unit (or mixed pair) by whatever is actually
   limiting you: resources, grain, or hours.
@@ -15,6 +15,8 @@ Six tools so far:
 - **Operation Planner** — coordinates complex multi-army operations across
   attackers and targets with slowest troop speed, artifact speed multipliers,
   Bannerfield long-range bonus, and 24-hour UTC safe-time protection checks.
+- **Combat Calculator** — resolve a real battle between two rosters, wave by
+  wave, with the wall, rams and catapults, and losses priced in resources.
 - **Defense Simulator** — how many villages your defence can actually hold.
   Simulates thousands of attacks in which you cannot yet tell a real hammer
   from a fake, and prices the moment defending one more village stops paying.
@@ -49,7 +51,8 @@ src/
     stats.ts        upgrade and modifier formulas
     value.ts        the rating calculation and ranking
     formula.ts      parser for user-written formulas
-    defense.ts      the defence split simulation
+    combat.ts       battle resolution: points, casualties, rams, catapults
+    defense.ts      the defence split simulation, built on combat.ts
   components/     ← the UI
   assets/icons/   ← unit artwork (see docs/icons.md)
 ```

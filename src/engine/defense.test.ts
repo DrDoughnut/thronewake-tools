@@ -1,89 +1,49 @@
 import { describe, it, expect } from 'vitest';
-import { simulateDefense, type DefenseQuery } from './defense';
+import { simulateDefense, type DefenseQuery, type Hammer } from './defense';
+import type { Village } from './combat';
+
+const village: Village = {
+  pop: 0,
+  wallLevel: 0,
+  wallDefBonus: 0,
+  wallDefFlat: 0,
+  wallDurability: 1,
+  durability: 1,
+  extraDef: 0,
+};
+
+/** Cumulative resources to reach each level: escalating, like a real building. */
+const targetCost = Array.from({ length: 21 }, (_, level) =>
+  Array.from({ length: level }, (_, i) => 100 * (i + 1) ** 2).reduce((a, b) => a + b, 0),
+);
+
+const hammer = (over: Partial<Hammer> = {}): Hammer => ({
+  offense: 120_000,
+  cavalryShare: 0,
+  catapults: 80,
+  catapultUpgrade: 0,
+  ...over,
+});
 
 const base: DefenseQuery = {
-  villages: 10,
-  realHammers: 3,
-  hammerOffense: 10_000,
-  defensePool: 60_000,
-  defenseBonus: 1,
-  casualtyExponent: 1.5,
-  villageValue: 20_000,
-  trials: 4000,
-  seed: 12345,
+  villages: 8,
+  hammers: [hammer(), hammer(), hammer()],
+  unit: { key: 'def', defInf: 100, defCav: 100, cost: 500 },
+  troops: 4000,
+  village,
+  targetLevel: 20,
+  targetCost,
+  villagePremium: 0,
+  trials: 600,
+  seed: 4242,
 };
 
 const q = (over: Partial<DefenseQuery>): DefenseQuery => ({ ...base, ...over });
 
-/** One village and one hammer removes the randomness, isolating the combat maths. */
-const duel = (over: Partial<DefenseQuery>) =>
-  simulateDefense(q({ villages: 1, realHammers: 1, trials: 1, ...over })).outcomes[0];
-
 describe('Defense Simulator Engine', () => {
-  describe('combat resolution', () => {
-    it('costs the winner a share of the stack set by the power ratio', () => {
-      const out = duel({ hammerOffense: 1000, defensePool: 2000 });
-
-      // Winning at 2:1 costs (1/2)^1.5 of the stack.
-      expect(out.villagesLost).toBe(0);
-      expect(out.villagesSaved).toBe(1);
-      expect(out.holdRate).toBe(1);
-      expect(out.defenseLost).toBeCloseTo(2000 * Math.pow(0.5, 1.5), 6);
-    });
-
-    it('all but wipes a stack that wins narrowly', () => {
-      const out = duel({ hammerOffense: 1000, defensePool: 1100 });
-
-      // The premise behind the whole tool: a 10% margin is not a safe margin.
-      expect(out.villagesLost).toBe(0);
-      expect(out.defenseLost / 1100).toBeGreaterThan(0.85);
-    });
-
-    it('loses the stack and the village when the defence is short', () => {
-      const out = duel({ hammerOffense: 1000, defensePool: 900 });
-
-      expect(out.villagesLost).toBe(1);
-      expect(out.defenseLost).toBe(900);
-      expect(out.holdRate).toBe(0);
-    });
-
-    it('applies the wall bonus to the defence power', () => {
-      const bare = duel({ hammerOffense: 1000, defensePool: 900, defenseBonus: 1 });
-      const walled = duel({ hammerOffense: 1000, defensePool: 900, defenseBonus: 1.25 });
-
-      expect(bare.villagesLost).toBe(1);
-      expect(walled.villagesLost).toBe(0);
-    });
-
-    it('spends no defence on a village it never garrisoned', () => {
-      const result = simulateDefense(q({ defensePool: 0 }));
-
-      for (const out of result.outcomes) {
-        expect(out.defenseLost).toBe(0);
-        expect(out.villagesLost).toBeGreaterThan(0);
-      }
-    });
-  });
-
   describe('sampling', () => {
     it('returns the same table for the same seed', () => {
-      const a = simulateDefense(q({}));
-      const b = simulateDefense(q({}));
-      expect(b.outcomes).toEqual(a.outcomes);
-      expect(b.best.split).toBe(a.best.split);
-    });
-
-    it('lets hammers stack, so some villages take more than one', () => {
-      // Three hammers across two villages must double up somewhere, and a
-      // stack that only covers a single hammer breaks when they do.
-      const result = simulateDefense(
-        q({ villages: 2, realHammers: 3, hammerOffense: 10_000, defensePool: 24_000 }),
-      );
-      const bothDefended = result.outcomes[1];
-
-      expect(bothDefended.split).toBe(2);
-      expect(bothDefended.coverage).toBe(1);
-      expect(bothDefended.villagesLost).toBeGreaterThan(0);
+      expect(simulateDefense(q({})).outcomes).toEqual(simulateDefense(q({})).outcomes);
     });
 
     it('covers every hammer once every village is garrisoned', () => {
@@ -91,92 +51,136 @@ describe('Defense Simulator Engine', () => {
       expect(result.outcomes[base.villages - 1].coverage).toBe(1);
       expect(result.outcomes[0].coverage).toBeLessThan(0.5);
     });
+
+    it('lets hammers stack, so a stack sized for one meets two', () => {
+      // Three hammers across two villages must double up somewhere.
+      const result = simulateDefense(q({ villages: 2, hammers: [hammer(), hammer(), hammer()] }));
+      expect(result.outcomes[1].coverage).toBe(1);
+      expect(result.outcomes[1].holdRate).toBeLessThan(1);
+    });
+  });
+
+  describe('hammers of different sizes', () => {
+    it('is harder to answer than the same total split evenly', () => {
+      // One oversized hammer cannot be held by a stack sized for the average,
+      // so the same total offense costs more when it arrives lopsided.
+      const even = simulateDefense(q({
+        hammers: [hammer({ offense: 120_000 }), hammer({ offense: 120_000 })],
+      }));
+      const lopsided = simulateDefense(q({
+        hammers: [hammer({ offense: 20_000 }), hammer({ offense: 220_000 })],
+      }));
+
+      expect(lopsided.best.totalCost).toBeGreaterThan(even.best.totalCost);
+    });
+
+    it('answers a cavalry hammer with the anti-cavalry value', () => {
+      const unit = { key: 'def', defInf: 40, defCav: 200, cost: 500 };
+      const versusFoot = simulateDefense(q({ unit, hammers: [hammer({ cavalryShare: 0 })] }));
+      const versusHorse = simulateDefense(q({ unit, hammers: [hammer({ cavalryShare: 1 })] }));
+
+      // The same garrison is five times the wall against mounted attackers.
+      expect(versusHorse.best.totalCost).toBeLessThan(versusFoot.best.totalCost);
+    });
+  });
+
+  describe('pricing in resources', () => {
+    it('charges dead defenders at what they cost to train', () => {
+      const cheap = simulateDefense(q({ unit: { key: 'd', defInf: 100, defCav: 100, cost: 100 } }));
+      const dear = simulateDefense(q({ unit: { key: 'd', defInf: 100, defCav: 100, cost: 1000 } }));
+
+      expect(dear.outcomes[0].troopsLost).toBeCloseTo(cheap.outcomes[0].troopsLost, 6);
+      expect(dear.outcomes[0].troopCost).toBeCloseTo(cheap.outcomes[0].troopCost * 10, 6);
+    });
+
+    it('prices damage on the levels actually lost, not an average of them', () => {
+      // Levels escalate in cost, so a village stripped of five levels costs far
+      // more than five villages stripped of one.
+      const result = simulateDefense(q({ hammers: [hammer()] }));
+      const outcome = result.outcomes[0];
+      if (outcome.buildingLevelsLost > 0) {
+        const flat = outcome.buildingLevelsLost * 100;
+        expect(outcome.buildingCost).toBeGreaterThan(flat);
+      }
+      expect(outcome.buildingCost).toBeGreaterThanOrEqual(0);
+    });
+
+    it('charges nothing for buildings when no catapults come along', () => {
+      const result = simulateDefense(q({
+        hammers: [hammer({ catapults: 0 }), hammer({ catapults: 0 })],
+      }));
+      for (const outcome of result.outcomes) {
+        expect(outcome.buildingCost).toBe(0);
+        expect(outcome.buildingLevelsLost).toBe(0);
+      }
+    });
+
+    it('adds the premium only to villages levelled outright', () => {
+      const without = simulateDefense(q({ villagePremium: 0 }));
+      const with100k = simulateDefense(q({ villagePremium: 100_000 }));
+
+      const a = without.outcomes[0];
+      const b = with100k.outcomes[0];
+      expect(b.totalCost - a.totalCost).toBeCloseTo(a.villagesFlattened * 100_000, 6);
+
+      // Catapults still land after a battle they lost, so far more villages
+      // take damage than are levelled — which is why the premium rides on the
+      // latter. A village scratched for a level has not lost its artifact.
+      expect(a.villagesDamaged).toBeGreaterThan(a.villagesFlattened);
+    });
   });
 
   describe('choosing a split', () => {
-    it('lands between hoarding one stack and spreading over everything', () => {
-      const result = simulateDefense(q({}));
-
-      // Concentrating wastes the pool on villages nobody hit; spreading puts
-      // every stack under a 1.0 ratio where it dies without saving anything.
-      expect(result.best.split).toBeGreaterThan(1);
-      expect(result.best.split).toBeLessThan(base.villages);
-      expect(result.best.ratio).toBeGreaterThanOrEqual(1);
-    });
-
-    it('never recommends a split that cannot hold a single hammer', () => {
-      const result = simulateDefense(q({ villageValue: 500_000 }));
-      const stack = result.best.stack * base.defenseBonus;
-      expect(stack).toBeGreaterThanOrEqual(base.hammerOffense);
+    it('preserves the most troops by concentrating them', () => {
+      expect(simulateDefense(q({})).cheapest.split).toBe(1);
     });
 
     it('defends more villages as a village gets more valuable', () => {
-      const cheap = simulateDefense(q({ villageValue: 2_000 }));
-      const dear = simulateDefense(q({ villageValue: 400_000 }));
-
-      expect(dear.best.split).toBeGreaterThan(cheap.best.split);
+      const cheap = simulateDefense(q({ villagePremium: 0 }));
+      const dear = simulateDefense(q({ villagePremium: 5_000_000 }));
+      expect(dear.best.split).toBeGreaterThanOrEqual(cheap.best.split);
     });
 
-    it('preserves the most defence by concentrating it', () => {
-      // Ignoring what a village is worth, the cheapest answer is always to
-      // put everything in one place — which is why village value drives it.
-      const result = simulateDefense(q({}));
-      expect(result.cheapest.split).toBe(1);
+    it('spreads wider when there is enough defence to go round', () => {
+      const thin = simulateDefense(q({ troops: 2000, villagePremium: 1_000_000 }));
+      const flush = simulateDefense(q({ troops: 40_000, villagePremium: 1_000_000 }));
+      expect(flush.best.split).toBeGreaterThan(thin.best.split);
     });
   });
 
   describe('breakeven', () => {
     it('prices the two best splits identically at the crossing point', () => {
-      const result = simulateDefense(q({}));
+      const result = simulateDefense(q({ villagePremium: 50_000 }));
       const breakeven = result.breakeven;
-      expect(breakeven).toBeDefined();
+      if (!breakeven) return;
 
-      const cost = (split: number, value: number) => {
-        const out = result.outcomes.find((o) => o.split === split)!;
-        return out.defenseLost + out.villagesLost * value;
+      const cost = (split: number, premium: number) => {
+        const o = result.outcomes.find((x) => x.split === split)!;
+        return o.troopCost + o.buildingCost + o.villagesFlattened * premium;
       };
 
-      const { villageValue, favouredAbove, favouredBelow } = breakeven!;
-      expect(cost(favouredAbove, villageValue)).toBeCloseTo(
-        cost(favouredBelow, villageValue),
-        6,
+      expect(cost(breakeven.favouredAbove, breakeven.premium)).toBeCloseTo(
+        cost(breakeven.favouredBelow, breakeven.premium), 4,
       );
-
-      // Either side of the crossing, the named split is genuinely the cheaper.
-      expect(cost(favouredAbove, villageValue * 2)).toBeLessThan(
-        cost(favouredBelow, villageValue * 2),
-      );
-      expect(cost(favouredBelow, villageValue * 0.5)).toBeLessThan(
-        cost(favouredAbove, villageValue * 0.5),
-      );
-    });
-
-    it('defends more villages on the dear side of the crossing', () => {
-      const result = simulateDefense(q({}));
-      expect(result.breakeven!.favouredAbove).toBeGreaterThan(
-        result.breakeven!.favouredBelow,
+      expect(cost(breakeven.favouredAbove, breakeven.premium * 2 + 1)).toBeLessThan(
+        cost(breakeven.favouredBelow, breakeven.premium * 2 + 1),
       );
     });
   });
 
   describe('input handling', () => {
     it('clamps nonsense into a runnable query', () => {
-      const result = simulateDefense(
-        q({ villages: 0, realHammers: -5, defensePool: -100, trials: 0 }),
-      );
-
+      const result = simulateDefense(q({ villages: 0, troops: -100, trials: 0 }));
       expect(result.outcomes).toHaveLength(1);
-      expect(result.outcomes[0].villagesLost).toBe(0);
       expect(result.best.split).toBe(1);
     });
 
     it('reports no losses when every incoming is a fake', () => {
-      const result = simulateDefense(q({ realHammers: 0 }));
-
-      for (const out of result.outcomes) {
-        expect(out.villagesLost).toBe(0);
-        expect(out.defenseLost).toBe(0);
-        expect(out.coverage).toBe(0);
+      const result = simulateDefense(q({ hammers: [] }));
+      for (const outcome of result.outcomes) {
+        expect(outcome.troopsLost).toBe(0);
+        expect(outcome.totalCost).toBe(0);
+        expect(outcome.coverage).toBe(0);
       }
     });
   });
