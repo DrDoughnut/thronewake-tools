@@ -3,18 +3,12 @@ import { UnitIcon } from '../components/UnitIcon';
 import { BUILDINGS } from '../data/buildingCatalog';
 import { playableFactions, unitRef } from '../data/factions';
 import type { Faction, Unit } from '../data/types';
+import { watchTowerBonus } from '../data/rules';
 import { resolveBattle, type Regiment, type Village, type Wave } from '../engine/combat';
 import { buildingCumulativeCost } from '../engine/cpOptimizer';
 import { defaultModifiers, offenseFactor, totalCost, upgradeStat } from '../engine/stats';
 import { loadStoredJson, saveStoredJson, StorageKeys } from '../storage';
 
-/**
- * The Watch Tower is Thronewake's wall — the rams say so themselves — but the
- * building catalog carries no numbers for it: every one of its twenty levels
- * has an empty `effects` object, so its defence bonus cannot be looked up.
- * Until those land, the bonus is typed in by hand rather than invented here.
- */
-const WALL_DATA_MISSING = true;
 
 /** Stonemason's Lodge: +10% building durability per level, from the catalog. */
 const durabilityFor = (level: number) => 1 + 0.1 * Math.max(0, level);
@@ -32,8 +26,6 @@ interface CombatState {
   attackerPop: number;
   defenderPop: number;
   wallLevel: number;
-  wallBonusPercent: number;
-  wallFlat: number;
   stonemason: number;
   targetGid: number;
   targetLevel: number;
@@ -53,8 +45,6 @@ const initialState: CombatState = {
   attackerPop: 1500,
   defenderPop: 1500,
   wallLevel: 20,
-  wallBonusPercent: 0,
-  wallFlat: 0,
   stonemason: 0,
   targetGid: 15,
   targetLevel: 20,
@@ -146,8 +136,10 @@ export function CombatCalculator() {
     const village: Village = {
       pop: state.defenderPop,
       wallLevel: state.wallLevel,
-      wallDefBonus: state.wallBonusPercent / 100,
-      wallDefFlat: state.wallFlat,
+      // The tower belongs to whoever is being attacked, so its bonus follows
+      // the defender's faction, not the attacker's.
+      wallDefBonus: watchTowerBonus(defenderFaction.key, state.wallLevel),
+      wallDefFlat: 0,
       wallDurability: 1,
       durability: durabilityFor(state.stonemason),
       extraDef: 0,
@@ -204,22 +196,13 @@ export function CombatCalculator() {
           <h2 className="panel__title">The village</h2>
           <NumberField label="Watch Tower level" value={state.wallLevel} max={20}
             onChange={(v) => set('wallLevel', v)} />
-          <NumberField label="Wall defence bonus (%)" value={state.wallBonusPercent} max={300}
-            onChange={(v) => set('wallBonusPercent', v)} />
-          <NumberField label="Wall flat defence" value={state.wallFlat} max={100_000}
-            onChange={(v) => set('wallFlat', v)} />
           <NumberField label="Stonemason's Lodge level" value={state.stonemason} max={20}
             onChange={(v) => set('stonemason', v)} />
           <p className="hint">
+            {defenderFaction.name}'s tower at level {state.wallLevel} defends at{' '}
+            <strong>+{(watchTowerBonus(defenderFaction.key, state.wallLevel) * 100).toFixed(1)}%</strong>.
             Siege is divided by {durabilityFor(state.stonemason).toFixed(1)}× durability.
           </p>
-          {WALL_DATA_MISSING && (
-            <p className="cc-warning">
-              The Watch Tower has no defence values in the building catalog — all twenty
-              levels carry an empty <code>effects</code> object — so the bonus above is typed
-              in rather than read from the level. Nothing here is guessing on your behalf.
-            </p>
-          )}
         </div>
 
         <div className="panel">

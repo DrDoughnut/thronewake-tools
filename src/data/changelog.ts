@@ -2,7 +2,7 @@
  * Player release notes. Bump `APP_VERSION` and add an entry here
  * whenever a change is worth telling returning players about.
  */
-export const APP_VERSION = '1.10.0';
+export const APP_VERSION = '1.10.1';
 
 export interface ChangelogEntry {
   version: string;
@@ -11,6 +11,13 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '1.10.1',
+    date: '2026-09-11',
+    changes: [
+      'Watch Tower Defence: the Combat Calculator and Defense Simulator now work the tower bonus out from its level and the defending faction rather than asking you to type a percentage. Verdant Wardens 1.03 per level, Embermark Dominion 1.025, Stormfang Clans 1.02 — so a level-20 Verdant tower defends at +80.6%.',
+    ],
+  },
   {
     version: '1.10.0',
     date: '2026-09-11',
