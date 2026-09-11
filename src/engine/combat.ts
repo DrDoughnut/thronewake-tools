@@ -282,7 +282,10 @@ export function resolveWave(
       village.durability,
       battleRatio,
     );
-    wallAfter = demolish(village.wallLevel, finalPoints);
+    // Durability resists the finishing pass as well as the early one. The
+    // reference applies it only to the early phase, which would let a tougher
+    // wall be levelled just as fast as a flimsy one once the fight is over.
+    wallAfter = demolish(village.wallLevel, finalPoints / Math.max(0.01, village.wallDurability));
   }
 
   const ratio = finalDef > 0 ? finalOff / finalDef : Infinity;

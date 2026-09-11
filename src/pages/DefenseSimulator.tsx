@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { BUILDINGS } from '../data/buildingCatalog';
 import { playableFactions } from '../data/factions';
-import { watchTowerBonus } from '../data/rules';
+import { watchTowerBonus, watchTowerDurability, watchTowerFlat } from '../data/rules';
 import type { Faction, Unit } from '../data/types';
 import type { Village } from '../engine/combat';
 import { buildingCumulativeCost } from '../engine/cpOptimizer';
@@ -99,8 +99,8 @@ export function DefenseSimulator() {
       wallLevel: state.wallLevel,
       // Your villages, so the tower is your own faction's.
       wallDefBonus: watchTowerBonus(state.defenceFaction, state.wallLevel),
-      wallDefFlat: 0,
-      wallDurability: 1,
+      wallDefFlat: watchTowerFlat(state.defenceFaction, state.wallLevel),
+      wallDurability: watchTowerDurability(state.defenceFaction),
       durability: durabilityFor(state.stonemason),
       extraDef: 0,
     };
@@ -198,7 +198,9 @@ export function DefenseSimulator() {
             onChange={(v) => set('stonemason', v)} />
           <p className="hint">
             {faction.name}'s tower at level {state.wallLevel} defends at{' '}
-            <strong>+{(watchTowerBonus(faction.key, state.wallLevel) * 100).toFixed(1)}%</strong>.
+            <strong>+{(watchTowerBonus(faction.key, state.wallLevel) * 100).toFixed(1)}%</strong>{' '}
+            plus {watchTowerFlat(faction.key, state.wallLevel)} flat, resisting rams at{' '}
+            {watchTowerDurability(faction.key)}×.
           </p>
           <label className="ds-field">
             <span className="ds-field__label">Catapults aim at</span>

@@ -3,7 +3,7 @@ import { UnitIcon } from '../components/UnitIcon';
 import { BUILDINGS } from '../data/buildingCatalog';
 import { playableFactions, unitRef } from '../data/factions';
 import type { Faction, Unit } from '../data/types';
-import { watchTowerBonus } from '../data/rules';
+import { watchTowerBonus, watchTowerDurability, watchTowerFlat } from '../data/rules';
 import { resolveBattle, type Regiment, type Village, type Wave } from '../engine/combat';
 import { buildingCumulativeCost } from '../engine/cpOptimizer';
 import { defaultModifiers, offenseFactor, totalCost, upgradeStat } from '../engine/stats';
@@ -139,8 +139,8 @@ export function CombatCalculator() {
       // The tower belongs to whoever is being attacked, so its bonus follows
       // the defender's faction, not the attacker's.
       wallDefBonus: watchTowerBonus(defenderFaction.key, state.wallLevel),
-      wallDefFlat: 0,
-      wallDurability: 1,
+      wallDefFlat: watchTowerFlat(defenderFaction.key, state.wallLevel),
+      wallDurability: watchTowerDurability(defenderFaction.key),
       durability: durabilityFor(state.stonemason),
       extraDef: 0,
     };
@@ -200,8 +200,10 @@ export function CombatCalculator() {
             onChange={(v) => set('stonemason', v)} />
           <p className="hint">
             {defenderFaction.name}'s tower at level {state.wallLevel} defends at{' '}
-            <strong>+{(watchTowerBonus(defenderFaction.key, state.wallLevel) * 100).toFixed(1)}%</strong>.
-            Siege is divided by {durabilityFor(state.stonemason).toFixed(1)}× durability.
+            <strong>+{(watchTowerBonus(defenderFaction.key, state.wallLevel) * 100).toFixed(1)}%</strong>{' '}
+            plus {watchTowerFlat(defenderFaction.key, state.wallLevel)} flat, and resists rams at{' '}
+            {watchTowerDurability(defenderFaction.key)}×. Siege is divided by{' '}
+            {durabilityFor(state.stonemason).toFixed(1)}× building durability.
           </p>
         </div>
 
