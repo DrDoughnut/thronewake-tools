@@ -940,8 +940,7 @@ export function CombatCalculator() {
                                                 cityGuardBonus={cityGuardBonus}
                                               >
                                                 <span className="cc-dotted-term">
-                                                  Wave {rw.idx} from {rw.before} to {rw.during} &mdash; provides +{rwTotalBonus % 1 === 0 ? rwTotalBonus : rwTotalBonus.toFixed(1)}% bonus
-                                                  {rwGuardBonus > 0 ? ` (incl. +${rwGuardBonus % 1 === 0 ? rwGuardBonus : rwGuardBonus.toFixed(1)}% City Guards)` : ''}
+                                                  Wave {rw.idx} from {rw.before} to {rw.during} &mdash; +{rwTotalBonus % 1 === 0 ? rwTotalBonus : rwTotalBonus.toFixed(1)}%
                                                 </span>
                                                 <span className="cc-help-badge" aria-hidden="true">?</span>
                                               </VirtualWatchTowerTrigger>
@@ -2253,8 +2252,7 @@ function VirtualWatchTowerTrigger({
       ) : (
         <>
           <span className="cc-dotted-term">
-            Virtual Watch Tower from {initialLevel} to {virtualLevel} &mdash; provides +{formatBonus(virtualBonus)}% bonus
-            {guardBonus > 0 ? ` (incl. +${formatBonus(guardBonus)}% City Guards)` : ''}
+            Virtual Watch Tower from {initialLevel} to {virtualLevel} &mdash; +{formatBonus(virtualBonus)}%
           </span>
           <span className="cc-help-badge" aria-hidden="true">?</span>
         </>
@@ -2265,7 +2263,7 @@ function VirtualWatchTowerTrigger({
           <div
             ref={popoverRef}
             className="cc-formula-popover"
-            style={{ left: pos.left, top: pos.top, width: 340 }}
+            style={{ left: pos.left, top: pos.top, width: 320 }}
             onMouseEnter={() => {
               clearTimer();
               setOpen(true);
@@ -2275,8 +2273,8 @@ function VirtualWatchTowerTrigger({
             <div className="cc-formula-popover__header">
               <span className="cc-formula-popover__icon">🧱</span>
               <div>
-                <h4 className="cc-formula-popover__title">Virtual Watch Tower (Combat Fortification)</h4>
-                <div className="cc-formula-popover__sub">Effective mid-battle fortification level</div>
+                <h4 className="cc-formula-popover__title">Virtual Watch Tower</h4>
+                <div className="cc-formula-popover__sub">Combat fortification level</div>
               </div>
               <button
                 type="button"
@@ -2293,40 +2291,30 @@ function VirtualWatchTowerTrigger({
             </div>
 
             <div className="cc-formula-popover__body">
-              <div className="cc-formula-popover__block" style={{ fontSize: '12px', lineHeight: 1.45, color: 'var(--text-muted)' }}>
-                <p style={{ margin: 0 }}>
-                  • <strong>Pre-Combat:</strong> Rams drop the tower to <strong>Level {virtualLevel}</strong> before the clash, setting defender defense (+{formatBonus(virtualBonus)}% bonus) during casualty calculations.
-                </p>
-                <p style={{ margin: '5px 0 0 0' }}>
-                  • <strong>Post-Combat:</strong> Battle ratio & total rams determine final level (<strong>{finalLevel}</strong>), even if attacking rams perish.
-                </p>
+              <div className="cc-formula-popover__block" style={{ fontSize: '11.5px', lineHeight: 1.35, color: 'var(--text-muted)' }}>
+                <div>• <strong>Pre-combat:</strong> Rams drop tower to Lvl {virtualLevel}, setting defense (+{formatBonus(virtualBonus)}%).</div>
+                <div style={{ marginTop: '3px' }}>• <strong>Post-combat:</strong> Rams & battle ratio set final Lvl {finalLevel}.</div>
               </div>
 
               <div className="cc-formula-popover__block">
-                <div className="cc-formula-popover__section-title">
-                  Fortification Levels {guardBonus > 0 ? '(Watch Tower + City Guards)' : 'in This Battle'}
-                </div>
+                <div className="cc-formula-popover__section-title">Wall Levels in Battle</div>
                 <div className="cc-formula-popover__row">
-                  <span>Initial Fortification:</span>
-                  <span className="cc-formula-popover__val">
-                    Level {initialLevel} (+{formatBonus(initialBonus)}%
-                    {guardBonus > 0 ? ` incl. +${formatBonus(guardBonus)}% Guards` : ''})
-                  </span>
+                  <span>Initial:</span>
+                  <span className="cc-formula-popover__val">Lvl {initialLevel} (+{formatBonus(initialBonus)}%)</span>
                 </div>
                 <div className="cc-formula-popover__row" style={{ color: 'var(--brand, #e6a23c)', fontWeight: 600 }}>
-                  <span>Virtual Watch Tower (in combat):</span>
-                  <span className="cc-formula-popover__val">
-                    Level {virtualLevel} (+{formatBonus(virtualBonus)}%
-                    {guardBonus > 0 ? ` incl. +${formatBonus(guardBonus)}% Guards` : ''})
-                  </span>
+                  <span>Virtual (in combat):</span>
+                  <span className="cc-formula-popover__val">Lvl {virtualLevel} (+{formatBonus(virtualBonus)}%)</span>
                 </div>
                 <div className="cc-formula-popover__row">
-                  <span>Final Fortification:</span>
-                  <span className="cc-formula-popover__val">
-                    Level {finalLevel} (+{formatBonus(finalBonus)}%
-                    {guardBonus > 0 ? ` incl. +${formatBonus(guardBonus)}% Guards` : ''})
-                  </span>
+                  <span>Final (after battle):</span>
+                  <span className="cc-formula-popover__val">Lvl {finalLevel} (+{formatBonus(finalBonus)}%)</span>
                 </div>
+                {guardBonus > 0 && (
+                  <div style={{ fontSize: '10.5px', color: 'var(--text-faint)', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 4, marginTop: 4 }}>
+                    Includes +{formatBonus(guardBonus)}% City Guards bonus
+                  </div>
+                )}
               </div>
             </div>
           </div>,

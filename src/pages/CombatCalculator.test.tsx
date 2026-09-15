@@ -777,14 +777,12 @@ describe('CombatCalculator', () => {
 
     const reportOutcomes = container.querySelector('.cc-report-outcomes');
     expect(reportOutcomes?.textContent).toContain('Watch Tower damaged from level 20 to 0.');
-    expect(reportOutcomes?.textContent).toContain('Virtual Watch Tower from 20 to 10');
-    expect(reportOutcomes?.textContent).toContain('incl. +20% City Guards');
+    expect(reportOutcomes?.textContent).toContain('Virtual Watch Tower from 20 to 10 — +48%');
 
     const vwTrigger = container.querySelector('.cc-virtual-wall-trigger') as HTMLElement;
     expect(vwTrigger).toBeTruthy();
     expect(vwTrigger.querySelector('.cc-help-badge')?.textContent).toBe('?');
-    expect(vwTrigger.querySelector('.cc-dotted-term')?.textContent).toContain('Virtual Watch Tower from 20 to 10');
-    expect(vwTrigger.querySelector('.cc-dotted-term')?.textContent).toContain('provides +48% bonus');
+    expect(vwTrigger.querySelector('.cc-dotted-term')?.textContent).toContain('Virtual Watch Tower from 20 to 10 — +48%');
 
     // Click trigger to pin the popover suspended
     await act(async () => {
@@ -793,13 +791,13 @@ describe('CombatCalculator', () => {
 
     const popover = document.body.querySelector('.cc-formula-popover');
     expect(popover).toBeTruthy();
-    expect(popover?.textContent).toContain('Virtual Watch Tower (Combat Fortification)');
-    expect(popover?.textContent).toContain('Fortification Levels (Watch Tower + City Guards)');
-    expect(popover?.textContent).toContain('Level 10');
-    expect(popover?.textContent).toContain('incl. +20% Guards');
+    expect(popover?.textContent).toContain('Virtual Watch Tower');
+    expect(popover?.textContent).toContain('Wall Levels in Battle');
+    expect(popover?.textContent).toContain('Lvl 10');
+    expect(popover?.textContent).toContain('Includes +20% City Guards bonus');
     expect(popover?.textContent).not.toContain('Pinned');
-    expect(popover?.textContent).toContain('Pre-Combat');
-    expect(popover?.textContent).toContain('Post-Combat');
+    expect(popover?.textContent).toContain('Pre-combat');
+    expect(popover?.textContent).toContain('Post-combat');
     expect(popover?.textContent).not.toContain('Surviving rams take a second');
 
     // Click outside to dismiss
