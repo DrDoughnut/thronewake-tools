@@ -1419,8 +1419,8 @@ export function CombatCalculator() {
                   onChange={(e) => set('durabilityArtifact', Number(e.target.value) || 1)}
                 >
                   <option value="1">— (None)</option>
-                  <option value="3">3× (Small)</option>
-                  <option value="4">4× (Large)</option>
+                  <option value="4">4× (Small)</option>
+                  <option value="3">3× (Large)</option>
                   <option value="5">5× (Unique)</option>
                 </select>
               </label>
