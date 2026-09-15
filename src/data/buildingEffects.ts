@@ -58,7 +58,7 @@ export function formatEffectLabel(
     case 'production3':
       return `+${(value * spd).toLocaleString()} Iron/hr`;
     case 'production4':
-      return `+${(value * spd).toLocaleString()} Crop/hr`;
+      return `+${(value * spd).toLocaleString()} Food/hr`;
     case 'productionBoost1':
       return `+${Math.round(value * 100)}% Wood Production`;
     case 'productionBoost2':
@@ -66,11 +66,11 @@ export function formatEffectLabel(
     case 'productionBoost3':
       return `+${Math.round(value * 100)}% Iron Production`;
     case 'productionBoost4':
-      return `+${Math.round(value * 100)}% Crop Production`;
+      return `+${Math.round(value * 100)}% Food Production`;
     case 'storageWarehouse':
       return `${value.toLocaleString()} Resource Capacity`;
     case 'storageGranary':
-      return `${value.toLocaleString()} Crop Capacity`;
+      return `${value.toLocaleString()} Food Capacity`;
     case 'troopSpeedBoost':
       return `+${Math.round(value * 100)}% Speed (>20 fields)`;
     case 'buildingTime':

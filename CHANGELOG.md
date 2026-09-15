@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.12.0] - 2026-09-15
+
+### Changed
+- **Official Building Reskins & Renames**:
+  - Synchronized building names, artwork, descriptions, and level progression directly with the live Thronewake client bundle (`thronewake.com`):
+    - **Grazing Field** (formerly Cropland): Updated name, artwork, and full level 1–22 progression (including City levels 21 & 22) with authentic bundle population and production values.
+    - **Butcher** (formerly Grain Mill): Updated name, authentic bundle artwork, description, and prerequisites (+5% Food production/lvl up to +25%).
+    - **Smokehouse** (formerly Bakery): Updated name, authentic bundle artwork, description, and prerequisites (+5% Food production/lvl up to +25%).
+    - **Forge** (formerly Iron Foundry): Synchronized name and authentic artwork.
+    - **Shelter** (formerly Cranny): Synchronized name and authentic artwork.
+    - **Thornsnare Grove** (formerly Trapper): Synchronized name and authentic artwork.
+    - **Ancient Monument** (formerly Wonder of the World): Synchronized name and authentic artwork.
+  - Resource terminology in building effects modernized to match the game ("Crop" &rarr; "Food", e.g. `+X Food/hr`, `+X% Food Production`, `X Food Capacity`).
+  - Added full backwards compatibility via slug and icon aliases (`SLUG_ALIASES`, `ICON_ALIASES`), ensuring existing deep links (e.g. `?b=cropland`, `?b=grain-mill`, `?b=bakery`) and saved configurations resolve seamlessly.
+
+- **Combat Calculator**:
+  - Interactive formula popovers for Virtual Wall (effective combat wall reduction from ram damage) and Blended Defense calculations with viewport-aware portal positioning and dotted-line help indicators.
+
 ## [1.11.0] - 2026-09-11
 
 ### Changed

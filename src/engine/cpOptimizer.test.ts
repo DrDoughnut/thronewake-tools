@@ -317,7 +317,7 @@ describe('CP Build-Order Optimizer Engine', () => {
     });
     const trapperStep = recsLegacyKey.find((r) => r.gid === 36);
     expect(trapperStep).toBeTruthy();
-    expect(trapperStep!.name).toBe('Trapper');
+    expect(trapperStep!.name).toBe('Thornsnare Grove');
     // Scenario A: User added Stormbrew Works to their current village buildings
     const recsStormfangExisting = getRecommendations({
       ...baseVillage,

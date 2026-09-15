@@ -9711,6 +9711,65 @@ select:focus, .select:focus, .text-input:focus {
   outline: none;
 }
 
+/* Dotted line indicator and question mark help badge */
+.cc-dotted-term {
+  text-decoration: underline dotted var(--text-faint, rgba(255, 255, 255, 0.45));
+  text-underline-offset: 3px;
+  cursor: help;
+  transition: color 0.15s ease, text-decoration-color 0.15s ease;
+}
+
+.cc-formula-trigger:hover .cc-dotted-term,
+.cc-virtual-wall-trigger:hover .cc-dotted-term {
+  color: var(--brand, #c9933b);
+  text-decoration-color: var(--brand, #c9933b);
+}
+
+.cc-help-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 13px;
+  height: 13px;
+  font-size: 9.5px;
+  font-weight: 700;
+  line-height: 1;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-muted, #aaa);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  margin-left: 4px;
+  vertical-align: middle;
+  cursor: help;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.cc-formula-trigger:hover .cc-help-badge,
+.cc-formula-trigger:focus-visible .cc-help-badge,
+.cc-virtual-wall-trigger:hover .cc-help-badge,
+.cc-virtual-wall-trigger:focus-visible .cc-help-badge {
+  background: var(--brand, #c9933b);
+  color: #111;
+  border-color: var(--brand, #c9933b);
+}
+
+.cc-virtual-wall-trigger {
+  display: inline-flex;
+  align-items: center;
+  cursor: help;
+  border-radius: 4px;
+  padding: 0 3px;
+  margin: 0 -1px;
+  transition: background-color 0.12s ease;
+}
+
+.cc-virtual-wall-trigger:hover,
+.cc-virtual-wall-trigger:focus-visible {
+  background: rgba(255, 255, 255, 0.08);
+  outline: none;
+}
+
 .cc-formula-popover {
   position: fixed;
   z-index: 1200;

@@ -603,12 +603,22 @@ describe('CombatCalculator', () => {
     const defTotalCell = defCells[1];
     expect(defTotalCell).toBeTruthy();
 
-    const tooltip = defTotalCell.getAttribute('title');
-    expect(tooltip).toBeTruthy();
-    expect(tooltip).toContain('Blended Defense Formula:');
-    expect(tooltip).toContain('Attacker composition:');
-    expect(tooltip).toContain('blended troop defense');
-    expect(tooltip).toContain('Total Blended Defense');
+    const trigger = defTotalCell.querySelector('.cc-formula-trigger') as HTMLElement;
+    expect(trigger).toBeTruthy();
+    expect(trigger.querySelector('.cc-help-badge')?.textContent).toBe('?');
+    expect(trigger.querySelector('.cc-dotted-term')).toBeTruthy();
+
+    // Hover or click trigger to show the pretty popover
+    await act(async () => {
+      trigger.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+    });
+
+    const popover = document.body.querySelector('.cc-formula-popover');
+    expect(popover).toBeTruthy();
+    expect(popover?.textContent).toContain('Blended Defense Calculation');
+    expect(popover?.textContent).toContain('Attacker Composition');
+    expect(popover?.textContent).toContain('Garrison Troop Defense');
+    expect(popover?.textContent).toContain('Total Blended Defense');
   });
 
   it('shows truncated resource loss next to percentage in wave/defender banners', async () => {
@@ -691,7 +701,7 @@ describe('CombatCalculator', () => {
     expect(reportOutcomes?.textContent).toContain('No siege damage, loyalty reduction');
   });
 
-  it('displays Virtual Wall level next to Watch Tower damage in battle outcomes', async () => {
+  it('displays Virtual Wall level next to Watch Tower damage in battle outcomes with pretty popover', async () => {
     // 50k emberblades + 1500 rams vs 50k briar guards (lvl 20 wall, lvl 20 mason)
     window.location.hash =
       '#tool=combat&wl=20&sm=20&att=embermark_dominion:0:emberblade=50000,iron_ram=1500&def=verdant_wardens:0:briar_guard=50000';
@@ -699,7 +709,23 @@ describe('CombatCalculator', () => {
 
     const reportOutcomes = container.querySelector('.cc-report-outcomes');
     expect(reportOutcomes?.textContent).toContain('Watch Tower damaged from level 20 to 0.');
-    expect(reportOutcomes?.textContent).toContain('(Virtual Wall from 20 to 9)');
+    expect(reportOutcomes?.textContent).toContain('Virtual Wall from 20 to 9');
+
+    const vwTrigger = container.querySelector('.cc-virtual-wall-trigger') as HTMLElement;
+    expect(vwTrigger).toBeTruthy();
+    expect(vwTrigger.querySelector('.cc-help-badge')?.textContent).toBe('?');
+    expect(vwTrigger.querySelector('.cc-dotted-term')?.textContent).toBe('Virtual Wall from 20 to 9');
+
+    // Hover or click trigger to show the pretty popover
+    await act(async () => {
+      vwTrigger.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+    });
+
+    const popover = document.body.querySelector('.cc-formula-popover');
+    expect(popover).toBeTruthy();
+    expect(popover?.textContent).toContain('Virtual Wall (Combat Wall)');
+    expect(popover?.textContent).toContain('Wall Levels in This Battle');
+    expect(popover?.textContent).toContain('Level 9');
   });
 });
 

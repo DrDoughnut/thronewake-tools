@@ -248,17 +248,44 @@ describe('BuildingStats Component & Effect Helpers', () => {
     expect(container.textContent).toContain('3.5 days');
   });
 
-  it('renders Crop Field (GID 4) with Travian 4.6 costs including non-zero crop', () => {
-    const cropField = BUILDINGS_BY_GID.get(4)!;
-    expect(cropField.name).toBe('Crop Field');
+  it('renders Grazing Field (GID 4) with authentic bundle stats and level 22', () => {
+    const grazingField = BUILDINGS_BY_GID.get(4)!;
+    expect(grazingField.name).toBe('Grazing Field');
+    expect(grazingField.slug).toBe('grazing-field');
+    expect(grazingField.maxLevel).toBe(22);
     // Level 1: 70 Wood, 90 Clay, 70 Iron, 20 Crop = 250 total
-    expect(cropField.levels[0].wood).toBe(70);
-    expect(cropField.levels[0].clay).toBe(90);
-    expect(cropField.levels[0].iron).toBe(70);
-    expect(cropField.levels[0].crop).toBe(20);
+    expect(grazingField.levels[0].wood).toBe(70);
+    expect(grazingField.levels[0].clay).toBe(90);
+    expect(grazingField.levels[0].iron).toBe(70);
+    expect(grazingField.levels[0].crop).toBe(20);
 
     // Level 20: 1193195 Wood, 1534105 Clay, 1193195 Iron, 340915 Crop
-    expect(cropField.levels[19].crop).toBe(340915);
+    expect(grazingField.levels[19].crop).toBe(340915);
+    // Level 22 (City level)
+    expect(grazingField.levels[21].level).toBe(22);
+  });
+
+  it('resolves legacy slugs (cropland, grain-mill, bakery) to renamed buildings', () => {
+    act(() => root.unmount());
+    window.location.hash = '#tool=buildings&b=grain-mill';
+    root = createRoot(container);
+    act(() => root.render(<BuildingStats />));
+
+    expect(container.textContent).toContain('Butcher');
+
+    act(() => root.unmount());
+    window.location.hash = '#tool=buildings&b=bakery';
+    root = createRoot(container);
+    act(() => root.render(<BuildingStats />));
+
+    expect(container.textContent).toContain('Smokehouse');
+
+    act(() => root.unmount());
+    window.location.hash = '#tool=buildings&b=cropland';
+    root = createRoot(container);
+    act(() => root.render(<BuildingStats />));
+
+    expect(container.textContent).toContain('Grazing Field');
   });
 });
 

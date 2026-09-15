@@ -592,14 +592,7 @@ export function CombatCalculator() {
     ? (battle ? overallBlendedDef : (defPoints.i + defPoints.c > 0 ? overallBlendedDef : 0))
     : (w?.defPoints ?? overallBlendedDef);
 
-  const defFormulaTooltip = `Blended Defense Formula:
-• Attacker composition: ${rawAttOff > 0 ? (infRatio * 100).toFixed(1) : '50.0'}% Infantry, ${rawAttOff > 0 ? (cavRatio * 100).toFixed(1) : '50.0'}% Cavalry
-• Garrison troop defense:
-  ${round(defPoints.i)} infDef × ${(infRatio * 100).toFixed(1)}% + ${round(defPoints.c)} cavDef × ${(cavRatio * 100).toFixed(1)}%
-  = ${round(blendedTroopDef)} blended troop defense
-• Fortifications:
-  (${round(blendedTroopDef)} + ${round(flatDef)} flat base/tower/palace) × ${wallDefScale.toFixed(3)} wall mult
-  = ${round(totalDefPoints)} Total Blended Defense`;
+
 
   const totalOffLossPct = battle
     ? isOverall
@@ -893,25 +886,64 @@ export function CombatCalculator() {
                           <li className="cc-report-outcome-item">
                             <img src={buildingIcon('watch_tower')} alt="" className="cc-report-outcome-icon" />
                             <span>
-                              Watch Tower damaged from level {state.wallLevel} to {battle.result.wallLevel}.
-                              {battle.result.waves.length === 1 && battle.result.waves[0]?.wallDuringBattle !== undefined
-                                ? ` (Virtual Wall from ${state.wallLevel} to ${battle.result.waves[0].wallDuringBattle})`
-                                : battle.result.waves.length > 1
-                                ? (() => {
-                                    const ramWaves = battle.result.waves
-                                      .map((waveRes, idx) => {
-                                        const before = idx === 0 ? state.wallLevel : (battle.result.waves[idx - 1]?.wallLevel ?? state.wallLevel);
-                                        return { idx: idx + 1, before, during: waveRes.wallDuringBattle };
-                                      })
-                                      .filter((item) => item.before > 0 || item.during > 0);
-                                    if (ramWaves.length === 1) {
-                                      return ` (Virtual Wall from ${ramWaves[0].before} to ${ramWaves[0].during})`;
-                                    } else if (ramWaves.length > 1) {
-                                      return ` (Virtual Wall: ${ramWaves.map((rw) => `Wave ${rw.idx} from ${rw.before} to ${rw.during}`).join(', ')})`;
-                                    }
-                                    return '';
-                                  })()
-                                : ''}
+                              Watch Tower damaged from level {state.wallLevel} to {battle.result.wallLevel}.{' '}
+                              {battle.result.waves.length === 1 && battle.result.waves[0]?.wallDuringBattle !== undefined ? (
+                                <>
+                                  (
+                                  <VirtualWallTrigger
+                                    initialLevel={state.wallLevel}
+                                    virtualLevel={battle.result.waves[0].wallDuringBattle}
+                                    finalLevel={battle.result.wallLevel}
+                                    factionKey={villageFaction.key}
+                                  />
+                                  )
+                                </>
+                              ) : battle.result.waves.length > 1 ? (
+                                (() => {
+                                  const ramWaves = battle.result.waves
+                                    .map((waveRes, idx) => {
+                                      const before = idx === 0 ? state.wallLevel : (battle.result.waves[idx - 1]?.wallLevel ?? state.wallLevel);
+                                      return { idx: idx + 1, before, during: waveRes.wallDuringBattle, final: waveRes.wallLevel };
+                                    })
+                                    .filter((item) => item.before > 0 || item.during > 0);
+                                  if (ramWaves.length === 1) {
+                                    return (
+                                      <>
+                                        (
+                                        <VirtualWallTrigger
+                                          initialLevel={ramWaves[0].before}
+                                          virtualLevel={ramWaves[0].during}
+                                          finalLevel={ramWaves[0].final}
+                                          factionKey={villageFaction.key}
+                                        />
+                                        )
+                                      </>
+                                    );
+                                  } else if (ramWaves.length > 1) {
+                                    return (
+                                      <>
+                                        (Virtual Wall:{' '}
+                                        {ramWaves.map((rw, i) => (
+                                          <span key={rw.idx}>
+                                            {i > 0 && ', '}
+                                            <VirtualWallTrigger
+                                              initialLevel={rw.before}
+                                              virtualLevel={rw.during}
+                                              finalLevel={rw.final}
+                                              factionKey={villageFaction.key}
+                                            >
+                                              <span className="cc-dotted-term">Wave {rw.idx} from {rw.before} to {rw.during}</span>
+                                              <span className="cc-help-badge" aria-hidden="true">?</span>
+                                            </VirtualWallTrigger>
+                                          </span>
+                                        ))}
+                                        )
+                                      </>
+                                    );
+                                  }
+                                  return null;
+                                })()
+                              ) : null}
                             </span>
                           </li>
                         ) : totalRams > 0 ? (
@@ -921,9 +953,18 @@ export function CombatCalculator() {
                               Watch Tower held firm at level {battle.result.wallLevel}.
                               {battle.result.waves.length === 1 &&
                               battle.result.waves[0]?.wallDuringBattle !== undefined &&
-                              battle.result.waves[0].wallDuringBattle !== state.wallLevel
-                                ? ` (Virtual Wall from ${state.wallLevel} to ${battle.result.waves[0].wallDuringBattle})`
-                                : ''}
+                              battle.result.waves[0].wallDuringBattle !== state.wallLevel ? (
+                                <>
+                                  {' '}(
+                                  <VirtualWallTrigger
+                                    initialLevel={state.wallLevel}
+                                    virtualLevel={battle.result.waves[0].wallDuringBattle}
+                                    finalLevel={battle.result.wallLevel}
+                                    factionKey={villageFaction.key}
+                                  />
+                                  )
+                                </>
+                              ) : null}
                             </span>
                           </li>
                         ) : null}
@@ -987,7 +1028,14 @@ export function CombatCalculator() {
                           <li className="cc-report-outcome-item">
                             <img src={buildingIcon('watch_tower')} alt="" className="cc-report-outcome-icon" />
                             <span>
-                              Watch Tower damaged from level {wallBeforeWave} to {w.wallLevel}. (Virtual Wall from {wallBeforeWave} to {w.wallDuringBattle})
+                              Watch Tower damaged from level {wallBeforeWave} to {w.wallLevel}. (
+                              <VirtualWallTrigger
+                                initialLevel={wallBeforeWave}
+                                virtualLevel={w.wallDuringBattle}
+                                finalLevel={w.wallLevel}
+                                factionKey={villageFaction.key}
+                              />
+                              )
                             </span>
                           </li>
                         ) : ramsInWave > 0 ? (
@@ -995,7 +1043,18 @@ export function CombatCalculator() {
                             <img src={buildingIcon('watch_tower')} alt="" className="cc-report-outcome-icon" />
                             <span>
                               Watch Tower held firm at level {w.wallLevel}.
-                              {w.wallDuringBattle !== wallBeforeWave ? ` (Virtual Wall from ${wallBeforeWave} to ${w.wallDuringBattle})` : ''}
+                              {w.wallDuringBattle !== wallBeforeWave ? (
+                                <>
+                                  {' '}(
+                                  <VirtualWallTrigger
+                                    initialLevel={wallBeforeWave}
+                                    virtualLevel={w.wallDuringBattle}
+                                    finalLevel={w.wallLevel}
+                                    factionKey={villageFaction.key}
+                                  />
+                                  )
+                                </>
+                              ) : ''}
                             </span>
                           </li>
                         ) : null}
@@ -1480,7 +1539,7 @@ export function CombatCalculator() {
                     <td>
                       <strong>{compact(totalOffPoints)}</strong> <img src={statIcon('attack')} alt="Total Off" className="cc-report-icon" />
                     </td>
-                    <td title={defFormulaTooltip} style={{ cursor: 'help' }}>
+                    <td>
                       <BlendedDefenseTrigger
                         totalDefPoints={totalDefPoints}
                         defPoints={defPoints}
@@ -1491,9 +1550,10 @@ export function CombatCalculator() {
                         wallDefScale={wallDefScale}
                         towerBonus={towerBonus}
                         cityGuardBonus={cityGuardBonus}
-                        tooltipText={defFormulaTooltip}
                       >
-                        <strong title={defFormulaTooltip}>{compact(totalDefPoints)}</strong> <img src={statIcon('defense')} alt="Total Def" className="cc-report-icon" />
+                        <strong className="cc-dotted-term">{compact(totalDefPoints)}</strong>{' '}
+                        <img src={statIcon('defense')} alt="Total Def" className="cc-report-icon" />
+                        <span className="cc-help-badge" aria-hidden="true">?</span>
                       </BlendedDefenseTrigger>
                     </td>
                   </tr>
@@ -2002,18 +2062,138 @@ function NumberField({
 const FORMULA_CARD_WIDTH = 320;
 const FORMULA_CARD_HEIGHT = 290;
 
-function placeFormulaCard(anchor: DOMRect) {
-  let left = anchor.left + anchor.width / 2 - FORMULA_CARD_WIDTH / 2;
-  if (left + FORMULA_CARD_WIDTH > window.innerWidth - 12) left = window.innerWidth - FORMULA_CARD_WIDTH - 12;
+function placeFormulaCard(anchor: DOMRect, width = FORMULA_CARD_WIDTH, height = FORMULA_CARD_HEIGHT) {
+  let left = anchor.left + anchor.width / 2 - width / 2;
+  if (left + width > window.innerWidth - 12) left = window.innerWidth - width - 12;
   if (left < 12) left = 12;
 
   let top = anchor.bottom + 8;
-  if (top + FORMULA_CARD_HEIGHT > window.innerHeight - 12) {
-    top = anchor.top - FORMULA_CARD_HEIGHT - 8;
+  if (top + height > window.innerHeight - 12) {
+    top = anchor.top - height - 8;
   }
   if (top < 12) top = 12;
 
   return { left, top };
+}
+
+interface VirtualWallTriggerProps {
+  initialLevel: number;
+  virtualLevel: number;
+  finalLevel: number;
+  factionKey?: string;
+  children?: React.ReactNode;
+}
+
+function VirtualWallTrigger({
+  initialLevel,
+  virtualLevel,
+  finalLevel,
+  factionKey = 'verdant_wardens',
+  children,
+}: VirtualWallTriggerProps) {
+  const wrapRef = useRef<HTMLSpanElement>(null);
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState<{ left: number; top: number } | null>({ left: 0, top: 0 });
+
+  const openPopover = () => {
+    if (wrapRef.current) {
+      setPos(placeFormulaCard(wrapRef.current.getBoundingClientRect(), 330, 260));
+    } else {
+      setPos({ left: 100, top: 100 });
+    }
+    setOpen(true);
+  };
+
+  useEffect(() => {
+    if (!open || !wrapRef.current) return;
+    const reposition = () => {
+      if (wrapRef.current) setPos(placeFormulaCard(wrapRef.current.getBoundingClientRect(), 330, 260));
+    };
+    reposition();
+    window.addEventListener('scroll', reposition, true);
+    window.addEventListener('resize', reposition);
+    return () => {
+      window.removeEventListener('scroll', reposition, true);
+      window.removeEventListener('resize', reposition);
+    };
+  }, [open]);
+
+  const initialBonus = Math.round(watchTowerBonus(factionKey, initialLevel) * 1000) / 10;
+  const virtualBonus = Math.round(watchTowerBonus(factionKey, virtualLevel) * 1000) / 10;
+  const finalBonus = Math.round(watchTowerBonus(factionKey, finalLevel) * 1000) / 10;
+
+  return (
+    <span
+      ref={wrapRef}
+      className="cc-virtual-wall-trigger"
+      tabIndex={0}
+      role="button"
+      aria-label="Virtual Wall explanation"
+      onClick={() => (open ? setOpen(false) : openPopover())}
+      onMouseEnter={openPopover}
+      onMouseLeave={() => setOpen(false)}
+      onFocus={openPopover}
+      onBlur={() => setOpen(false)}
+    >
+      {children ? (
+        children
+      ) : (
+        <>
+          <span className="cc-dotted-term">
+            Virtual Wall from {initialLevel} to {virtualLevel}
+          </span>
+          <span className="cc-help-badge" aria-hidden="true">?</span>
+        </>
+      )}
+      {open &&
+        pos &&
+        createPortal(
+          <div
+            className="cc-formula-popover"
+            style={{ left: pos.left, top: pos.top, width: 330 }}
+            onMouseEnter={() => setOpen(true)}
+            onMouseLeave={() => setOpen(false)}
+          >
+            <div className="cc-formula-popover__header">
+              <span className="cc-formula-popover__icon">🧱</span>
+              <div>
+                <h4 className="cc-formula-popover__title">Virtual Wall (Combat Wall)</h4>
+                <div className="cc-formula-popover__sub">Effective mid-battle fortification level</div>
+              </div>
+            </div>
+
+            <div className="cc-formula-popover__body">
+              <div className="cc-formula-popover__block">
+                <p style={{ margin: 0, fontSize: '12px', lineHeight: 1.45, color: 'var(--text-muted)' }}>
+                  Rams attack the wall <strong>before</strong> the army clash. The wall drops to the <strong>Virtual Wall level ({virtualLevel})</strong>, which provides the defense bonus defenders fight behind during casualty calculations.
+                </p>
+              </div>
+
+              <div className="cc-formula-popover__block">
+                <div className="cc-formula-popover__section-title">Wall Levels in This Battle</div>
+                <div className="cc-formula-popover__row">
+                  <span>Initial Wall:</span>
+                  <span className="cc-formula-popover__val">Level {initialLevel} ({initialBonus >= 0 ? `+${initialBonus}%` : `${initialBonus}%`})</span>
+                </div>
+                <div className="cc-formula-popover__row" style={{ color: 'var(--brand, #e6a23c)', fontWeight: 600 }}>
+                  <span>Virtual Wall (in combat):</span>
+                  <span className="cc-formula-popover__val">Level {virtualLevel} (+{virtualBonus}%)</span>
+                </div>
+                <div className="cc-formula-popover__row">
+                  <span>Final Wall (after battle):</span>
+                  <span className="cc-formula-popover__val">Level {finalLevel} ({finalBonus >= 0 ? `+${finalBonus}%` : `${finalBonus}%`})</span>
+                </div>
+              </div>
+
+              <div className="cc-formula-popover__total-row" style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                <span>💡 Surviving rams take a second demolition pass after combat, flattening the wall to Level {finalLevel}.</span>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+    </span>
+  );
 }
 
 interface BlendedDefenseTriggerProps {
@@ -2027,7 +2207,6 @@ interface BlendedDefenseTriggerProps {
   wallDefScale: number;
   towerBonus: number;
   cityGuardBonus: number;
-  tooltipText: string;
 }
 
 function BlendedDefenseTrigger({
@@ -2039,11 +2218,19 @@ function BlendedDefenseTrigger({
   blendedTroopDef,
   flatDef,
   wallDefScale,
-  tooltipText,
 }: BlendedDefenseTriggerProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
+  const [pos, setPos] = useState<{ left: number; top: number } | null>({ left: 0, top: 0 });
+
+  const openPopover = () => {
+    if (wrapRef.current) {
+      setPos(placeFormulaCard(wrapRef.current.getBoundingClientRect()));
+    } else {
+      setPos({ left: 100, top: 100 });
+    }
+    setOpen(true);
+  };
 
   useEffect(() => {
     if (!open || !wrapRef.current) return;
@@ -2063,14 +2250,13 @@ function BlendedDefenseTrigger({
     <div
       ref={wrapRef}
       className="cc-formula-trigger"
-      title={tooltipText}
       tabIndex={0}
       role="button"
       aria-label="Blended defense breakdown"
-      onClick={() => setOpen((prev) => !prev)}
-      onMouseEnter={() => setOpen(true)}
+      onClick={() => (open ? setOpen(false) : openPopover())}
+      onMouseEnter={openPopover}
       onMouseLeave={() => setOpen(false)}
-      onFocus={() => setOpen(true)}
+      onFocus={openPopover}
       onBlur={() => setOpen(false)}
     >
       {children}
