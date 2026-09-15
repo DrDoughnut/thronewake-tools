@@ -1,4 +1,4 @@
-import type { Faction } from './types';
+import type { Faction, Unit } from './types';
 
 /**
  * ── Thronewake unit tables ───────────────────────────────────────────────
@@ -283,6 +283,15 @@ export function factionByKey(key: string): Faction {
   const found = factions.find((f) => f.key === key);
   if (!found) throw new Error(`Unknown faction: ${key}`);
   return found;
+}
+
+export function safeFaction(key?: string): Faction {
+  return factions.find((f) => f.key === key) ?? factions[0];
+}
+
+export function factionChief(factionKey: string): Unit | undefined {
+  const f = factions.find((fac) => fac.key === factionKey);
+  return f?.units.find((u) => u.role === 'chief');
 }
 
 /** Factions a player can actually pick. */

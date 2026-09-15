@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { maxLevel, NORMAL_MAX_LEVEL, queueGroups } from '../data/buildings';
+import { FactionSelect } from '../components/FactionSelect';
 import { playableFactions } from '../data/factions';
 import { factionBuildingList, rules, type FactionBuildingKey } from '../data/rules';
 import { DIVISOR_META, NUMERATOR_META, RESOURCE_META } from '../data/statMeta';
@@ -49,20 +50,14 @@ export function ArmyCalculator() {
     <div className="army">
       <section className="panel army__setup">
         <div className="army__setup-row">
-          <label className="field-inline">
+          <div className="field-inline">
             <span className="field-inline__label">Faction</span>
-            <select
-              className="select"
+            <FactionSelect
               value={state.faction}
-              onChange={(e) => setFaction(e.target.value)}
-            >
-              {playableFactions.map((f) => (
-                <option key={f.key} value={f.key}>
-                  {f.name}
-                </option>
-              ))}
-            </select>
-          </label>
+              onChange={setFaction}
+              ariaLabel="Faction"
+            />
+          </div>
 
           <div className="field-inline field-inline--narrow">
             <span className="field-inline__label">Server speed</span>

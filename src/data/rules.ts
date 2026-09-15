@@ -160,3 +160,16 @@ export const factionBuildingList = Object.values(factionBuildings);
  */
 export const trainingSpeedup =
   trainingBuildings.barracks.speed[NORMAL_MAX_LEVEL];
+
+/**
+ * Trapper capacity progression by level (GID 36, Verdant Wardens unique building).
+ * Scaled 3× for server speed: Level 1: 30, Level 20: 1,200 traps.
+ */
+export const TRAPPER_CAPACITY: number[] = [
+  0, 30, 66, 105, 147, 192, 240, 291, 345, 402, 462, 525, 588, 654, 723, 795, 870, 948, 1029, 1113, 1200,
+];
+
+export function trapperCapacity(level: number): number {
+  const lvl = Math.max(0, Math.min(20, Math.floor(level) || 0));
+  return TRAPPER_CAPACITY[lvl] ?? 0;
+}

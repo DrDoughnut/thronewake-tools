@@ -52,13 +52,15 @@ export interface Village {
   durability: number;
   /** Any further flat defence, e.g. from a residence. */
   extraDef: number;
+  /** Trapper capacity available (Verdant Wardens). */
+  trapperCapacity?: number;
 }
 
 export interface Wave {
   regiments: Regiment[];
   /** Attacker population, for morale. */
   pop: number;
-  type: 'attack' | 'raid';
+  type: 'attack' | 'raid' | 'siege';
   /** Levels of the buildings the catapults are aimed at. */
   targets: number[];
   /** Morale is a T4.6 mechanic; later Travian removed it. */
@@ -85,6 +87,12 @@ export interface WaveResult {
   /** Survivors, so a caller can price what is left. */
   attackerSurvivors: Regiment[];
   defenderSurvivors: Regiment[];
+  /** Number of attacking troops trapped in this wave. */
+  trappedTroops?: number;
+  /** Number of trapped troops liberated (surviving) in this wave. */
+  trappedLiberated?: number;
+  /** Number of trapped troops killed during liberation or imprisoned. */
+  trappedDied?: number;
 }
 
 const roundP = (precision: number) => (value: number) =>
@@ -226,9 +234,9 @@ const totalCount = (regiments: Regiment[]) =>
 const applyLosses = (regiments: Regiment[], losses: number): Regiment[] =>
   regiments.map((r) => ({ ...r, count: Math.round(r.count * (1 - losses)) }));
 
-const findSiege = (regiments: Regiment[], kind: 'ram' | 'catapult'): [number, number] => {
-  const found = regiments.find((r) => r.siege === kind && r.count > 0);
-  return found ? [found.count, found.upgrade] : [0, 0];
+export const findSiege = (regiments: Regiment[], kind: 'ram' | 'catapult'): [number, number] => {
+  const match = regiments.find((r) => r.siege === kind);
+  return match ? [match.count, match.upgrade] : [0, 0];
 };
 
 /**
@@ -242,9 +250,33 @@ export function resolveWave(
   defenders: Regiment[],
   wave: Wave,
 ): WaveResult {
-  const off = offensePoints(wave.regiments);
+  // 1. Trapper pre-combat phase (Verdant Wardens)
+  const availableTraps = Math.max(0, village.trapperCapacity ?? 0);
+  let remainingTraps = availableTraps;
+  let totalTrapped = 0;
+
+  // Regiments that enter the battle after traps have caught attacking troops
+  const fightingRegiments: Regiment[] = [];
+  const trappedRegiments: Regiment[] = [];
+
+  for (const r of wave.regiments) {
+    if (remainingTraps <= 0 || r.count <= 0) {
+      fightingRegiments.push({ ...r });
+      trappedRegiments.push({ ...r, count: 0 });
+      continue;
+    }
+    const trapped = Math.min(r.count, remainingTraps);
+    remainingTraps -= trapped;
+    totalTrapped += trapped;
+
+    fightingRegiments.push({ ...r, count: r.count - trapped });
+    trappedRegiments.push({ ...r, count: trapped });
+  }
+
+  const off = offensePoints(fightingRegiments);
   const def = defensePoints(defenders);
-  const [baseOff, blendedDef] = adducedDefense(off, def);
+  const [rawOff, blendedDef] = adducedDefense(off, def);
+  const baseOff = wave.type === 'siege' ? rawOff * 1.25 : rawOff;
 
   const defenceAt = (wallLevel: number) => {
     // A wall that has been rammed down mid-battle stops paying its bonus.
@@ -266,7 +298,7 @@ export function resolveWave(
   let wallAfter = village.wallLevel;
   let { finalOff, finalDef, moraleFactor } = pointsFor(wallDuringBattle);
 
-  const [rams, ramUpgrade] = findSiege(wave.regiments, 'ram');
+  const [rams, ramUpgrade] = findSiege(fightingRegiments, 'ram');
   if (rams > 0 && village.wallLevel > 0) {
     const ratio = finalDef > 0 ? finalOff / finalDef : Infinity;
     const earlyPoints = demolishPoints(rams, ramUpgrade, village.durability, ratio);
@@ -303,12 +335,12 @@ export function resolveWave(
   }
 
   // A single unit attacking alone dies unless it is strong enough on its own.
-  if (totalCount(wave.regiments) === 1) {
+  if (totalCount(fightingRegiments) === 1) {
     const solo = (off.i + off.c) * (wave.morale ? morale(wave.pop, village.pop) : 1);
     if (solo < 84.5) offLosses = 1;
   }
 
-  const [cats, catUpgrade] = findSiege(wave.regiments, 'catapult');
+  const [cats, catUpgrade] = findSiege(fightingRegiments, 'catapult');
   let targets = [...wave.targets];
   if (cats > 0 && targets.length > 0) {
     const points = demolishPoints(
@@ -320,6 +352,36 @@ export function resolveWave(
     targets = targets.map((level) => demolish(level, points));
   }
 
+  // Calculate survivors of the fighting troops
+  const fightingSurvivors = applyLosses(fightingRegiments, offLosses);
+  const defSurvivors = applyLosses(defenders, defLosses);
+
+  // Trapped troop liberation / fate:
+  // In a normal attack / siege: if attacker wins and clears all defenders (defSurvivors total count === 0 and fightingSurvivors total count > 0),
+  // trapped troops are liberated with 25% dying and 75% returning home.
+  // In a raid or if defenders survive: 100% of trapped troops remain trapped / lost from this wave.
+  const isLiberated =
+    (wave.type === 'attack' || wave.type === 'siege') &&
+    totalCount(defSurvivors) === 0 &&
+    totalCount(fightingSurvivors) > 0;
+
+  let trappedLiberated = 0;
+  let trappedDied = 0;
+  const finalAttackerSurvivors: Regiment[] = fightingSurvivors.map((r, idx) => {
+    const trapped = trappedRegiments[idx]?.count ?? 0;
+    if (trapped <= 0) return { ...r };
+    if (isLiberated) {
+      const dead = Math.round(trapped * 0.25);
+      const free = trapped - dead;
+      trappedDied += dead;
+      trappedLiberated += free;
+      return { ...r, count: r.count + free };
+    } else {
+      trappedDied += trapped;
+      return { ...r };
+    }
+  });
+
   return {
     offLosses,
     defLosses,
@@ -329,8 +391,11 @@ export function resolveWave(
     wallLevel: wallAfter,
     wallDuringBattle,
     targets,
-    attackerSurvivors: applyLosses(wave.regiments, offLosses),
-    defenderSurvivors: applyLosses(defenders, defLosses),
+    attackerSurvivors: finalAttackerSurvivors,
+    defenderSurvivors: defSurvivors,
+    trappedTroops: totalTrapped,
+    trappedLiberated,
+    trappedDied,
   };
 }
 
@@ -342,6 +407,8 @@ export interface BattleResult {
   wallLevel: number;
   /** Final level of each building that was targeted, keyed by its index. */
   targets: number[];
+  /** Trapper capacity remaining after all waves. */
+  remainingTraps?: number;
 }
 
 /**
@@ -358,14 +425,23 @@ export function resolveBattle(
 ): BattleResult {
   let standing = defenders.map((r) => ({ ...r }));
   let place = { ...village };
+  let currentTraps = Math.max(0, village.trapperCapacity ?? 0);
   const results: WaveResult[] = [];
   let targets = waves[0]?.targets ? [...waves[0].targets] : [];
 
   for (const wave of waves) {
-    // Later waves aim at whatever the earlier ones left standing.
-    const aimed = { ...wave, targets: wave.targets.map((_, i) => targets[i] ?? wave.targets[i]) };
-    const result = resolveWave(place, standing, aimed);
+    const waveVillage: Village = {
+      ...place,
+      trapperCapacity: currentTraps,
+    };
+    const result = resolveWave(waveVillage, standing, wave);
     results.push(result);
+
+    // Update remaining traps for subsequent waves:
+    // Traps that caught troops are either destroyed (if liberated) or occupied (if not liberated).
+    // Either way, they are no longer available for subsequent waves in this battle.
+    const trappedInWave = result.trappedTroops ?? 0;
+    currentTraps = Math.max(0, currentTraps - trappedInWave);
 
     standing = result.defenderSurvivors;
     place = { ...place, wallLevel: result.wallLevel };
@@ -377,5 +453,7 @@ export function resolveBattle(
     defenderSurvivors: standing,
     wallLevel: place.wallLevel,
     targets,
+    remainingTraps: currentTraps,
   };
 }
+

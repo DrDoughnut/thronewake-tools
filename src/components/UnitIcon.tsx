@@ -92,10 +92,8 @@ interface TriggerProps {
  */
 function StatCardTrigger({ faction, unit, mods, children }: TriggerProps) {
   const wrapRef = useRef<HTMLSpanElement>(null);
-  const [hovered, setHovered] = useState(false);
-  const [pinned, setPinned] = useState(false);
+  const [open, setOpen] = useState(false);
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
-  const open = hovered || pinned;
 
   useEffect(() => {
     if (!open || !wrapRef.current) return;
@@ -111,42 +109,16 @@ function StatCardTrigger({ faction, unit, mods, children }: TriggerProps) {
     };
   }, [open]);
 
-  useEffect(() => {
-    if (!pinned) return;
-    const onOutside = (e: PointerEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setPinned(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setPinned(false);
-        setHovered(false);
-      }
-    };
-    document.addEventListener('pointerdown', onOutside);
-    window.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('pointerdown', onOutside);
-      window.removeEventListener('keydown', onKey);
-    };
-  }, [pinned]);
-
   return (
     <span
       ref={wrapRef}
       className="unit-icon-trigger"
-      role="button"
-      tabIndex={0}
-      aria-haspopup="true"
-      aria-expanded={open}
       aria-label={`${unit.name} stats`}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      onFocus={() => setHovered(true)}
-      onBlur={() => setHovered(false)}
-      onClick={(e) => {
-        e.stopPropagation();
-        setPinned((p) => !p);
-      }}
+      onClick={() => setOpen((prev) => !prev)}
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+      onFocus={() => setOpen(true)}
+      onBlur={() => setOpen(false)}
     >
       {children}
       {open &&

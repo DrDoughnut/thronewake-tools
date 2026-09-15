@@ -30,7 +30,7 @@ import {
   PALACE_GID,
   RESIDENCE_GID,
 } from '../engine/cpOptimizer';
-import { playableFactions } from '../data/factions';
+import { FactionSelect } from '../components/FactionSelect';
 import { buildingIcon } from '../icons';
 import { ConfirmDeleteModal } from '../components/ConfirmDeleteModal';
 
@@ -617,20 +617,14 @@ export function CpOptimizer() {
                 </div>
 
                 <div className="cp-setting-item">
-                  <label className="cp-label">
+                  <div className="cp-label">
                     <span>Faction</span>
-                    <select
-                      className="select"
+                    <FactionSelect
                       value={activeVillage.faction}
-                      onChange={(e) => patchActiveVillage({ faction: e.target.value })}
-                    >
-                      {playableFactions.map((f) => (
-                        <option key={f.key} value={f.key}>
-                          {f.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                      onChange={(key) => patchActiveVillage({ faction: key })}
+                      ariaLabel="Faction"
+                    />
+                  </div>
                 </div>
 
                 {/* Capital (Palace) & City Status */}

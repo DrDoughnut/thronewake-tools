@@ -19,7 +19,7 @@ let root: Root;
 
 beforeEach(() => {
   window.localStorage.clear();
-  window.location.hash = '';
+  window.location.hash = '#tool=units';
   container = document.createElement('div');
   document.body.appendChild(container);
   root = createRoot(container);
@@ -49,6 +49,15 @@ const setInputValue = (input: HTMLInputElement | HTMLTextAreaElement, value: str
   });
 
 describe('the app', () => {
+  it('renders Combat Calculator as the first tool on the left with double swords emoji', () => {
+    const toolTabs = container.querySelectorAll('.pill--tool');
+    expect(toolTabs[0].getAttribute('aria-label')).toBe('Combat Calculator');
+    expect(toolTabs[0].textContent).toContain('⚔️');
+
+    const unitsTab = [...toolTabs].find((t) => t.getAttribute('aria-label') === 'Unit Attributes');
+    expect(unitsTab?.textContent).toContain('🔨');
+  });
+
   it('renders a ranked table on first load', () => {
     expect(rows()).toHaveLength(21);
     const v = values();
@@ -1451,6 +1460,22 @@ describe('the Building Stats tool', () => {
     expect(closeBtn).toBeTruthy();
     click(closeBtn);
     expect(container.querySelector('.bs-modal-content')).toBeNull();
+  });
+});
+
+describe('the defense simulator', () => {
+  it('displays a beta warning banner when selecting the Defense Sim tool', () => {
+    const defenseTab = [...container.querySelectorAll('.pill--tool')].find(
+      (b) => b.getAttribute('aria-label') === 'Defense Sim',
+    )!;
+    expect(defenseTab).toBeTruthy();
+    click(defenseTab);
+
+    expect(window.location.hash).toContain('tool=defense');
+    const banner = container.querySelector('.ds-beta-banner');
+    expect(banner).toBeTruthy();
+    expect(banner?.textContent).toContain('Beta');
+    expect(banner?.textContent).toContain('Defense Simulator is currently in beta');
   });
 });
 

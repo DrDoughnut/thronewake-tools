@@ -343,5 +343,66 @@ describe('Combat Engine', () => {
       resolveBattle(village(), original, [wave(hammer())]);
       expect(original[0].count).toBe(500);
     });
+
+    describe('Trapper (Verdant Wardens)', () => {
+      it('captures attacking troops before combat begins', () => {
+        // 100 attacking troops against 50 traps and no defenders
+        const result = resolveWave(
+          village({ trapperCapacity: 50 }),
+          [],
+          wave([unit({ off: 100, count: 100 })], { type: 'raid' })
+        );
+        expect(result.trappedTroops).toBe(50);
+        expect(result.trappedDied).toBe(50); // In a raid, trapped troops are not liberated
+        // 50 fighting troops fight 0 defenders, taking 0 battle casualties
+        expect(result.attackerSurvivors[0].count).toBe(50);
+      });
+
+      it('liberates trapped troops with 25% death on normal attack win', () => {
+        // 100 attackers vs 40 traps, 0 defenders, normal attack
+        const result = resolveWave(
+          village({ trapperCapacity: 40 }),
+          [],
+          wave([unit({ off: 100, count: 100 })], { type: 'attack' })
+        );
+        expect(result.trappedTroops).toBe(40);
+        // 40 * 0.25 = 10 died, 30 liberated
+        expect(result.trappedDied).toBe(10);
+        expect(result.trappedLiberated).toBe(30);
+        // Fighting survivors (60) + liberated (30) = 90 survivors
+        expect(result.attackerSurvivors[0].count).toBe(90);
+      });
+
+      it('does not liberate trapped troops if attacker loses/wipes', () => {
+        // 10 attackers vs 10 traps and 500 strong defenders
+        const result = resolveWave(
+          village({ trapperCapacity: 10 }),
+          [unit({ defInf: 100, count: 500 })],
+          wave([unit({ off: 10, count: 10 })], { type: 'attack' })
+        );
+        expect(result.trappedTroops).toBe(10);
+        expect(result.trappedLiberated).toBe(0);
+        expect(result.trappedDied).toBe(10);
+        expect(result.attackerSurvivors[0].count).toBe(0);
+      });
+
+      it('tracks traps across multiple waves in resolveBattle', () => {
+        // Trapper capacity 50 across 2 waves
+        // Wave 1: 30 troops trapped
+        // Wave 2: 20 traps remaining
+        const battle = resolveBattle(
+          village({ trapperCapacity: 50 }),
+          [],
+          [
+            wave([unit({ off: 100, count: 30 })], { type: 'raid' }),
+            wave([unit({ off: 100, count: 30 })], { type: 'raid' }),
+          ]
+        );
+        expect(battle.waves[0].trappedTroops).toBe(30);
+        expect(battle.waves[1].trappedTroops).toBe(20); // only 20 remaining
+        expect(battle.remainingTraps).toBe(0);
+      });
+    });
   });
 });
+

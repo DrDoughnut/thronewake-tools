@@ -13,11 +13,15 @@ interface Props {
  * The five stats Thronewake actually publishes, plus upkeep. Scouting is
  * left out here on purpose — see the note in `statMeta.ts`.
  */
+/**
+ * Key unit stats in the user-preferred order:
+ * Attack, Defense (vs infantry & cavalry), Speed, Carry, Upkeep.
+ */
 const ROWS: StatMeta[] = [
-  SPEED_META,
   NUMERATOR_META.a,
   NUMERATOR_META.di,
   NUMERATOR_META.dc,
+  SPEED_META,
   NUMERATOR_META.c,
   DIVISOR_META.cu,
 ];

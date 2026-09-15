@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { BUILDINGS } from '../data/buildingCatalog';
+import { FactionSelect } from '../components/FactionSelect';
 import { playableFactions } from '../data/factions';
 import { watchTowerBonus, watchTowerDurability, watchTowerFlat } from '../data/rules';
 import type { Faction, Unit } from '../data/types';
@@ -7,6 +8,7 @@ import type { Village } from '../engine/combat';
 import { buildingCumulativeCost } from '../engine/cpOptimizer';
 import { simulateDefense, type Hammer, type SplitOutcome } from '../engine/defense';
 import { totalCost, upgradeStat } from '../engine/stats';
+import { buildingIcon, unitIcon } from '../icons';
 import { loadStoredJson, saveStoredJson, StorageKeys } from '../storage';
 
 /** Stonemason's Lodge: +10% building durability per level, from the catalog. */
@@ -144,25 +146,32 @@ export function DefenseSimulator() {
 
   return (
     <main className="app__body ds-page">
+      <div className="ds-beta-banner" role="alert">
+        <span className="ds-beta-banner__icon" aria-hidden="true">⚠️</span>
+        <div className="ds-beta-banner__content">
+          <span className="ds-beta-banner__badge">Beta</span>
+          The Defense Simulator is currently in beta. Calculations and recommendations are experimental and actively being tuned for Thronewake combat rules.
+        </div>
+      </div>
+
       <aside className="app__controls">
         <div className="panel">
           <h2 className="panel__title">Your defence</h2>
-          <label className="ds-field">
+          <div className="ds-field">
             <span className="ds-field__label">Troop</span>
-            <select className="ds-field__input" value={faction.key}
-              onChange={(e) => {
-                const next = safeFaction(e.target.value);
+            <FactionSelect
+              value={faction.key}
+              ariaLabel="Troop faction"
+              onChange={(val) => {
+                const next = safeFaction(val);
                 setState((p) => ({
                   ...p,
                   defenceFaction: next.key,
                   defenceUnit: defensive(next)[0].key,
                 }));
-              }}>
-              {playableFactions.map((f) => (
-                <option key={f.key} value={f.key}>{f.name}</option>
-              ))}
-            </select>
-          </label>
+              }}
+            />
+          </div>
           <label className="ds-field">
             <span className="ds-field__label">Unit</span>
             <select className="ds-field__input" value={unit.key}
@@ -192,10 +201,20 @@ export function DefenseSimulator() {
           <h2 className="panel__title">The villages</h2>
           <NumberField label="Villages with incoming" value={state.villages} max={40} min={1}
             onChange={(v) => set('villages', Math.max(1, v))} />
-          <NumberField label="Watch Tower level" value={state.wallLevel} max={20}
-            onChange={(v) => set('wallLevel', v)} />
-          <NumberField label="Stonemason's Lodge level" value={state.stonemason} max={20}
-            onChange={(v) => set('stonemason', v)} />
+          <NumberField
+            icon={<img src={buildingIcon('watch_tower')} alt="" className="cc-field-icon" />}
+            label="Watch Tower level"
+            value={state.wallLevel}
+            max={20}
+            onChange={(v) => set('wallLevel', v)}
+          />
+          <NumberField
+            icon={<img src={buildingIcon('stonemasons_lodge')} alt="" className="cc-field-icon" />}
+            label="Stonemason's Lodge level"
+            value={state.stonemason}
+            max={20}
+            onChange={(v) => set('stonemason', v)}
+          />
           <p className="hint">
             {faction.name} tower at level {state.wallLevel} defends at{' '}
             <strong>+{(watchTowerBonus(faction.key, state.wallLevel) * 100).toFixed(1)}%</strong>{' '}
@@ -203,7 +222,12 @@ export function DefenseSimulator() {
             {watchTowerDurability(faction.key)}×.
           </p>
           <label className="ds-field">
-            <span className="ds-field__label">Catapults aim at</span>
+            <span className="ds-field__label">
+              <span className="cc-field-title">
+                <img src={unitIcon('dominion_catapult')} alt="" className="cc-field-icon" />
+                Catapults aim at
+              </span>
+            </span>
             <select className="ds-field__input" value={state.targetGid}
               onChange={(e) => set('targetGid', Number(e.target.value))}>
               {BUILDINGS.map((b) => (
@@ -386,6 +410,7 @@ export function DefenseSimulator() {
 
 interface NumberFieldProps {
   label: string;
+  icon?: React.ReactNode;
   value: number;
   max: number;
   min?: number;
@@ -393,10 +418,15 @@ interface NumberFieldProps {
   onChange: (value: number) => void;
 }
 
-function NumberField({ label, value, max, min = 0, step = 1, onChange }: NumberFieldProps) {
+function NumberField({ label, icon, value, max, min = 0, step = 1, onChange }: NumberFieldProps) {
   return (
     <label className="ds-field">
-      <span className="ds-field__label">{label}</span>
+      <span className="ds-field__label">
+        <span className="cc-field-title">
+          {icon}
+          {label}
+        </span>
+      </span>
       <input className="ds-field__input" type="number" min={min} max={max} step={step}
         value={value}
         onChange={(e) => onChange(Math.min(max, Math.max(min, Number(e.target.value) || 0)))} />

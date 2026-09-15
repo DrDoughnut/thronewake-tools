@@ -43,9 +43,19 @@ function playTapBlip(count: number) {
 
 const TOOLS: Tool[] = [
   {
+    key: 'combat',
+    name: 'Combat Calculator',
+    icon: '⚔️',
+    blurb:
+      'Resolve a real battle: offense against the defence your own hammer draws out of a garrison, wave after wave, priced in resources.',
+    footer:
+      'Casualties use the T4 curve — the loser is wiped, the winner keeps (loser ÷ winner)^1.5. Attacker rows land as consecutive waves; defender rows all stand in the same village.',
+    render: () => <CombatCalculator />,
+  },
+  {
     key: 'units',
     name: 'Unit Attributes',
-    icon: '⚔️',
+    icon: '🔨',
     blurb:
       'Rank every unit by whatever actually constrains you — resources, grain, or the hours in a day.',
     footer:
@@ -71,16 +81,6 @@ const TOOLS: Tool[] = [
     footer:
       'Safe hours are interpreted in 24-hour UTC; local times are displayed for convenience and are not stored.',
     render: (v2) => <OperationPlanner isV2Unlocked={v2} />,
-  },
-  {
-    key: 'combat',
-    name: 'Combat Calculator',
-    icon: '⚒️',
-    blurb:
-      'Resolve a real battle: offense against the defence your own hammer draws out of a garrison, wave after wave, priced in resources.',
-    footer:
-      'Casualties use the T4 curve — the loser is wiped, the winner keeps (loser ÷ winner)^1.5. Attacker rows land as consecutive waves; defender rows all stand in the same village.',
-    render: () => <CombatCalculator />,
   },
   {
     key: 'defense',
