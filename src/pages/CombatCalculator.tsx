@@ -895,6 +895,7 @@ export function CombatCalculator() {
                                     virtualLevel={battle.result.waves[0].wallDuringBattle}
                                     finalLevel={battle.result.wallLevel}
                                     factionKey={villageFaction.key}
+                                    cityGuardBonus={cityGuardBonus}
                                   />
                                   )
                                 </>
@@ -915,6 +916,7 @@ export function CombatCalculator() {
                                           virtualLevel={ramWaves[0].during}
                                           finalLevel={ramWaves[0].final}
                                           factionKey={villageFaction.key}
+                                          cityGuardBonus={cityGuardBonus}
                                         />
                                         )
                                       </>
@@ -924,7 +926,9 @@ export function CombatCalculator() {
                                       <>
                                         (Virtual Watch Tower:{' '}
                                         {ramWaves.map((rw, i) => {
-                                          const rwBonus = Math.round(watchTowerBonus(villageFaction.key, rw.during) * 1000) / 10;
+                                          const rwWallBonus = Math.round(watchTowerBonus(villageFaction.key, rw.during) * 1000) / 10;
+                                          const rwGuardBonus = Math.round(cityGuardBonus * 1000) / 10;
+                                          const rwTotalBonus = rwWallBonus + rwGuardBonus;
                                           return (
                                             <span key={rw.idx}>
                                               {i > 0 && ', '}
@@ -933,9 +937,11 @@ export function CombatCalculator() {
                                                 virtualLevel={rw.during}
                                                 finalLevel={rw.final}
                                                 factionKey={villageFaction.key}
+                                                cityGuardBonus={cityGuardBonus}
                                               >
                                                 <span className="cc-dotted-term">
-                                                  Wave {rw.idx} from {rw.before} to {rw.during} &mdash; provides +{rwBonus % 1 === 0 ? rwBonus : rwBonus.toFixed(1)}% bonus
+                                                  Wave {rw.idx} from {rw.before} to {rw.during} &mdash; provides +{rwTotalBonus % 1 === 0 ? rwTotalBonus : rwTotalBonus.toFixed(1)}% bonus
+                                                  {rwGuardBonus > 0 ? ` (incl. +${rwGuardBonus % 1 === 0 ? rwGuardBonus : rwGuardBonus.toFixed(1)}% City Guards)` : ''}
                                                 </span>
                                                 <span className="cc-help-badge" aria-hidden="true">?</span>
                                               </VirtualWatchTowerTrigger>
@@ -966,6 +972,7 @@ export function CombatCalculator() {
                                     virtualLevel={battle.result.waves[0].wallDuringBattle}
                                     finalLevel={battle.result.wallLevel}
                                     factionKey={villageFaction.key}
+                                    cityGuardBonus={cityGuardBonus}
                                   />
                                   )
                                 </>
@@ -1039,6 +1046,7 @@ export function CombatCalculator() {
                                 virtualLevel={w.wallDuringBattle}
                                 finalLevel={w.wallLevel}
                                 factionKey={villageFaction.key}
+                                cityGuardBonus={cityGuardBonus}
                               />
                               )
                             </span>
@@ -1056,6 +1064,7 @@ export function CombatCalculator() {
                                     virtualLevel={w.wallDuringBattle}
                                     finalLevel={w.wallLevel}
                                     factionKey={villageFaction.key}
+                                    cityGuardBonus={cityGuardBonus}
                                   />
                                   )
                                 </>
@@ -1355,6 +1364,7 @@ export function CombatCalculator() {
                 label="Watch Tower"
                 value={state.wallLevel}
                 max={20}
+                onToggle={(next) => set('wallLevel', next)}
                 onChange={(v) => set('wallLevel', v)}
               />
 
@@ -1364,6 +1374,7 @@ export function CombatCalculator() {
                 value={state.cityGuards}
                 max={20}
                 min={0}
+                onToggle={(next) => setState((p) => ({ ...p, cityGuards: next, isCity: next > 0 }))}
                 onChange={(v) => setState((p) => ({ ...p, cityGuards: v, isCity: v > 0 }))}
               />
 
@@ -1372,6 +1383,7 @@ export function CombatCalculator() {
                 label="Residence / Palace"
                 value={state.palaceLevel}
                 max={20}
+                onToggle={(next) => set('palaceLevel', next)}
                 onChange={(v) => set('palaceLevel', v)}
               />
 
@@ -1380,6 +1392,7 @@ export function CombatCalculator() {
                 label="Stonemason"
                 value={state.stonemason}
                 max={20}
+                onToggle={(next) => set('stonemason', next)}
                 onChange={(v) => set('stonemason', v)}
               />
 
@@ -1389,6 +1402,7 @@ export function CombatCalculator() {
                   label="Trapper"
                   value={state.trapperLevel ?? 0}
                   max={20}
+                  onToggle={(next) => set('trapperLevel', next)}
                   onChange={(v) => set('trapperLevel', v)}
                 />
               )}
@@ -2018,6 +2032,7 @@ interface NumberFieldProps {
   min?: number;
   step?: number;
   allowKilo?: boolean;
+  onToggle?: (nextValue: number) => void;
   onChange: (value: number) => void;
 }
 
@@ -2029,12 +2044,36 @@ function NumberField({
   min = 0,
   step = 1,
   allowKilo = false,
+  onToggle,
   onChange,
 }: NumberFieldProps) {
+  const handleToggle = (e: React.MouseEvent) => {
+    if (!onToggle) return;
+    e.preventDefault();
+    e.stopPropagation();
+    onToggle(value === max ? min : max);
+  };
+
   return (
     <label className="ds-field">
       <span className="ds-field__label">
-        <span className="cc-field-title">
+        <span
+          className={`cc-field-title ${onToggle ? 'cc-field-title--toggle' : ''}`}
+          title={onToggle ? `Click to toggle level (${value === max ? min : max})` : undefined}
+          onClick={onToggle ? handleToggle : undefined}
+          role={onToggle ? 'button' : undefined}
+          tabIndex={onToggle ? 0 : undefined}
+          onKeyDown={
+            onToggle
+              ? (e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onToggle(value === max ? min : max);
+                  }
+                }
+              : undefined
+          }
+        >
           {icon}
           {label}
         </span>
@@ -2086,6 +2125,7 @@ interface VirtualWatchTowerTriggerProps {
   virtualLevel: number;
   finalLevel: number;
   factionKey?: string;
+  cityGuardBonus?: number;
   children?: React.ReactNode;
 }
 
@@ -2094,6 +2134,7 @@ function VirtualWatchTowerTrigger({
   virtualLevel,
   finalLevel,
   factionKey = 'verdant_wardens',
+  cityGuardBonus = 0,
   children,
 }: VirtualWatchTowerTriggerProps) {
   const wrapRef = useRef<HTMLSpanElement>(null);
@@ -2113,7 +2154,7 @@ function VirtualWatchTowerTrigger({
   const openPopover = () => {
     clearTimer();
     if (wrapRef.current) {
-      setPos(placeFormulaCard(wrapRef.current.getBoundingClientRect(), 340, 310));
+      setPos(placeFormulaCard(wrapRef.current.getBoundingClientRect(), 340, 240));
     } else {
       setPos({ left: 100, top: 100 });
     }
@@ -2171,7 +2212,7 @@ function VirtualWatchTowerTrigger({
   useEffect(() => {
     if (!open || !wrapRef.current) return;
     const reposition = () => {
-      if (wrapRef.current) setPos(placeFormulaCard(wrapRef.current.getBoundingClientRect(), 340, 310));
+      if (wrapRef.current) setPos(placeFormulaCard(wrapRef.current.getBoundingClientRect(), 340, 240));
     };
     reposition();
     window.addEventListener('scroll', reposition, true);
@@ -2182,9 +2223,14 @@ function VirtualWatchTowerTrigger({
     };
   }, [open]);
 
-  const initialBonus = Math.round(watchTowerBonus(factionKey, initialLevel) * 1000) / 10;
-  const virtualBonus = Math.round(watchTowerBonus(factionKey, virtualLevel) * 1000) / 10;
-  const finalBonus = Math.round(watchTowerBonus(factionKey, finalLevel) * 1000) / 10;
+  const guardBonus = Math.round((cityGuardBonus || 0) * 1000) / 10;
+  const wallInitialBonus = Math.round(watchTowerBonus(factionKey, initialLevel) * 1000) / 10;
+  const wallVirtualBonus = Math.round(watchTowerBonus(factionKey, virtualLevel) * 1000) / 10;
+  const wallFinalBonus = Math.round(watchTowerBonus(factionKey, finalLevel) * 1000) / 10;
+
+  const initialBonus = wallInitialBonus + guardBonus;
+  const virtualBonus = wallVirtualBonus + guardBonus;
+  const finalBonus = wallFinalBonus + guardBonus;
   const formatBonus = (val: number) => (val % 1 === 0 ? val.toString() : val.toFixed(1));
 
   return (
@@ -2208,6 +2254,7 @@ function VirtualWatchTowerTrigger({
         <>
           <span className="cc-dotted-term">
             Virtual Watch Tower from {initialLevel} to {virtualLevel} &mdash; provides +{formatBonus(virtualBonus)}% bonus
+            {guardBonus > 0 ? ` (incl. +${formatBonus(guardBonus)}% City Guards)` : ''}
           </span>
           <span className="cc-help-badge" aria-hidden="true">?</span>
         </>
@@ -2246,38 +2293,40 @@ function VirtualWatchTowerTrigger({
             </div>
 
             <div className="cc-formula-popover__body">
-              <div className="cc-formula-popover__block">
-                <p style={{ margin: 0, fontSize: '12px', lineHeight: 1.45, color: 'var(--text-muted)' }}>
-                  Rams demolish fortifications in two distinct phases:
+              <div className="cc-formula-popover__block" style={{ fontSize: '12px', lineHeight: 1.45, color: 'var(--text-muted)' }}>
+                <p style={{ margin: 0 }}>
+                  • <strong>Pre-Combat:</strong> Rams drop the tower to <strong>Level {virtualLevel}</strong> before the clash, setting defender defense (+{formatBonus(virtualBonus)}% bonus) during casualty calculations.
                 </p>
-                <ul style={{ margin: '6px 0 0 0', paddingLeft: '18px', fontSize: '11.5px', lineHeight: 1.4, color: 'var(--text-muted)' }}>
-                  <li>
-                    <strong>Pre-Combat Pass:</strong> Before the army clash, rams immediately reduce the fortification to the <strong>Virtual Watch Tower level ({virtualLevel})</strong>. Defenders fight behind this level (+{formatBonus(virtualBonus)}% defense bonus) during casualty calculations.
-                  </li>
-                  <li style={{ marginTop: '4px' }}>
-                    <strong>Combat Demolition Resolution:</strong> The overall clash determines the final fortification level ({finalLevel}). Demolition points are calculated using total rams and the combat battle ratio &sigma;(ratio). Even if all attacking rams perish in the clash, the siege damage inflicted during combat still brings the final level down to {finalLevel}.
-                  </li>
-                </ul>
+                <p style={{ margin: '5px 0 0 0' }}>
+                  • <strong>Post-Combat:</strong> Battle ratio & total rams determine final level (<strong>{finalLevel}</strong>), even if attacking rams perish.
+                </p>
               </div>
 
               <div className="cc-formula-popover__block">
-                <div className="cc-formula-popover__section-title">Watch Tower Levels in This Battle</div>
+                <div className="cc-formula-popover__section-title">
+                  Fortification Levels {guardBonus > 0 ? '(Watch Tower + City Guards)' : 'in This Battle'}
+                </div>
                 <div className="cc-formula-popover__row">
-                  <span>Initial Watch Tower:</span>
-                  <span className="cc-formula-popover__val">Level {initialLevel} (+{formatBonus(initialBonus)}%)</span>
+                  <span>Initial Fortification:</span>
+                  <span className="cc-formula-popover__val">
+                    Level {initialLevel} (+{formatBonus(initialBonus)}%
+                    {guardBonus > 0 ? ` incl. +${formatBonus(guardBonus)}% Guards` : ''})
+                  </span>
                 </div>
                 <div className="cc-formula-popover__row" style={{ color: 'var(--brand, #e6a23c)', fontWeight: 600 }}>
                   <span>Virtual Watch Tower (in combat):</span>
-                  <span className="cc-formula-popover__val">Level {virtualLevel} (+{formatBonus(virtualBonus)}%)</span>
+                  <span className="cc-formula-popover__val">
+                    Level {virtualLevel} (+{formatBonus(virtualBonus)}%
+                    {guardBonus > 0 ? ` incl. +${formatBonus(guardBonus)}% Guards` : ''})
+                  </span>
                 </div>
                 <div className="cc-formula-popover__row">
-                  <span>Final Watch Tower (after battle):</span>
-                  <span className="cc-formula-popover__val">Level {finalLevel} (+{formatBonus(finalBonus)}%)</span>
+                  <span>Final Fortification:</span>
+                  <span className="cc-formula-popover__val">
+                    Level {finalLevel} (+{formatBonus(finalBonus)}%
+                    {guardBonus > 0 ? ` incl. +${formatBonus(guardBonus)}% Guards` : ''})
+                  </span>
                 </div>
-              </div>
-
-              <div className="cc-formula-popover__total-row" style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                <span>{pinned ? '📌 Pinned — tap/click trigger or outside to close.' : '💡 Click or tap to pin this card and copy text.'}</span>
               </div>
             </div>
           </div>,
@@ -2499,10 +2548,6 @@ function BlendedDefenseTrigger({
                 <span>
                   🏰 Fortifications (Watch Tower ×{wallDefScale.toFixed(3)} and +{round(flatDef).toLocaleString()} base def) scale troop strength during casualty resolution.
                 </span>
-              </div>
-
-              <div className="cc-formula-popover__total-row" style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                <span>{pinned ? '📌 Pinned — tap/click trigger or outside to close.' : '💡 Click or tap to pin this card and copy text.'}</span>
               </div>
             </div>
           </div>,

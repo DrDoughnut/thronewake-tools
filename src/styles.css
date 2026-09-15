@@ -8272,6 +8272,20 @@ select:focus, .select:focus, .text-input:focus {
   color: var(--text-dim);
 }
 
+.cc-field-title--toggle {
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s ease;
+  border-radius: var(--radius-sm);
+  padding: 1px 4px;
+  margin: -1px -4px;
+}
+
+.cc-field-title--toggle:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
 .cc-village__grid .cc-field--artifact {
   min-width: 0;
   width: 100%;

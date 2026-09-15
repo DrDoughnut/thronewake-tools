@@ -627,7 +627,8 @@ describe('CombatCalculator', () => {
       trigger.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
     popover = document.body.querySelector('.cc-formula-popover');
-    expect(popover?.textContent).toContain('Pinned');
+    expect(popover).toBeTruthy();
+    expect(popover?.textContent).not.toContain('Pinned');
 
     // Click close button inside popover to dismiss
     const closeBtn = popover?.querySelector('.cc-formula-popover__close') as HTMLElement;
@@ -664,6 +665,56 @@ describe('CombatCalculator', () => {
     const damageValue = damageCard?.querySelector('.cc-summary__value')?.textContent;
     expect(damageValue).not.toBe('0');
     expect(damageCard?.querySelector('.cc-summary__sub')?.textContent).toContain('rebuild cost');
+  });
+
+  it('toggles village buildings between 20 and 0 on title tap/click', async () => {
+    window.location.hash = '#tool=combat&wl=20&cg=0&pal=0&sm=20';
+    await renderComponent();
+
+    const titles = Array.from(container.querySelectorAll('.cc-village__grid .cc-field-title--toggle')) as HTMLElement[];
+    const watchTowerTitle = titles.find((t) => t.textContent?.includes('Watch Tower'));
+    const cityGuardsTitle = titles.find((t) => t.textContent?.includes('City Guards'));
+    const palaceTitle = titles.find((t) => t.textContent?.includes('Residence / Palace'));
+    const stonemasonTitle = titles.find((t) => t.textContent?.includes('Stonemason'));
+
+    expect(watchTowerTitle).toBeTruthy();
+    expect(cityGuardsTitle).toBeTruthy();
+    expect(palaceTitle).toBeTruthy();
+    expect(stonemasonTitle).toBeTruthy();
+
+    // Watch Tower was 20 -> toggles to 0
+    await act(async () => {
+      watchTowerTitle?.click();
+    });
+    const wallInput = container.querySelector('input[aria-label="Watch Tower"]') as HTMLInputElement;
+    expect(wallInput.value).toBe('0');
+
+    // Watch Tower is 0 -> toggles back to 20
+    await act(async () => {
+      watchTowerTitle?.click();
+    });
+    expect(wallInput.value).toBe('20');
+
+    // City Guards was 0 -> toggles to 20
+    await act(async () => {
+      cityGuardsTitle?.click();
+    });
+    const guardsInput = container.querySelector('input[aria-label="City Guards"]') as HTMLInputElement;
+    expect(guardsInput.value).toBe('20');
+
+    // Residence/Palace was 0 -> toggles to 20
+    await act(async () => {
+      palaceTitle?.click();
+    });
+    const palInput = container.querySelector('input[aria-label="Residence / Palace"]') as HTMLInputElement;
+    expect(palInput.value).toBe('20');
+
+    // Stonemason was 20 -> toggles to 0
+    await act(async () => {
+      stonemasonTitle?.click();
+    });
+    const smInput = container.querySelector('input[aria-label="Stonemason"]') as HTMLInputElement;
+    expect(smInput.value).toBe('0');
   });
 
   it('renders simplified summary table, comparative loss bar, and queue time lost card', async () => {
@@ -719,20 +770,21 @@ describe('CombatCalculator', () => {
   });
 
   it('displays Virtual Watch Tower level next to Watch Tower damage in battle outcomes with pretty popover', async () => {
-    // 50k emberblades + 1500 rams vs 50k briar guards (lvl 20 wall, lvl 20 mason)
+    // 50k emberblades + 1500 rams vs 50k briar guards (lvl 20 wall, lvl 20 mason, lvl 20 city guards)
     window.location.hash =
-      '#tool=combat&wl=20&sm=20&att=embermark_dominion:0:emberblade=50000,iron_ram=1500&def=verdant_wardens:0:briar_guard=50000';
+      '#tool=combat&wl=20&sm=20&cg=20&att=embermark_dominion:0:emberblade=50000,iron_ram=1500&def=verdant_wardens:0:briar_guard=50000';
     await renderComponent();
 
     const reportOutcomes = container.querySelector('.cc-report-outcomes');
     expect(reportOutcomes?.textContent).toContain('Watch Tower damaged from level 20 to 0.');
-    expect(reportOutcomes?.textContent).toContain('Virtual Watch Tower from 20 to 9');
+    expect(reportOutcomes?.textContent).toContain('Virtual Watch Tower from 20 to 10');
+    expect(reportOutcomes?.textContent).toContain('incl. +20% City Guards');
 
     const vwTrigger = container.querySelector('.cc-virtual-wall-trigger') as HTMLElement;
     expect(vwTrigger).toBeTruthy();
     expect(vwTrigger.querySelector('.cc-help-badge')?.textContent).toBe('?');
-    expect(vwTrigger.querySelector('.cc-dotted-term')?.textContent).toContain('Virtual Watch Tower from 20 to 9');
-    expect(vwTrigger.querySelector('.cc-dotted-term')?.textContent).toContain('provides +24.9% bonus');
+    expect(vwTrigger.querySelector('.cc-dotted-term')?.textContent).toContain('Virtual Watch Tower from 20 to 10');
+    expect(vwTrigger.querySelector('.cc-dotted-term')?.textContent).toContain('provides +48% bonus');
 
     // Click trigger to pin the popover suspended
     await act(async () => {
@@ -742,11 +794,12 @@ describe('CombatCalculator', () => {
     const popover = document.body.querySelector('.cc-formula-popover');
     expect(popover).toBeTruthy();
     expect(popover?.textContent).toContain('Virtual Watch Tower (Combat Fortification)');
-    expect(popover?.textContent).toContain('Watch Tower Levels in This Battle');
-    expect(popover?.textContent).toContain('Level 9');
-    expect(popover?.textContent).toContain('Pinned');
-    expect(popover?.textContent).toContain('Pre-Combat Pass');
-    expect(popover?.textContent).toContain('Combat Demolition Resolution');
+    expect(popover?.textContent).toContain('Fortification Levels (Watch Tower + City Guards)');
+    expect(popover?.textContent).toContain('Level 10');
+    expect(popover?.textContent).toContain('incl. +20% Guards');
+    expect(popover?.textContent).not.toContain('Pinned');
+    expect(popover?.textContent).toContain('Pre-Combat');
+    expect(popover?.textContent).toContain('Post-Combat');
     expect(popover?.textContent).not.toContain('Surviving rams take a second');
 
     // Click outside to dismiss
