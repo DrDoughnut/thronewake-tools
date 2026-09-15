@@ -143,10 +143,9 @@ describe('CombatCalculator', () => {
     // Battle Summary section is rendered in the right column
     const summaryPanel = container.querySelector('.cc-col-details .cc-summary-panel');
     expect(summaryPanel).toBeTruthy();
-    expect(container.querySelector('.cc-summary__card--off')).toBeTruthy();
-    expect(container.querySelector('.cc-summary__card--def')).toBeTruthy();
-    expect(container.querySelector('.cc-summary')).toBeTruthy();
+    expect(container.querySelector('.cc-report-summary')).toBeTruthy();
     expect(container.querySelector('.cc-report-summary-table')).toBeTruthy();
+    expect(container.querySelector('.cc-loss-comparison-card')).toBeTruthy();
 
     // Unit card in attacker only contains the count input without inline loss/left rows
     const firstTroop = container.querySelector('.cc-army--off .cc-troop');
@@ -207,7 +206,7 @@ describe('CombatCalculator', () => {
 
     // Battle should be resolved immediately with results rendered
     expect(container.querySelector('.cc-details')).toBeTruthy();
-    expect(container.querySelector('.cc-summary__card--off')).toBeTruthy();
+    expect(container.querySelector('.cc-report-summary-table')).toBeTruthy();
   });
 
   it('provides a Share button that copies the current URL to clipboard', async () => {
@@ -656,15 +655,11 @@ describe('CombatCalculator', () => {
     window.location.hash =
       '#tool=combat&wl=20&sm=0&att=embermark_dominion:0:iron_ram=500&def=verdant_wardens:0:';
     await renderComponent();
-
-    // Verify building damage card has non-zero cost reflecting destroyed Watch Tower
-    const damageCard = Array.from(container.querySelectorAll('.cc-summary__card')).find(
-      (card) => card.querySelector('.cc-summary__label')?.textContent === 'Building damage',
-    );
-    expect(damageCard).toBeTruthy();
-    const damageValue = damageCard?.querySelector('.cc-summary__value')?.textContent;
-    expect(damageValue).not.toBe('0');
-    expect(damageCard?.querySelector('.cc-summary__sub')?.textContent).toContain('rebuild cost');
+ 
+    // Verify building damage in summary table has non-zero cost reflecting destroyed Watch Tower
+    const summaryTable = container.querySelector('.cc-report-summary-table');
+    expect(summaryTable?.textContent).toContain('buildings & wall');
+    expect(summaryTable?.textContent).toMatch(/\+\d+/);
   });
 
   it('toggles village buildings between 20 and 0 on title tap/click', async () => {

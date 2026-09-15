@@ -1586,38 +1586,57 @@ export function CombatCalculator() {
                   </tr>
                   <tr className="cc-summary-divider">
                     <td colSpan={2}>
-                      <span className="cc-hdr-emoji" role="img" aria-label="Resources">📦</span> resources lost
+                      <span className="cc-hdr-emoji" role="img" aria-label="Resources lost">🔥</span> resources lost
                     </td>
                   </tr>
-                  {/* Offense Total vs Defender Troop Loss */}
-                  <tr>
-                    <td rowSpan={damageCost > 0 ? 2 : 1} style={{ verticalAlign: 'middle' }}>
-                      <strong>{round(attRes.total)}</strong> <img src={statIcon('capacity')} alt="Total Offense Loss" className="cc-report-icon" />
-                    </td>
-                    <td>
-                      <span>{round(defRes.total)}</span> <img src={statIcon('capacity')} alt="Defender Troops" className="cc-report-icon" />
-                      <div className="cc-summary-breakdown-sub">troops</div>
-                    </td>
-                  </tr>
-                  {/* Defender Building Damage if any */}
-                  {damageCost > 0 && (
-                    <tr className="cc-summary-sub-row">
+                  {damageCost > 0 ? (
+                    <>
+                      {/* Row 1: Troops Lost */}
+                      <tr>
+                        <td>
+                          <span>{round(attRes.total).toLocaleString()}</span> <span className="cc-report-fire" role="img" aria-label="Resources lost">🔥</span>
+                          <div className="cc-summary-breakdown-sub">troops</div>
+                        </td>
+                        <td>
+                          <span>{round(defRes.total).toLocaleString()}</span> <span className="cc-report-fire" role="img" aria-label="Resources lost">🔥</span>
+                          <div className="cc-summary-breakdown-sub">troops</div>
+                        </td>
+                      </tr>
+                      {/* Row 2: Building & Wall Damage */}
+                      <tr className="cc-summary-sub-row">
+                        <td>
+                          <span className="cc-summary-breakdown-sub">—</span>
+                        </td>
+                        <td>
+                          <span>+{round(damageCost).toLocaleString()}</span> <span className="cc-report-fire" role="img" aria-label="Resources lost">🔥</span>
+                          <div className="cc-summary-breakdown-sub">buildings & wall</div>
+                        </td>
+                      </tr>
+                      {/* Row 3: Total Resources Lost */}
+                      <tr className="cc-summary-total-row">
+                        <td>
+                          <strong>{round(attRes.total).toLocaleString()}</strong> <span className="cc-report-fire" role="img" aria-label="Total offense loss">🔥</span>
+                          <div className="cc-summary-breakdown-sub">total loss</div>
+                        </td>
+                        <td>
+                          <strong>{round(defRes.total + damageCost).toLocaleString()}</strong> <span className="cc-report-fire" role="img" aria-label="Total defense loss">🔥</span>
+                          <div className="cc-summary-breakdown-sub">troops + buildings</div>
+                        </td>
+                      </tr>
+                    </>
+                  ) : (
+                    /* When there is no building damage, direct side-by-side total row */
+                    <tr className="cc-summary-total-row">
                       <td>
-                        <span>+{round(damageCost)}</span> <img src={statIcon('capacity')} alt="Building Damage" className="cc-report-icon" />
-                        <div className="cc-summary-breakdown-sub">buildings & wall</div>
+                        <strong>{round(attRes.total).toLocaleString()}</strong> <span className="cc-report-fire" role="img" aria-label="Total offense loss">🔥</span>
+                        <div className="cc-summary-breakdown-sub">troops (total loss)</div>
+                      </td>
+                      <td>
+                        <strong>{round(defRes.total).toLocaleString()}</strong> <span className="cc-report-fire" role="img" aria-label="Total defense loss">🔥</span>
+                        <div className="cc-summary-breakdown-sub">troops (total loss)</div>
                       </td>
                     </tr>
                   )}
-                  {/* Total Defender Loss Row */}
-                  <tr className="cc-summary-total-row">
-                    <td>
-                      <span className="cc-summary-breakdown-sub">total loss</span>
-                    </td>
-                    <td>
-                      <strong>{round(defRes.total + damageCost)}</strong> <img src={statIcon('capacity')} alt="Total Defender Loss" className="cc-report-icon" />
-                      <div className="cc-summary-breakdown-sub">troops + buildings</div>
-                    </td>
-                  </tr>
                 </tbody>
               </table>
             </div>
@@ -1626,10 +1645,10 @@ export function CombatCalculator() {
             <div className="cc-loss-comparison-card">
               <div className="cc-loss-comparison-header">
                 <span className="cc-loss-comparison-header--off">
-                  ⚔️ Offense {offCostRatio.toFixed(1)}%
+                  ⚔️ Offense: {round(attackerCost).toLocaleString()} res lost
                 </span>
                 <span className="cc-loss-comparison-header--def">
-                  Defense {defCostRatio.toFixed(1)}% 🛡️
+                  Defense: {round(defenderCost + damageCost).toLocaleString()} res lost 🛡️
                 </span>
               </div>
               <div
@@ -1650,7 +1669,7 @@ export function CombatCalculator() {
                 />
               </div>
               <div className="cc-loss-comparison-sub">
-                {round(attackerCost)} res vs {round(defenderCost + damageCost)} res
+                🔥 {round(totalLossCost).toLocaleString()} total resources destroyed ({offCostRatio.toFixed(0)}% off · {defCostRatio.toFixed(0)}% def)
               </div>
             </div>
 
@@ -1669,30 +1688,6 @@ export function CombatCalculator() {
                   <span className="cc-queue-time-label">Defense Queue</span>
                   <span className="cc-queue-time-val">{formatTimeSeconds(defQueueSeconds)}</span>
                 </div>
-              </div>
-            </div>
-
-            {/* Summary Cards */}
-            <div className="cc-summary" style={{ marginTop: 8 }}>
-              <div className="cc-summary__card cc-summary__card--off">
-                <span className="cc-summary__label">Offense loss</span>
-                <span className="cc-summary__value">{compact(attackerCost)}</span>
-                <span className="cc-summary__sub">{round(attackerCost)} res</span>
-              </div>
-              <div className="cc-summary__card cc-summary__card--def">
-                <span className="cc-summary__label">Defender troops</span>
-                <span className="cc-summary__value">{compact(defenderCost)}</span>
-                <span className="cc-summary__sub">{round(defenderCost)} res</span>
-              </div>
-              <div className="cc-summary__card">
-                <span className="cc-summary__label">Building damage</span>
-                <span className="cc-summary__value">{compact(damageCost)}</span>
-                <span className="cc-summary__sub">{round(damageCost)} rebuild cost</span>
-              </div>
-              <div className="cc-summary__card cc-summary__card--def">
-                <span className="cc-summary__label">Total defender loss</span>
-                <span className="cc-summary__value">{compact(defenderCost + damageCost)}</span>
-                <span className="cc-summary__sub">troops + buildings</span>
               </div>
             </div>
           </section>
