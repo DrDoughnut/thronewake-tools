@@ -1,4 +1,4 @@
-import { useEffect, useState, type ChangeEvent } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 
 /**
  * Parses user input into a number, supporting:
@@ -61,6 +61,41 @@ export function parseKiloNumber(raw: string | number): number {
   return Number.isFinite(fallback) ? Math.max(0, fallback) : 0;
 }
 
+/**
+ * Determines the smart scrolling step size based on current value magnitude:
+ * - 1 digit (0-9): 1s
+ * - 2 digits (10-99): 10s
+ * - 3 digits (100-999): 100s
+ * - 4+ digits (1000+): 1000s
+ *
+ * When scrolling down, base magnitude is measured from (value - 1) so transitioning
+ * down from exact powers of 10 (e.g. 10 -> 9, 100 -> 90, 1000 -> 900) smoothly
+ * steps down to the tier below rather than dropping straight to zero.
+ * Holding Shift multiplies the step by 10.
+ */
+export function getSmartScrollStep(
+  value: number,
+  direction: 'up' | 'down',
+  shiftKey = false,
+): number {
+  const baseValue = direction === 'down' ? Math.max(0, value - 1) : Math.max(0, value);
+  let step = 1;
+  if (baseValue < 10) {
+    step = 1;
+  } else if (baseValue < 100) {
+    step = 10;
+  } else if (baseValue < 1000) {
+    step = 100;
+  } else {
+    step = 1000;
+  }
+
+  if (shiftKey) {
+    step *= 10;
+  }
+  return step;
+}
+
 export interface KiloNumberInputProps {
   value: number;
   onChange: (value: number) => void;
@@ -85,14 +120,61 @@ export function KiloNumberInput({
   title,
 }: KiloNumberInputProps) {
   const [text, setText] = useState<string>(value === 0 ? '' : String(value));
+  const inputRef = useRef<HTMLInputElement>(null);
+  const textRef = useRef(text);
+  textRef.current = text;
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
 
   // Sync with incoming value if it changes externally
   useEffect(() => {
     const currentParsed = parseKiloNumber(text);
     if (currentParsed !== value) {
-      setText(value === 0 ? '' : String(value));
+      const formatted = value === 0 ? '' : String(value);
+      setText(formatted);
+      textRef.current = formatted;
     }
   }, [value]);
+
+  // Attach non-passive wheel listener to allow e.preventDefault() and smooth smart-scrolling
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+
+    let accumulatedDelta = 0;
+    let resetTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      if (resetTimer) clearTimeout(resetTimer);
+      resetTimer = setTimeout(() => {
+        accumulatedDelta = 0;
+      }, 200);
+
+      accumulatedDelta += e.deltaY;
+      const threshold = 40;
+
+      if (Math.abs(accumulatedDelta) >= threshold) {
+        const dir: 'up' | 'down' = accumulatedDelta < 0 ? 'up' : 'down';
+        accumulatedDelta = 0;
+
+        const currentNum = parseKiloNumber(textRef.current);
+        const step = getSmartScrollStep(currentNum, dir, e.shiftKey);
+        const next = dir === 'up' ? currentNum + step : currentNum - step;
+        const clamped = max !== undefined ? Math.min(max, Math.max(min, next)) : Math.max(min, next);
+        const formatted = clamped === 0 ? '' : String(clamped);
+        setText(formatted);
+        textRef.current = formatted;
+        onChangeRef.current(clamped);
+      }
+    };
+
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    return () => {
+      el.removeEventListener('wheel', handleWheel);
+      if (resetTimer) clearTimeout(resetTimer);
+    };
+  }, [min, max]);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value;
@@ -104,11 +186,13 @@ export function KiloNumberInput({
       const clamped = max !== undefined ? Math.min(max, Math.max(min, parsed)) : Math.max(min, parsed);
       const formatted = clamped === 0 ? '' : String(clamped);
       setText(formatted);
+      textRef.current = formatted;
       onChange(clamped);
       return;
     }
 
     setText(raw);
+    textRef.current = raw;
     const parsed = parseKiloNumber(raw);
     const clamped = max !== undefined ? Math.min(max, Math.max(min, parsed)) : Math.max(min, parsed);
     onChange(clamped);
@@ -117,12 +201,30 @@ export function KiloNumberInput({
   const handleBlur = () => {
     const parsed = parseKiloNumber(text);
     const clamped = max !== undefined ? Math.min(max, Math.max(min, parsed)) : Math.max(min, parsed);
-    setText(clamped === 0 ? '' : String(clamped));
+    const formatted = clamped === 0 ? '' : String(clamped);
+    setText(formatted);
+    textRef.current = formatted;
     onChange(clamped);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      const dir: 'up' | 'down' = e.key === 'ArrowUp' ? 'up' : 'down';
+      const currentNum = parseKiloNumber(text);
+      const step = getSmartScrollStep(currentNum, dir, e.shiftKey);
+      const next = dir === 'up' ? currentNum + step : currentNum - step;
+      const clamped = max !== undefined ? Math.min(max, Math.max(min, next)) : Math.max(min, next);
+      const formatted = clamped === 0 ? '' : String(clamped);
+      setText(formatted);
+      textRef.current = formatted;
+      onChange(clamped);
+    }
   };
 
   return (
     <input
+      ref={inputRef}
       id={id}
       type="text"
       inputMode="numeric"
@@ -133,6 +235,7 @@ export function KiloNumberInput({
       title={title}
       onChange={handleChange}
       onBlur={handleBlur}
+      onKeyDown={handleKeyDown}
     />
   );
 }

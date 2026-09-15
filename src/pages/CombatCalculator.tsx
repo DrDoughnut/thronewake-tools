@@ -894,12 +894,37 @@ export function CombatCalculator() {
                             <img src={buildingIcon('watch_tower')} alt="" className="cc-report-outcome-icon" />
                             <span>
                               Watch Tower damaged from level {state.wallLevel} to {battle.result.wallLevel}.
+                              {battle.result.waves.length === 1 && battle.result.waves[0]?.wallDuringBattle !== undefined
+                                ? ` (Virtual Wall from ${state.wallLevel} to ${battle.result.waves[0].wallDuringBattle})`
+                                : battle.result.waves.length > 1
+                                ? (() => {
+                                    const ramWaves = battle.result.waves
+                                      .map((waveRes, idx) => {
+                                        const before = idx === 0 ? state.wallLevel : (battle.result.waves[idx - 1]?.wallLevel ?? state.wallLevel);
+                                        return { idx: idx + 1, before, during: waveRes.wallDuringBattle };
+                                      })
+                                      .filter((item) => item.before > 0 || item.during > 0);
+                                    if (ramWaves.length === 1) {
+                                      return ` (Virtual Wall from ${ramWaves[0].before} to ${ramWaves[0].during})`;
+                                    } else if (ramWaves.length > 1) {
+                                      return ` (Virtual Wall: ${ramWaves.map((rw) => `Wave ${rw.idx} from ${rw.before} to ${rw.during}`).join(', ')})`;
+                                    }
+                                    return '';
+                                  })()
+                                : ''}
                             </span>
                           </li>
                         ) : totalRams > 0 ? (
                           <li className="cc-report-outcome-item">
                             <img src={buildingIcon('watch_tower')} alt="" className="cc-report-outcome-icon" />
-                            <span>Watch Tower held firm at level {battle.result.wallLevel}.</span>
+                            <span>
+                              Watch Tower held firm at level {battle.result.wallLevel}.
+                              {battle.result.waves.length === 1 &&
+                              battle.result.waves[0]?.wallDuringBattle !== undefined &&
+                              battle.result.waves[0].wallDuringBattle !== state.wallLevel
+                                ? ` (Virtual Wall from ${state.wallLevel} to ${battle.result.waves[0].wallDuringBattle})`
+                                : ''}
+                            </span>
                           </li>
                         ) : null}
 
@@ -962,13 +987,16 @@ export function CombatCalculator() {
                           <li className="cc-report-outcome-item">
                             <img src={buildingIcon('watch_tower')} alt="" className="cc-report-outcome-icon" />
                             <span>
-                              Watch Tower damaged from level {wallBeforeWave} to {w.wallLevel}.
+                              Watch Tower damaged from level {wallBeforeWave} to {w.wallLevel}. (Virtual Wall from {wallBeforeWave} to {w.wallDuringBattle})
                             </span>
                           </li>
                         ) : ramsInWave > 0 ? (
                           <li className="cc-report-outcome-item">
                             <img src={buildingIcon('watch_tower')} alt="" className="cc-report-outcome-icon" />
-                            <span>Watch Tower held firm at level {w.wallLevel}.</span>
+                            <span>
+                              Watch Tower held firm at level {w.wallLevel}.
+                              {w.wallDuringBattle !== wallBeforeWave ? ` (Virtual Wall from ${wallBeforeWave} to ${w.wallDuringBattle})` : ''}
+                            </span>
                           </li>
                         ) : null}
 

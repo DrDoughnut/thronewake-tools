@@ -690,6 +690,17 @@ describe('CombatCalculator', () => {
     expect(reportOutcomes?.textContent).not.toContain('loyalty of the village was lowered');
     expect(reportOutcomes?.textContent).toContain('No siege damage, loyalty reduction');
   });
+
+  it('displays Virtual Wall level next to Watch Tower damage in battle outcomes', async () => {
+    // 50k emberblades + 1500 rams vs 50k briar guards (lvl 20 wall, lvl 20 mason)
+    window.location.hash =
+      '#tool=combat&wl=20&sm=20&att=embermark_dominion:0:emberblade=50000,iron_ram=1500&def=verdant_wardens:0:briar_guard=50000';
+    await renderComponent();
+
+    const reportOutcomes = container.querySelector('.cc-report-outcomes');
+    expect(reportOutcomes?.textContent).toContain('Watch Tower damaged from level 20 to 0.');
+    expect(reportOutcomes?.textContent).toContain('(Virtual Wall from 20 to 9)');
+  });
 });
 
 
