@@ -16,7 +16,6 @@ import {
   type Wave,
 } from './combat';
 import { watchTowerBonus, watchTowerDurability, watchTowerFlat } from '../data/rules';
-import { upgradeStat } from './stats';
 
 const durabilityFor = (level: number) => 1 + 0.1 * Math.max(0, level);
 
@@ -407,55 +406,45 @@ describe('Combat Engine', () => {
         expect(battle.remainingTraps).toBe(0);
       });
 
-      it('simulates 50k emberblades + 1500 rams vs 50k briar guards (lvl 20 watchtower, lvl 20 stonemason)', () => {
-        // Attackers: 50,000 Emberblades + 1,500 Iron Rams with lvl 20 upgrades
-        const emberbladeUnit = { key: 'emberblade', upkeep: 1, noUpgrade: false } as any;
-        const ramUnit = { key: 'iron_ram', upkeep: 3, noUpgrade: false } as any;
-        const briarUnit = { key: 'briar_guard', upkeep: 1, noUpgrade: false } as any;
-
-        const offEmber = upgradeStat(emberbladeUnit, 40, 20);
-        const offRam = upgradeStat(ramUnit, 60, 20);
-        const defBriar = upgradeStat(briarUnit, 40, 20);
-
+      it('simulates 50k emberblades + 1500 rams vs 50k briar shields (lvl 20 wall, lvl 20 mason)', () => {
+        // 50k ember blades 1,500 rams vs 50k briar shields lvl 20 wall lvl 20 mason
+        // Attacker wiped, def casualties ~39,362, wall 20 -> 0
+        const factionKey = 'verdant_wardens';
         const emberblades: Regiment = {
           key: 'emberblade',
           count: 50_000,
-          off: offEmber,
+          off: 40,
           defInf: 35,
           defCav: 50,
           cavalry: false,
-          upgrade: 20,
+          upgrade: 0,
         };
         const rams: Regiment = {
           key: 'iron_ram',
           count: 1_500,
-          off: offRam,
+          off: 60,
           defInf: 30,
           defCav: 75,
           cavalry: false,
           siege: 'ram',
-          upgrade: 20,
+          upgrade: 0,
         };
-
-        // Defenders: 50,000 Briar Guards (defInf upgraded with smithy 20)
         const briarGuards: Regiment = {
           key: 'briar_guard',
           count: 50_000,
           off: 15,
-          defInf: defBriar,
+          defInf: 40,
           defCav: 50,
           cavalry: false,
-          upgrade: 20,
+          upgrade: 0,
         };
 
-        // Village: Verdant Wardens with level 20 watch tower & level 20 stonemason
-        const factionKey = 'verdant_wardens';
         const targetVillage: Village = {
           pop: 1000,
           wallLevel: 20,
           wallDefBonus: watchTowerBonus(factionKey, 20),
           wallDefFlat: watchTowerFlat(factionKey, 20),
-          wallDurability: watchTowerDurability(factionKey),
+          wallDurability: watchTowerDurability(factionKey) * durabilityFor(20),
           durability: durabilityFor(20),
           extraDef: 0,
         };
@@ -466,16 +455,107 @@ describe('Combat Engine', () => {
           wave([emberblades, rams], { pop: 1000, type: 'attack', morale: false })
         );
 
-        // Watchtower should go from 20 -> 0
         expect(result.wallLevel).toBe(0);
+        const defenderLosses = 50_000 - (result.defenderSurvivors[0]?.count ?? 0);
+        // Exactly or roughly 39,362
+        expect(Math.abs(defenderLosses - 39362)).toBeLessThanOrEqual(5);
+        expect(result.offLosses).toBe(1);
+      });
 
-        // Calculate Verdant defender losses
-        const survivingDefenders = result.defenderSurvivors[0]?.count ?? 0;
-        const defenderLosses = 50_000 - survivingDefenders;
+      it('simulates 50k emberblades + 1500 rams vs 50k briar shields (lvl 20 wall, lvl 0 mason)', () => {
+        // 50k ember blades 1,500 rams vs 50k briar shields lvl 20 wall lvl ZERO mason
+        // Def wiped, attacker casualties ~48,727 (or wiped/near-wiped), wall to 0
+        const factionKey = 'verdant_wardens';
+        const targetVillage: Village = {
+          pop: 1000,
+          wallLevel: 20,
+          wallDefBonus: watchTowerBonus(factionKey, 20),
+          wallDefFlat: watchTowerFlat(factionKey, 20),
+          wallDurability: watchTowerDurability(factionKey),
+          durability: 1,
+          extraDef: 0,
+        };
 
-        // Verdant losses equal roughly 39362 (39,771 ~ 1.04% difference)
-        expect(defenderLosses).toBeCloseTo(39362, -3);
-        expect(Math.abs(defenderLosses - 39362)).toBeLessThan(500);
+        const emberblades: Regiment = { key: 'emberblade', count: 50_000, off: 40, defInf: 35, defCav: 50, cavalry: false, upgrade: 0 };
+        const rams: Regiment = { key: 'iron_ram', count: 1_500, off: 60, defInf: 30, defCav: 75, cavalry: false, siege: 'ram', upgrade: 0 };
+        const briarGuards: Regiment = { key: 'briar_guard', count: 50_000, off: 15, defInf: 40, defCav: 50, cavalry: false, upgrade: 0 };
+
+        const result = resolveWave(
+          targetVillage,
+          [briarGuards],
+          wave([emberblades, rams], { pop: 1000, type: 'attack', morale: false })
+        );
+
+        expect(result.wallLevel).toBe(0);
+        expect(result.defLosses).toBe(1); // Defender wiped
+        const emberbladeCasualties = 50_000 - (result.attackerSurvivors[0]?.count ?? 0);
+        const totalAttackerTroops = 50_000 + 1_500;
+        const totalAttackerSurvivors = (result.attackerSurvivors[0]?.count ?? 0) + (result.attackerSurvivors[1]?.count ?? 0);
+        const attackerCasualties = totalAttackerTroops - totalAttackerSurvivors;
+        // Emberblades casualties: ~48,722 (within 5 of 48,727), total casualties ~50,184
+        expect(Math.abs(emberbladeCasualties - 48727)).toBeLessThanOrEqual(10);
+        expect(attackerCasualties).toBeGreaterThanOrEqual(48_500);
+      });
+
+      it('simulates 50k emberblades + 500 rams vs 50k briar shields (lvl 20 wall, lvl 20 mason)', () => {
+        // 50k ember blades 500 rams vs 50k briar shields lvl 20 wall lvl 20 mason
+        // Attacker wiped, 28,091 casualties for briar shields, wall to 15 (or 16)
+        const factionKey = 'verdant_wardens';
+        const targetVillage: Village = {
+          pop: 1000,
+          wallLevel: 20,
+          wallDefBonus: watchTowerBonus(factionKey, 20),
+          wallDefFlat: watchTowerFlat(factionKey, 20),
+          wallDurability: watchTowerDurability(factionKey) * durabilityFor(20),
+          durability: durabilityFor(20),
+          extraDef: 0,
+        };
+
+        const emberblades: Regiment = { key: 'emberblade', count: 50_000, off: 40, defInf: 35, defCav: 50, cavalry: false, upgrade: 0 };
+        const rams: Regiment = { key: 'iron_ram', count: 500, off: 60, defInf: 30, defCav: 75, cavalry: false, siege: 'ram', upgrade: 0 };
+        const briarGuards: Regiment = { key: 'briar_guard', count: 50_000, off: 15, defInf: 40, defCav: 50, cavalry: false, upgrade: 0 };
+
+        const result = resolveWave(
+          targetVillage,
+          [briarGuards],
+          wave([emberblades, rams], { pop: 1000, type: 'attack', morale: false })
+        );
+
+        expect(result.offLosses).toBe(1); // Attacker wiped
+        const defenderLosses = 50_000 - (result.defenderSurvivors[0]?.count ?? 0);
+        expect(Math.abs(defenderLosses - 28091)).toBeLessThanOrEqual(5);
+        expect(result.wallLevel).toBeLessThanOrEqual(16);
+        expect(result.wallLevel).toBeGreaterThanOrEqual(15);
+      });
+
+      it('simulates 50k emberblades + 500 rams vs 50k briar shields (lvl 20 wall, lvl 0 mason)', () => {
+        // 50k ember blades 500 rams vs 50k briar shields lvl 20 wall lvl ZERO mason
+        // Attacker wiped, 37,852 casualties for briar shields, wall to 0
+        const factionKey = 'verdant_wardens';
+        const targetVillage: Village = {
+          pop: 1000,
+          wallLevel: 20,
+          wallDefBonus: watchTowerBonus(factionKey, 20),
+          wallDefFlat: watchTowerFlat(factionKey, 20),
+          wallDurability: watchTowerDurability(factionKey),
+          durability: 1,
+          extraDef: 0,
+        };
+
+        const emberblades: Regiment = { key: 'emberblade', count: 50_000, off: 40, defInf: 35, defCav: 50, cavalry: false, upgrade: 0 };
+        const rams: Regiment = { key: 'iron_ram', count: 500, off: 60, defInf: 30, defCav: 75, cavalry: false, siege: 'ram', upgrade: 0 };
+        const briarGuards: Regiment = { key: 'briar_guard', count: 50_000, off: 15, defInf: 40, defCav: 50, cavalry: false, upgrade: 0 };
+
+        const result = resolveWave(
+          targetVillage,
+          [briarGuards],
+          wave([emberblades, rams], { pop: 1000, type: 'attack', morale: false })
+        );
+
+        expect(result.offLosses).toBe(1); // Attacker wiped
+        const defenderLosses = 50_000 - (result.defenderSurvivors[0]?.count ?? 0);
+        expect(Math.abs(defenderLosses - 37852)).toBeLessThanOrEqual(5);
+        expect(result.wallLevel).toBe(0);
       });
     });
   });

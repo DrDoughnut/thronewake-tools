@@ -16,7 +16,22 @@
 /** A village defends itself for this much before any troops are counted. */
 export const BASE_VILLAGE_DEF = 10;
 
-/** The winner keeps (loser / winner) to this power. Constant in T4. */
+/**
+ * Dynamic immensity factor (K) from the Travian T4 combat formula.
+ *
+ * For smaller skirmishes K is 1.5. In massive battles (100k+ troops),
+ * K gradually scales down toward 1.257, which prevents armies from wiping
+ * each other out too steeply and accurately models high-tier battles.
+ *
+ *     K = 2 · (1.8592 − totalTroops^0.015)
+ */
+export function immensity(totalTroops: number): number {
+  if (!totalTroops || totalTroops <= 1000) return 1.5;
+  const k = 2 * (1.8592 - totalTroops ** 0.015);
+  return Math.max(1.257, Math.min(1.5, k));
+}
+
+/** Fallback constant kept for backward compatibility. */
 export const IMMENSITY = 1.5;
 
 /** Morale can never cost an attacker more than a third of its offense. */
@@ -281,7 +296,7 @@ export function resolveWave(
   const defenceAt = (wallLevel: number) => {
     // A wall that has been rammed down mid-battle stops paying its bonus.
     const scale = village.wallLevel > 0 ? wallLevel / village.wallLevel : 0;
-    const bonus = 1 + village.wallDefBonus * scale;
+    const bonus = village.wallLevel > 0 ? Math.pow(1 + village.wallDefBonus, scale) : 1;
     const flat = BASE_VILLAGE_DEF + village.extraDef + village.wallDefFlat * scale;
     return (blendedDef + flat) * bonus;
   };
@@ -301,7 +316,10 @@ export function resolveWave(
   const [rams, ramUpgrade] = findSiege(fightingRegiments, 'ram');
   if (rams > 0 && village.wallLevel > 0) {
     const ratio = finalDef > 0 ? finalOff / finalDef : Infinity;
-    const earlyPoints = demolishPoints(rams, ramUpgrade, village.durability, ratio);
+    // Rams attack the wall, whose durability (including Stonemason) is already
+    // factored into `village.wallDurability`. Dividing ram points by building durability
+    // again would apply the stonemason effect twice.
+    const earlyPoints = demolishPoints(rams, ramUpgrade, 1, ratio);
     wallDuringBattle = demolishWall(village.wallDurability, village.wallLevel, earlyPoints);
 
     // The fight is now against the reduced wall, which changes the ratio the
@@ -311,17 +329,17 @@ export function resolveWave(
     const finalPoints = demolishPoints(
       rams,
       ramUpgrade,
-      village.durability,
+      1,
       battleRatio,
     );
-    // Durability resists the finishing pass as well as the early one. The
-    // reference applies it only to the early phase, which would let a tougher
-    // wall be levelled just as fast as a flimsy one once the fight is over.
+    // Durability resists the finishing pass as well as the early one.
     wallAfter = demolish(village.wallLevel, finalPoints / Math.max(0.01, village.wallDurability));
   }
 
   const ratio = finalDef > 0 ? finalOff / finalDef : Infinity;
-  const x = ratio ** IMMENSITY;
+  const totalTroopsInFight = totalCount(fightingRegiments) + totalCount(defenders);
+  const kImmensity = immensity(totalTroopsInFight);
+  const x = ratio ** kImmensity;
 
   let offLosses: number;
   let defLosses: number;
