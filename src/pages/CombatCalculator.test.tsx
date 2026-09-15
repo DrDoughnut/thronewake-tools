@@ -598,10 +598,11 @@ describe('CombatCalculator', () => {
       '#tool=combat&wl=0&sm=0&att=embermark_dominion:0:emberblade=1000&def=verdant_wardens:0:briar_guard=1000';
     await renderComponent();
 
-    // Summary table total defense cell
+    // Summary table total defense cell (shows troop defense only without wall multiplier)
     const defCells = container.querySelectorAll('.cc-report-summary-table tbody tr:nth-child(3) td');
     const defTotalCell = defCells[1];
     expect(defTotalCell).toBeTruthy();
+    expect(defTotalCell.textContent).toContain('40k'); // 40,000 troop inf def against 100% inf, no wall bonus
 
     const trigger = defTotalCell.querySelector('.cc-formula-trigger') as HTMLElement;
     expect(trigger).toBeTruthy();
@@ -613,12 +614,28 @@ describe('CombatCalculator', () => {
       trigger.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
     });
 
-    const popover = document.body.querySelector('.cc-formula-popover');
+    let popover = document.body.querySelector('.cc-formula-popover');
     expect(popover).toBeTruthy();
-    expect(popover?.textContent).toContain('Blended Defense Calculation');
+    expect(popover?.textContent).toContain('Garrison Troop Defense (Blended)');
     expect(popover?.textContent).toContain('Attacker Composition');
     expect(popover?.textContent).toContain('Garrison Troop Defense');
-    expect(popover?.textContent).toContain('Total Blended Defense');
+    expect(popover?.textContent).toContain('Total Troop Defense');
+    expect(popover?.textContent).toContain('40,000');
+
+    // Click trigger to pin the popover suspended
+    await act(async () => {
+      trigger.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    popover = document.body.querySelector('.cc-formula-popover');
+    expect(popover?.textContent).toContain('Pinned');
+
+    // Click close button inside popover to dismiss
+    const closeBtn = popover?.querySelector('.cc-formula-popover__close') as HTMLElement;
+    expect(closeBtn).toBeTruthy();
+    await act(async () => {
+      closeBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(document.body.querySelector('.cc-formula-popover')).toBeNull();
   });
 
   it('shows truncated resource loss next to percentage in wave/defender banners', async () => {
@@ -701,7 +718,7 @@ describe('CombatCalculator', () => {
     expect(reportOutcomes?.textContent).toContain('No siege damage, loyalty reduction');
   });
 
-  it('displays Virtual Wall level next to Watch Tower damage in battle outcomes with pretty popover', async () => {
+  it('displays Virtual Watch Tower level next to Watch Tower damage in battle outcomes with pretty popover', async () => {
     // 50k emberblades + 1500 rams vs 50k briar guards (lvl 20 wall, lvl 20 mason)
     window.location.hash =
       '#tool=combat&wl=20&sm=20&att=embermark_dominion:0:emberblade=50000,iron_ram=1500&def=verdant_wardens:0:briar_guard=50000';
@@ -709,23 +726,34 @@ describe('CombatCalculator', () => {
 
     const reportOutcomes = container.querySelector('.cc-report-outcomes');
     expect(reportOutcomes?.textContent).toContain('Watch Tower damaged from level 20 to 0.');
-    expect(reportOutcomes?.textContent).toContain('Virtual Wall from 20 to 9');
+    expect(reportOutcomes?.textContent).toContain('Virtual Watch Tower from 20 to 9');
 
     const vwTrigger = container.querySelector('.cc-virtual-wall-trigger') as HTMLElement;
     expect(vwTrigger).toBeTruthy();
     expect(vwTrigger.querySelector('.cc-help-badge')?.textContent).toBe('?');
-    expect(vwTrigger.querySelector('.cc-dotted-term')?.textContent).toBe('Virtual Wall from 20 to 9');
+    expect(vwTrigger.querySelector('.cc-dotted-term')?.textContent).toContain('Virtual Watch Tower from 20 to 9');
+    expect(vwTrigger.querySelector('.cc-dotted-term')?.textContent).toContain('provides +24.9% bonus');
 
-    // Hover or click trigger to show the pretty popover
+    // Click trigger to pin the popover suspended
     await act(async () => {
-      vwTrigger.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+      vwTrigger.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
 
     const popover = document.body.querySelector('.cc-formula-popover');
     expect(popover).toBeTruthy();
-    expect(popover?.textContent).toContain('Virtual Wall (Combat Wall)');
-    expect(popover?.textContent).toContain('Wall Levels in This Battle');
+    expect(popover?.textContent).toContain('Virtual Watch Tower (Combat Fortification)');
+    expect(popover?.textContent).toContain('Watch Tower Levels in This Battle');
     expect(popover?.textContent).toContain('Level 9');
+    expect(popover?.textContent).toContain('Pinned');
+    expect(popover?.textContent).toContain('Pre-Combat Pass');
+    expect(popover?.textContent).toContain('Combat Demolition Resolution');
+    expect(popover?.textContent).not.toContain('Surviving rams take a second');
+
+    // Click outside to dismiss
+    await act(async () => {
+      document.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+    });
+    expect(document.body.querySelector('.cc-formula-popover')).toBeNull();
   });
 });
 
