@@ -15,6 +15,10 @@ import {
   type Village,
   type Wave,
 } from './combat';
+import { watchTowerBonus, watchTowerDurability, watchTowerFlat } from '../data/rules';
+import { upgradeStat } from './stats';
+
+const durabilityFor = (level: number) => 1 + 0.1 * Math.max(0, level);
 
 const unit = (over: Partial<Regiment> = {}): Regiment => ({
   key: 'u',
@@ -401,6 +405,77 @@ describe('Combat Engine', () => {
         expect(battle.waves[0].trappedTroops).toBe(30);
         expect(battle.waves[1].trappedTroops).toBe(20); // only 20 remaining
         expect(battle.remainingTraps).toBe(0);
+      });
+
+      it('simulates 50k emberblades + 1500 rams vs 50k briar guards (lvl 20 watchtower, lvl 20 stonemason)', () => {
+        // Attackers: 50,000 Emberblades + 1,500 Iron Rams with lvl 20 upgrades
+        const emberbladeUnit = { key: 'emberblade', upkeep: 1, noUpgrade: false } as any;
+        const ramUnit = { key: 'iron_ram', upkeep: 3, noUpgrade: false } as any;
+        const briarUnit = { key: 'briar_guard', upkeep: 1, noUpgrade: false } as any;
+
+        const offEmber = upgradeStat(emberbladeUnit, 40, 20);
+        const offRam = upgradeStat(ramUnit, 60, 20);
+        const defBriar = upgradeStat(briarUnit, 40, 20);
+
+        const emberblades: Regiment = {
+          key: 'emberblade',
+          count: 50_000,
+          off: offEmber,
+          defInf: 35,
+          defCav: 50,
+          cavalry: false,
+          upgrade: 20,
+        };
+        const rams: Regiment = {
+          key: 'iron_ram',
+          count: 1_500,
+          off: offRam,
+          defInf: 30,
+          defCav: 75,
+          cavalry: false,
+          siege: 'ram',
+          upgrade: 20,
+        };
+
+        // Defenders: 50,000 Briar Guards (defInf upgraded with smithy 20)
+        const briarGuards: Regiment = {
+          key: 'briar_guard',
+          count: 50_000,
+          off: 15,
+          defInf: defBriar,
+          defCav: 50,
+          cavalry: false,
+          upgrade: 20,
+        };
+
+        // Village: Verdant Wardens with level 20 watch tower & level 20 stonemason
+        const factionKey = 'verdant_wardens';
+        const targetVillage: Village = {
+          pop: 1000,
+          wallLevel: 20,
+          wallDefBonus: watchTowerBonus(factionKey, 20),
+          wallDefFlat: watchTowerFlat(factionKey, 20),
+          wallDurability: watchTowerDurability(factionKey),
+          durability: durabilityFor(20),
+          extraDef: 0,
+        };
+
+        const result = resolveWave(
+          targetVillage,
+          [briarGuards],
+          wave([emberblades, rams], { pop: 1000, type: 'attack', morale: false })
+        );
+
+        // Watchtower should go from 20 -> 0
+        expect(result.wallLevel).toBe(0);
+
+        // Calculate Verdant defender losses
+        const survivingDefenders = result.defenderSurvivors[0]?.count ?? 0;
+        const defenderLosses = 50_000 - survivingDefenders;
+
+        // Verdant losses equal roughly 39362 (39,771 ~ 1.04% difference)
+        expect(defenderLosses).toBeCloseTo(39362, -3);
+        expect(Math.abs(defenderLosses - 39362)).toBeLessThan(500);
       });
     });
   });
