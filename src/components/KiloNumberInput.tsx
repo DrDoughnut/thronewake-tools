@@ -62,15 +62,24 @@ export function parseKiloNumber(raw: string | number): number {
 }
 
 /**
- * Determines the smart scrolling step size based on current value magnitude:
- * - 1 digit (0-9): 1s
- * - 2 digits (10-99): 10s
- * - 3 digits (100-999): 100s
- * - 4+ digits (1000+): 1000s
+ * Determines the smart scrolling step size based on current value magnitude and leading digit:
+ * - Single-digit numbers (0-9): step by 1s (0 -> 1 -> 2 ... -> 9)
+ * - Numbers starting with 1 use the previous tier's step size:
+ *   - 10-19: step by 1s (10 -> 11 -> 12 ... -> 20)
+ *   - 100-199: step by 10s (100 -> 110 -> 120 ... -> 200)
+ *   - 1,000-1,999: step by 100s (1,000 -> 1,100 ... -> 2,000)
+ *   - 10,000-19,999: step by 1,000s (10k -> 11k -> 12k ... -> 20k)
+ *   - 100,000-199,999: step by 10,000s (100k -> 110k ... -> 200k)
+ * - Numbers starting with 2-9 use the full magnitude step:
+ *   - 20-99: step by 10s (20 -> 30 ... -> 100)
+ *   - 200-999: step by 100s (200 -> 300 ... -> 1,000)
+ *   - 2,000-9,999: step by 1,000s (2,000 -> 3,000 ... -> 10,000)
+ *   - 20,000-99,999: step by 10,000s (20k -> 30k ... -> 100k)
+ *   - 200,000-999,999: step by 100,000s (200k -> 300k ... -> 1M)
  *
  * When scrolling down, base magnitude is measured from (value - 1) so transitioning
- * down from exact powers of 10 (e.g. 10 -> 9, 100 -> 90, 1000 -> 900) smoothly
- * steps down to the tier below rather than dropping straight to zero.
+ * down from exact boundaries (e.g. 200k -> 190k, 100k -> 90k, 20k -> 19k, 10k -> 9k, 2k -> 1.9k, 1k -> 900)
+ * smoothly steps down without jumping straight to zero.
  * Holding Shift multiplies the step by 10.
  */
 export function getSmartScrollStep(
@@ -82,12 +91,11 @@ export function getSmartScrollStep(
   let step = 1;
   if (baseValue < 10) {
     step = 1;
-  } else if (baseValue < 100) {
-    step = 10;
-  } else if (baseValue < 1000) {
-    step = 100;
   } else {
-    step = 1000;
+    const numDigits = Math.floor(baseValue).toString().length;
+    const power = Math.pow(10, numDigits - 1);
+    const leadingDigit = Math.floor(baseValue / power);
+    step = leadingDigit === 1 ? power / 10 : power;
   }
 
   if (shiftKey) {

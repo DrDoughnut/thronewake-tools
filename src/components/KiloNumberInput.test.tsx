@@ -108,30 +108,61 @@ describe('KiloNumberInput component', () => {
       expect(getSmartScrollStep(1, 'down')).toBe(1);
     });
 
-    it('steps by 10s for 2 digit numbers (10-99)', () => {
-      expect(getSmartScrollStep(10, 'up')).toBe(10);
+    it('steps by 1s for numbers starting with 1 in the 10-19 range', () => {
+      expect(getSmartScrollStep(10, 'up')).toBe(1);
+      expect(getSmartScrollStep(15, 'up')).toBe(1);
+      expect(getSmartScrollStep(19, 'up')).toBe(1);
+      // Downward transitions: 10 -> 9, 20 -> 19
+      expect(getSmartScrollStep(10, 'down')).toBe(1);
+      expect(getSmartScrollStep(20, 'down')).toBe(1);
+    });
+
+    it('steps by 10s for 20-99 and 100-199', () => {
+      expect(getSmartScrollStep(20, 'up')).toBe(10);
       expect(getSmartScrollStep(50, 'up')).toBe(10);
       expect(getSmartScrollStep(90, 'up')).toBe(10);
-      expect(getSmartScrollStep(50, 'down')).toBe(10);
-      // Seamless step down across magnitude boundary: 10 -> 9
-      expect(getSmartScrollStep(10, 'down')).toBe(1);
-    });
-
-    it('steps by 100s for 3 digit numbers (100-999)', () => {
-      expect(getSmartScrollStep(100, 'up')).toBe(100);
-      expect(getSmartScrollStep(500, 'up')).toBe(100);
-      expect(getSmartScrollStep(500, 'down')).toBe(100);
-      // Seamless step down across boundary: 100 -> 90
+      // Starts with 1 in 100s: steps by previous tier (10s): 100 -> 110 -> 120 ... -> 200
+      expect(getSmartScrollStep(100, 'up')).toBe(10);
+      expect(getSmartScrollStep(150, 'up')).toBe(10);
+      // Downward transitions: 100 -> 90, 200 -> 190
       expect(getSmartScrollStep(100, 'down')).toBe(10);
+      expect(getSmartScrollStep(200, 'down')).toBe(10);
     });
 
-    it('steps by 1000s for 4+ digit numbers (1000+)', () => {
-      expect(getSmartScrollStep(1000, 'up')).toBe(1000);
-      expect(getSmartScrollStep(50000, 'up')).toBe(1000);
-      expect(getSmartScrollStep(50000, 'down')).toBe(1000);
-      // Seamless step down across boundary: 1000 -> 900
+    it('steps by 100s for 200-999 and 1,000-1,999', () => {
+      expect(getSmartScrollStep(200, 'up')).toBe(100);
+      expect(getSmartScrollStep(500, 'up')).toBe(100);
+      // Starts with 1 in 1000s: steps by previous tier (100s): 1,000 -> 1,100 ... -> 2,000
+      expect(getSmartScrollStep(1000, 'up')).toBe(100);
+      expect(getSmartScrollStep(1500, 'up')).toBe(100);
+      // Downward transitions: 1,000 -> 900, 2,000 -> 1,900
       expect(getSmartScrollStep(1000, 'down')).toBe(100);
+      expect(getSmartScrollStep(2000, 'down')).toBe(100);
+    });
+
+    it('steps by 1,000s (1k) for 2,000-9,999 and 10k-19k', () => {
+      expect(getSmartScrollStep(2000, 'up')).toBe(1000);
+      expect(getSmartScrollStep(5000, 'up')).toBe(1000);
+      // Starts with 1 in 10k range: steps by 1k (10k -> 11k -> 12k ... -> 20k)
+      expect(getSmartScrollStep(10000, 'up')).toBe(1000);
+      expect(getSmartScrollStep(14000, 'up')).toBe(1000);
+      // Downward transitions: 10k -> 9k, 20k -> 19k
       expect(getSmartScrollStep(10000, 'down')).toBe(1000);
+      expect(getSmartScrollStep(20000, 'down')).toBe(1000);
+    });
+
+    it('steps by 10,000s (10k) for 20k-99k and 100k-199k', () => {
+      expect(getSmartScrollStep(20000, 'up')).toBe(10000);
+      expect(getSmartScrollStep(50000, 'up')).toBe(10000);
+      expect(getSmartScrollStep(100000, 'up')).toBe(10000);
+      expect(getSmartScrollStep(100000, 'down')).toBe(10000);
+      expect(getSmartScrollStep(200000, 'down')).toBe(10000);
+    });
+
+    it('steps by 100,000s (100k) for 200k-999k', () => {
+      // Fast scrolling through 200k+: 200k -> 300k -> 400k instead of crawling by 1k
+      expect(getSmartScrollStep(200000, 'up')).toBe(100000);
+      expect(getSmartScrollStep(500000, 'up')).toBe(100000);
     });
 
     it('multiplies step by 10 when shiftKey is held', () => {
@@ -146,7 +177,7 @@ describe('KiloNumberInput component', () => {
     const onChangeMock = vi.fn();
 
     await act(async () => {
-      root.render(<KiloNumberInput value={100} onChange={onChangeMock} ariaLabel="Troops" />);
+      root.render(<KiloNumberInput value={200} onChange={onChangeMock} ariaLabel="Troops" />);
     });
 
     const input = container.querySelector('input') as HTMLInputElement;
@@ -161,9 +192,9 @@ describe('KiloNumberInput component', () => {
       input.dispatchEvent(wheelEvent);
     });
 
-    // At 100, 3 digits -> step is 100 -> 200
-    expect(onChangeMock).toHaveBeenCalledWith(200);
-    expect(input.value).toBe('200');
+    // At 200, 3 digits starting with 2 -> step is 100 -> 300
+    expect(onChangeMock).toHaveBeenCalledWith(300);
+    expect(input.value).toBe('300');
 
     // Scroll down (deltaY > 0)
     await act(async () => {
@@ -175,8 +206,8 @@ describe('KiloNumberInput component', () => {
       input.dispatchEvent(wheelEvent);
     });
 
-    expect(onChangeMock).toHaveBeenCalledWith(100);
-    expect(input.value).toBe('100');
+    expect(onChangeMock).toHaveBeenCalledWith(200);
+    expect(input.value).toBe('200');
   });
 
   it('adjusts value with ArrowUp and ArrowDown keys using smart steps', async () => {
