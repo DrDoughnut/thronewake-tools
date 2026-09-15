@@ -558,6 +558,58 @@ describe('Combat Engine', () => {
         expect(result.wallLevel).toBe(0);
       });
     });
+
+    describe('City Guards bonus lifecycle', () => {
+      it('provides full +20% bonus while wall stands, but drops to 0% when virtual wall hits 0', () => {
+        const defenders: Regiment[] = [
+          { key: 'briar_guard', count: 1000, off: 15, defInf: 40, defCav: 50, cavalry: false, upgrade: 0 },
+        ];
+        const attackNoRams = wave([
+          { key: 'emberblade', count: 1000, off: 40, defInf: 35, defCav: 50, cavalry: false, upgrade: 0 },
+        ]);
+
+        // 1. Wall 20 with City Guards 20 -> defPoints boosted by wall + full 20% guards
+        const withGuards = resolveWave(
+          village({ wallLevel: 20, wallDefBonus: 0.8, cityGuardBonus: 0.20 }),
+          defenders,
+          attackNoRams
+        );
+        const withoutGuards = resolveWave(
+          village({ wallLevel: 20, wallDefBonus: 0.8, cityGuardBonus: 0 }),
+          defenders,
+          attackNoRams
+        );
+        expect(withGuards.defPoints).toBeGreaterThan(withoutGuards.defPoints);
+
+        // 2. Initial Wall 0 with City Guards 20 -> guards cannot apply without a wall (defPoints identical)
+        const wallZeroWithGuards = resolveWave(
+          village({ wallLevel: 0, wallDefBonus: 0, cityGuardBonus: 0.20 }),
+          defenders,
+          attackNoRams
+        );
+        const wallZeroWithoutGuards = resolveWave(
+          village({ wallLevel: 0, wallDefBonus: 0, cityGuardBonus: 0 }),
+          defenders,
+          attackNoRams
+        );
+        expect(wallZeroWithGuards.defPoints).toBe(wallZeroWithoutGuards.defPoints);
+
+        // 3. Massive rams reduce virtual wall to 0 -> guards drop to 0 mid-battle
+        const massiveRamAttack = wave([
+          { key: 'emberblade', count: 10000, off: 40, defInf: 35, defCav: 50, cavalry: false, upgrade: 0 },
+          { key: 'iron_ram', count: 2000, off: 60, defInf: 30, defCav: 75, cavalry: false, siege: 'ram', upgrade: 0 },
+        ]);
+        const rammedWithGuards = resolveWave(
+          village({ wallLevel: 20, wallDefBonus: 0.8, wallDurability: 1, cityGuardBonus: 0.20 }),
+          defenders,
+          massiveRamAttack
+        );
+        expect(rammedWithGuards.wallDuringBattle).toBe(0);
+        // At virtual wall 0, defPoints equals base defense (no bonus)
+        const flatExpected = (1000 * 40 + 10); // blended troop def + base village def
+        expect(rammedWithGuards.defPoints).toBe(flatExpected);
+      });
+    });
   });
 });
 

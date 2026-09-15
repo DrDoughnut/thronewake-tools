@@ -69,6 +69,7 @@ export interface Village {
   extraDef: number;
   /** Trapper capacity available (Verdant Wardens). */
   trapperCapacity?: number;
+  cityGuardBonus?: number;
 }
 
 export interface Wave {
@@ -295,8 +296,11 @@ export function resolveWave(
 
   const defenceAt = (wallLevel: number) => {
     // A wall that has been rammed down mid-battle stops paying its bonus.
+    // City guards provide their full bonus as long as the wall stands, but drop to 0 if the wall collapses.
     const scale = village.wallLevel > 0 ? wallLevel / village.wallLevel : 0;
-    const bonus = village.wallLevel > 0 ? Math.pow(1 + village.wallDefBonus, scale) : 1;
+    const wallBonus = village.wallLevel > 0 ? Math.pow(1 + village.wallDefBonus, scale) - 1 : 0;
+    const guardBonus = wallLevel > 0 ? (village.cityGuardBonus ?? 0) : 0;
+    const bonus = 1 + wallBonus + guardBonus;
     const flat = BASE_VILLAGE_DEF + village.extraDef + village.wallDefFlat * scale;
     return (blendedDef + flat) * bonus;
   };

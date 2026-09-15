@@ -794,7 +794,8 @@ describe('CombatCalculator', () => {
     expect(popover?.textContent).toContain('Virtual Watch Tower');
     expect(popover?.textContent).toContain('Wall Levels in Battle');
     expect(popover?.textContent).toContain('Lvl 10');
-    expect(popover?.textContent).toContain('Includes +20% City Guards bonus');
+    expect(popover?.textContent).toContain('Lvl 0 (+0%)');
+    expect(popover?.textContent).toContain('Includes +20% City Guards');
     expect(popover?.textContent).not.toContain('Pinned');
     expect(popover?.textContent).toContain('Pre-combat');
     expect(popover?.textContent).toContain('Post-combat');

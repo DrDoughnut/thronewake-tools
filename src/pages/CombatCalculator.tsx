@@ -222,7 +222,6 @@ export function CombatCalculator() {
     const towerBonus = watchTowerBonus(villageFaction.key, state.wallLevel);
     // City guards provide 0 to 20% (+1% per level) extra defense bonus
     const cityGuardBonus = Math.min(0.20, Math.max(0, state.cityGuards) * 0.01);
-    const totalWallBonus = towerBonus + cityGuardBonus;
 
     // Residence / Palace flat defense
     const extraDef = palaceFlatDef(state.palaceLevel);
@@ -233,12 +232,13 @@ export function CombatCalculator() {
     const village: Village = {
       pop: state.defenderPop,
       wallLevel: state.wallLevel,
-      wallDefBonus: totalWallBonus,
+      wallDefBonus: towerBonus,
       wallDefFlat: watchTowerFlat(villageFaction.key, state.wallLevel),
       wallDurability: watchTowerDurability(villageFaction.key) * durabilityMult * stonemasonMult,
       durability: stonemasonMult * durabilityMult,
       extraDef,
       trapperCapacity: villageFaction.key === 'verdant_wardens' ? trapperCapacity(state.trapperLevel ?? 0) : 0,
+      cityGuardBonus,
     };
 
     // Targets per wave
@@ -928,7 +928,7 @@ export function CombatCalculator() {
                                         {ramWaves.map((rw, i) => {
                                           const rwWallBonus = Math.round(watchTowerBonus(villageFaction.key, rw.during) * 1000) / 10;
                                           const rwGuardBonus = Math.round(cityGuardBonus * 1000) / 10;
-                                          const rwTotalBonus = rwWallBonus + rwGuardBonus;
+                                          const rwTotalBonus = rwWallBonus + (rw.during > 0 ? rwGuardBonus : 0);
                                           return (
                                             <span key={rw.idx}>
                                               {i > 0 && ', '}
@@ -2227,9 +2227,9 @@ function VirtualWatchTowerTrigger({
   const wallVirtualBonus = Math.round(watchTowerBonus(factionKey, virtualLevel) * 1000) / 10;
   const wallFinalBonus = Math.round(watchTowerBonus(factionKey, finalLevel) * 1000) / 10;
 
-  const initialBonus = wallInitialBonus + guardBonus;
-  const virtualBonus = wallVirtualBonus + guardBonus;
-  const finalBonus = wallFinalBonus + guardBonus;
+  const initialBonus = initialLevel > 0 ? wallInitialBonus + guardBonus : 0;
+  const virtualBonus = virtualLevel > 0 ? wallVirtualBonus + guardBonus : 0;
+  const finalBonus = finalLevel > 0 ? wallFinalBonus + guardBonus : 0;
   const formatBonus = (val: number) => (val % 1 === 0 ? val.toString() : val.toFixed(1));
 
   return (
@@ -2312,7 +2312,7 @@ function VirtualWatchTowerTrigger({
                 </div>
                 {guardBonus > 0 && (
                   <div style={{ fontSize: '10.5px', color: 'var(--text-faint)', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 4, marginTop: 4 }}>
-                    Includes +{formatBonus(guardBonus)}% City Guards bonus
+                    Includes +{formatBonus(guardBonus)}% City Guards (active while tower stands)
                   </div>
                 )}
               </div>
