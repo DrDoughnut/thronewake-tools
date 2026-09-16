@@ -83,21 +83,59 @@ export const safeFaction = (key: string): Faction =>
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
 
 /**
+ * Two-character faction aliases for compact URL encoding.
+ * Long keys like 'embermark_dominion' → 'ed' saves ~16 chars per wave.
+ */
+const FACTION_SHORT: Record<string, string> = {
+  embermark_dominion: 'ed',
+  stormfang_clans:    'sc',
+  verdant_wardens:    'vw',
+  ancients:           'an',
+};
+const FACTION_EXPAND: Record<string, string> = Object.fromEntries(
+  Object.entries(FACTION_SHORT).map(([long, short]) => [short, long])
+);
+
+/** Expand a faction key that may be a short alias back to its full key. */
+function expandFaction(raw: string): string {
+  return FACTION_EXPAND[raw] ?? raw;
+}
+
+/**
+ * Returns a map of unitKey → positional index (0-based) within the faction's
+ * unit roster, for compact URL encoding. E.g. 'emberblade' → '0'.
+ */
+function unitIndexMap(factionKey: string): { toIdx: Map<string, string>; toKey: Map<string, string> } {
+  const faction = playableFactions.find((f) => f.key === factionKey);
+  const toIdx = new Map<string, string>();
+  const toKey = new Map<string, string>();
+  faction?.units.forEach((u, i) => {
+    toIdx.set(u.key, String(i));
+    toKey.set(String(i), u.key);
+  });
+  return { toIdx, toKey };
+}
+
+/**
  * Serializes an army list to a URL-safe compact string.
  * Format: faction:smithy:counts:brewery:levels:targets
+ * Faction keys and unit keys are compressed to short aliases.
  */
 function serializeArmies(armies: Army[]): string {
   return armies
     .map((army) => {
+      const factionShort = FACTION_SHORT[army.faction] ?? army.faction;
+      const { toIdx } = unitIndexMap(army.faction);
+
       const countsStr = Object.entries(army.counts)
         .filter(([, count]) => typeof count === 'number' && count > 0)
-        .map(([k, count]) => `${k}=${count}`)
+        .map(([k, count]) => `${toIdx.get(k) ?? k}=${count}`)
         .join(',');
       const breweryStr = (army.brewery ?? 0) > 0 ? String(army.brewery) : '';
       const levelsStr = army.levels
         ? Object.entries(army.levels)
             .filter(([, lvl]) => typeof lvl === 'number' && lvl !== army.smithy)
-            .map(([k, lvl]) => `${k}=${lvl}`)
+            .map(([k, lvl]) => `${toIdx.get(k) ?? k}=${lvl}`)
             .join(',')
         : '';
       const targetsStr = army.targets
@@ -110,15 +148,16 @@ function serializeArmies(armies: Army[]): string {
       const typeStr = army.type && army.type !== 'attack' ? army.type : '';
 
       if (breweryStr || levelsStr || targetsStr || typeStr) {
-        return `${army.faction}:${army.smithy}:${countsStr}:${breweryStr}:${levelsStr}:${targetsStr}:${typeStr}`;
+        return `${factionShort}:${army.smithy}:${countsStr}:${breweryStr}:${levelsStr}:${targetsStr}:${typeStr}`;
       }
-      return `${army.faction}:${army.smithy}:${countsStr}`;
+      return `${factionShort}:${army.smithy}:${countsStr}`;
     })
     .join('~');
 }
 
 /**
  * Deserializes an army list from a compact string.
+ * Handles both short aliases (ed, sc, vw) and full faction/unit keys.
  */
 function deserializeArmies(rawStr: string | null, prefix: string): Army[] {
   if (!rawStr) return [];
@@ -127,7 +166,7 @@ function deserializeArmies(rawStr: string | null, prefix: string): Army[] {
     .filter(Boolean)
     .map((chunk, idx) => {
       const parts = chunk.split(':');
-      const factionRaw = parts[0] || '';
+      const factionRaw = expandFaction(parts[0] || '');
       const smithyRaw = parts[1] || '0';
       const countsRaw = parts[2] || '';
       const breweryRaw = parts[3];
@@ -138,11 +177,14 @@ function deserializeArmies(rawStr: string | null, prefix: string): Army[] {
 
       const faction = safeFaction(factionRaw).key;
       const smithy = clamp(Number(smithyRaw) || 0, 0, 20);
+      const { toKey } = unitIndexMap(faction);
+
       const counts: Record<string, number> = {};
       if (countsRaw) {
         countsRaw.split(',').forEach((unitChunk) => {
           const sep = unitChunk.includes('=') ? '=' : ':';
-          const [uKey, uCount] = unitChunk.split(sep);
+          const [uKeyRaw, uCount] = unitChunk.split(sep);
+          const uKey = toKey.get(uKeyRaw) ?? uKeyRaw;
           if (uKey && uCount) {
             const num = Math.max(0, Math.floor(Number(uCount)) || 0);
             if (num > 0) counts[uKey] = num;
@@ -161,7 +203,8 @@ function deserializeArmies(rawStr: string | null, prefix: string): Army[] {
         levels = {};
         levelsRaw.split(',').forEach((lvlChunk) => {
           const sep = lvlChunk.includes('=') ? '=' : ':';
-          const [uKey, uLvl] = lvlChunk.split(sep);
+          const [uKeyRaw, uLvl] = lvlChunk.split(sep);
+          const uKey = toKey.get(uKeyRaw) ?? uKeyRaw;
           if (uKey && uLvl) {
             levels![uKey] = clamp(Math.floor(Number(uLvl)) || 0, 0, 23);
           }
@@ -222,7 +265,7 @@ export function encodeCombatState(state: CombatState): string {
     p.set('dp', String(state.defenderPop));
   }
   if (state.villageFaction !== initialCombatState.villageFaction) {
-    p.set('vf', state.villageFaction);
+    p.set('vf', FACTION_SHORT[state.villageFaction] ?? state.villageFaction);
   }
   if (state.wallLevel !== initialCombatState.wallLevel) {
     p.set('wl', String(state.wallLevel));
@@ -362,7 +405,7 @@ export function decodeCombatState(hash: string): CombatState | null {
     }
   }
 
-  const villageFaction = safeFaction(p.get('vf') || initialCombatState.villageFaction).key;
+  const villageFaction = safeFaction(expandFaction(p.get('vf') || initialCombatState.villageFaction)).key;
   const isCity = p.get('city') === '1' || p.get('city') === 'true';
 
   const rawAtt = parsedAtt.length > 0 ? parsedAtt : initialCombatState.attackers;

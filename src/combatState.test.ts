@@ -71,7 +71,8 @@ describe('combatState URL persistence', () => {
     expect(encoded).toContain('m=1');
     expect(encoded).toContain('ap=2400');
     expect(encoded).toContain('dp=950');
-    expect(encoded).toContain('vf=stormfang_clans');
+    // villageFaction uses short alias
+    expect(encoded).toContain('vf=sc');
     expect(encoded).toContain('wl=15');
     expect(encoded).toContain('city=1');
     expect(encoded).toContain('cg=10');
@@ -79,9 +80,13 @@ describe('combatState URL persistence', () => {
     expect(encoded).toContain('sm=10');
     expect(encoded).toContain('tc=2');
     expect(encoded).toContain('tgs=20%3A12%2C10%3A15');
-    expect(decodeURIComponent(encoded)).toContain('axeborn=4500');
-    expect(decodeURIComponent(encoded)).toContain('dominion_catapult=250');
-    expect(decodeURIComponent(encoded)).toContain('briar_guard=12000');
+    // armies use short faction codes and numeric unit indices
+    // embermark_dominion → ed; axeborn is a stormfang unit (cross-faction, falls back to key); dominion_catapult idx=7
+    expect(decodeURIComponent(encoded)).toContain('ed:18:axeborn=4500,7=250');
+    // stormfang_clans → sc; skullthrower idx=7
+    expect(decodeURIComponent(encoded)).toContain('sc:20:7=100');
+    // verdant_wardens → vw; briar_guard idx=0, green_lancer idx=4
+    expect(decodeURIComponent(encoded)).toContain('vw:20:0=12000,4=3500');
 
     expect(hasCombatHashParams('#' + encoded)).toBe(true);
 
@@ -147,7 +152,8 @@ describe('combatState URL persistence', () => {
 
     const encoded = encodeCombatState(customState);
     expect(encoded).toContain('da=4');
-    expect(decodeURIComponent(encoded)).toContain('stormfang_clans:15:skullthrower=500:10:skullthrower=20');
+    // stormfang_clans → sc; skullthrower idx=7
+    expect(decodeURIComponent(encoded)).toContain('sc:15:7=500:10:7=20');
 
     const decoded = decodeCombatState('#' + encoded);
     expect(decoded?.durabilityArtifact).toBe(4);
