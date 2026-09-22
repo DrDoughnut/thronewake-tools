@@ -1,8 +1,11 @@
-import { useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import type { Attacker, Player, SafeWindow, Target } from '../engine/operations';
 import { extractLegacyTags, isInSafeWindow, parseClock } from '../engine/operations';
 import { lookup, type UnitRef } from '../data/factions';
 import { UnitGridPicker } from './UnitGridPicker';
+
+const EMPTY_OBJECT = Object.freeze({});
+const EMPTY_ARRAY = Object.freeze([]) as unknown as any[];
 
 interface OperationParticipantPickerProps {
   attackerWarnings?: Record<string, string>;
@@ -16,10 +19,11 @@ interface OperationParticipantPickerProps {
   fakeTargetIds: string[];
   attackerUnitOverrides?: Record<string, string>;
   parsedLanding?: Date | null;
+  isLocked?: boolean;
   onToggleAttacker: (attackerId: string) => void;
   onToggleTarget: (targetId: string) => void;
   onToggleTargetFake: (targetId: string) => void;
-  onUpdateAttackerUnit?: (attackerId: string, unitRef: string) => void;
+  onUpdateAttackerUnit?: (attackerId: string, unitRef: UnitRef) => void;
   onSelectAllAttackers: () => void;
   onDeselectAllAttackers: () => void;
   onSelectAllTargets: () => void;
@@ -28,18 +32,19 @@ interface OperationParticipantPickerProps {
   onOpenTargetModal: () => void;
 }
 
-export function OperationParticipantPicker({
-  attackerWarnings = {},
-  targetWarnings = {},
+export const OperationParticipantPicker = memo(function OperationParticipantPicker({
+  attackerWarnings = EMPTY_OBJECT,
+  targetWarnings = EMPTY_OBJECT,
   attackers,
-  attackerPlayers = [],
+  attackerPlayers = EMPTY_ARRAY,
   players,
   targets,
   assignedAttackerIds,
   assignedTargetIds,
   fakeTargetIds,
-  attackerUnitOverrides = {},
+  attackerUnitOverrides = EMPTY_OBJECT,
   parsedLanding,
+  isLocked = false,
   onToggleAttacker,
   onToggleTarget,
   onToggleTargetFake,
@@ -51,6 +56,10 @@ export function OperationParticipantPicker({
   onOpenAttackerModal,
   onOpenTargetModal,
 }: OperationParticipantPickerProps) {
+  const assignedAttackerSet = useMemo(() => new Set(assignedAttackerIds), [assignedAttackerIds]);
+  const assignedTargetSet = useMemo(() => new Set(assignedTargetIds), [assignedTargetIds]);
+  const fakeTargetSet = useMemo(() => new Set(fakeTargetIds), [fakeTargetIds]);
+
   const activeAttackerCount = assignedAttackerIds.length;
   const totalAttackerCount = attackers.length;
 
@@ -128,6 +137,11 @@ export function OperationParticipantPicker({
             {activeAttackerCount} of {totalAttackerCount} armies deployed · {activeTargetCount} of {totalTargetCount} targets assigned
           </strong>
           <span>Select which registered alliance armies march and which enemy villages are targeted for this operation wave. Set troop speeds for this wave without modifying the master directory.</span>
+          {isLocked && (
+            <div className="op-participant-picker__locked-notice">
+              🔒 <strong>Operation Locked (Ready)</strong> · Armies, targets, and speed slots are protected against edits. Unlock to modify.
+            </div>
+          )}
         </div>
       </div>
 
@@ -146,7 +160,8 @@ export function OperationParticipantPicker({
                 type="button"
                 className="pill pill--tiny"
                 onClick={onSelectAllAttackers}
-                title="Deploy all registered alliance armies for this operation"
+                disabled={isLocked}
+                title={isLocked ? 'Operation is locked' : 'Deploy all registered alliance armies for this operation'}
               >
                 ✓ All
               </button>
@@ -154,7 +169,8 @@ export function OperationParticipantPicker({
                 type="button"
                 className="pill pill--tiny"
                 onClick={onDeselectAllAttackers}
-                title="Bench all armies for this operation"
+                disabled={isLocked}
+                title={isLocked ? 'Operation is locked' : 'Bench all armies for this operation'}
               >
                 ⏸ None
               </button>
@@ -196,9 +212,10 @@ export function OperationParticipantPicker({
 
                   <div className="op-participant-chips op-participant-chips--vertical">
                     {group.attackers.map((atk) => {
-                      const isSelected = assignedAttackerIds.includes(atk.id);
+                      const isSelected = assignedAttackerSet.has(atk.id);
                       const currentUnitRef = (attackerUnitOverrides[atk.id] || atk.unitRef) as UnitRef;
-                      const unitInfo = lookup(currentUnitRef);
+                      const unit = lookup(currentUnitRef).unit;
+                      const memberFaction = group.player?.factionKey || (atk.playerId ? attackerPlayers.find((p) => p.id === atk.playerId)?.factionKey : undefined);
 
                       return (
                         <div
@@ -213,6 +230,7 @@ export function OperationParticipantPicker({
                             <input
                               type="checkbox"
                               checked={isSelected}
+                              disabled={isLocked}
                               onChange={() => onToggleAttacker(atk.id)}
                             />
                             <span className="op-participant-chip__check" aria-hidden="true">
@@ -224,15 +242,15 @@ export function OperationParticipantPicker({
                             </span>
                           </label>
 
-                          {isSelected && (
-                            <div className="op-wave-troop-picker" title={`Slowest troop for this wave: ${unitInfo.unit.name} (${unitInfo.unit.speed} fields/h)`}>
-                              <UnitGridPicker
-                                unitRef={currentUnitRef}
-                                onChange={(newRef) => onUpdateAttackerUnit?.(atk.id, newRef)}
-                                compact={true}
-                              />
-                            </div>
-                          )}
+                          <div className="op-wave-troop-picker" title={`Slowest troop for this wave: ${unit.name} (${unit.speed} fields/h)`}>
+                            <UnitGridPicker
+                              unitRef={currentUnitRef}
+                              onChange={(newRef) => onUpdateAttackerUnit?.(atk.id, newRef)}
+                              disabled={isLocked}
+                              factionFilter={memberFaction}
+                              compact={true}
+                            />
+                          </div>
                         </div>
                       );
                     })}
@@ -257,7 +275,8 @@ export function OperationParticipantPicker({
                 type="button"
                 className="pill pill--tiny"
                 onClick={onSelectAllTargets}
-                title="Assign all registered targets to this operation"
+                disabled={isLocked}
+                title={isLocked ? 'Operation is locked' : 'Assign all registered targets to this operation'}
               >
                 ✓ All
               </button>
@@ -265,7 +284,8 @@ export function OperationParticipantPicker({
                 type="button"
                 className="pill pill--tiny"
                 onClick={onDeselectAllTargets}
-                title="Clear all targets from this operation"
+                disabled={isLocked}
+                title={isLocked ? 'Operation is locked' : 'Clear all targets from this operation'}
               >
                 ⏸ None
               </button>
@@ -314,8 +334,8 @@ export function OperationParticipantPicker({
                     <div className="op-participant-chips op-participant-chips--vertical">
                       {group.targets.map((rawTgt) => {
                         const tgt = extractLegacyTags(rawTgt);
-                        const isSelected = assignedTargetIds.includes(tgt.id);
-                        const isFake = fakeTargetIds.includes(tgt.id);
+                        const isSelected = assignedTargetSet.has(tgt.id);
+                        const isFake = fakeTargetSet.has(tgt.id);
                         const isTargetBlocked = !group.player ? isOwnerBlocked(tgt) : isGroupBlocked;
 
                         return (
@@ -327,6 +347,7 @@ export function OperationParticipantPicker({
                               <input
                                 type="checkbox"
                                 checked={isSelected}
+                                disabled={isLocked}
                                 onChange={() => onToggleTarget(tgt.id)}
                               />
                               <span className="op-participant-chip__check" aria-hidden="true">
@@ -353,9 +374,10 @@ export function OperationParticipantPicker({
                             <button
                               type="button"
                               className={`pill pill--tiny op-target-mode ${isFake ? 'is-fake' : 'is-real'}`}
+                              disabled={isLocked}
                               onClick={() => onToggleTargetFake(tgt.id)}
                               aria-pressed={isFake}
-                              title="Attack type for this operation only"
+                              title={isLocked ? 'Operation is locked' : 'Attack type for this operation only'}
                             >
                               {isFake ? 'Fake' : 'Real'}
                             </button>
@@ -373,4 +395,4 @@ export function OperationParticipantPicker({
       </div>
     </section>
   );
-}
+});

@@ -1298,5 +1298,123 @@ Population
       expect(member2?.name).toBe('Second Hammer');
       expect(migrated.roster.attackers[1].playerId).toBe(member2?.id);
     });
+
+    it('preserves attackerWaveSlots, excludedRouteKeys, and routeUnitOverrides during migration and backup roundtrip', () => {
+      const roomWithMultiSpeeds = {
+        version: 2,
+        roomName: 'Multi Speed Ops',
+        activeOpId: 'op1',
+        roster: {
+          attackers: [
+            {
+              id: 'a1',
+              playerId: 'p1',
+              name: 'Hammer Village',
+              x: 10,
+              y: 20,
+              unitRef: 'embermark_dominion/emberblade',
+              artifactMultiplier: 1,
+              bannerfieldLevel: 0,
+              safeEnabled: false,
+              safeStart: '00:00',
+              safeEnd: '00:00',
+            },
+          ],
+          attackerPlayers: [{ id: 'p1', name: 'Commander', safeEnabled: false, safeStart: '00:00', safeEnd: '00:00' }],
+          players: [],
+          targets: [
+            { id: 't1', name: 'Real Target', x: 20, y: 20, fake: false, safeEnabled: false, safeStart: '00:00', safeEnd: '00:00' },
+            { id: 't2', name: 'Fake Target', x: 30, y: 30, fake: false, safeEnabled: false, safeStart: '00:00', safeEnd: '00:00' },
+          ],
+        },
+        operations: [
+          {
+            id: 'op1',
+            name: 'Operation 1',
+            landing: '2026-09-05T12:00',
+            serverSpeed: 3,
+            assignedAttackerIds: ['a1'],
+            assignedTargetIds: ['t1', 't2'],
+            fakeTargetIds: ['t2'],
+            attackerWaveSlots: {
+              a1: [
+                { id: 'slot_1', unitRef: 'embermark_dominion/dominion_catapult', isSiege: true, targetScope: 'real_only' },
+                { id: 'slot_2', unitRef: 'embermark_dominion/woodblade', isSiege: false, targetScope: 'fake_only' },
+              ],
+            },
+            excludedRouteKeys: ['a1:t2:slot_2'],
+            routeUnitOverrides: { 'a1:t1:slot_1': 'embermark_dominion/emberblade' },
+            routeSiegeOverrides: { 'a1:t1:slot_1': false },
+          },
+        ],
+      };
+
+      const migrated = migrateToMasterRoster(roomWithMultiSpeeds as any);
+      expect(migrated.operations[0].attackerWaveSlots).toBeDefined();
+      expect(migrated.operations[0].attackerWaveSlots?.['a1']).toHaveLength(2);
+      expect(migrated.operations[0].attackerWaveSlots?.['a1'][0].unitRef).toBe('embermark_dominion/dominion_catapult');
+      expect(migrated.operations[0].attackerWaveSlots?.['a1'][0].isSiege).toBe(true);
+      expect(migrated.operations[0].attackerWaveSlots?.['a1'][0].targetScope).toBe('real_only');
+      expect(migrated.operations[0].excludedRouteKeys).toEqual(['a1:t2:slot_2']);
+      expect(migrated.operations[0].routeUnitOverrides).toEqual({ 'a1:t1:slot_1': 'embermark_dominion/emberblade' });
+      expect(migrated.operations[0].routeSiegeOverrides).toEqual({ 'a1:t1:slot_1': false });
+
+      // Check room backup serialization & deserialization
+      const backupJson = createRoomBackup(migrated);
+      const parsed = parseRoomBackup(backupJson);
+      expect(parsed).not.toBeNull();
+      expect(parsed?.operations[0].attackerWaveSlots?.['a1']).toHaveLength(2);
+      expect(parsed?.operations[0].attackerWaveSlots?.['a1'][0].isSiege).toBe(true);
+      expect(parsed?.operations[0].excludedRouteKeys).toEqual(['a1:t2:slot_2']);
+      expect(parsed?.operations[0].routeUnitOverrides?.['a1:t1:slot_1']).toBe('embermark_dominion/emberblade');
+      expect(parsed?.operations[0].routeSiegeOverrides?.['a1:t1:slot_1']).toBe(false);
+    });
+
+    it('correctly handles draft vs ready operation status across migrations', () => {
+      const roomWithStatuses = {
+        version: 2,
+        roomName: 'status-test',
+        activeOpId: 'op1',
+        roster: {
+          attackers: [{ id: 'a1', name: 'Atk 1', x: 0, y: 0, unitRef: 'embermark_dominion/emberblade', safeEnabled: false, safeStart: '00:00', safeEnd: '00:00' }],
+          targets: [{ id: 't1', name: 'Tgt 1', x: 10, y: 10, fake: false, safeEnabled: false, safeStart: '00:00', safeEnd: '00:00' }],
+          players: [],
+        },
+        operations: [
+          {
+            id: 'op1',
+            name: 'Confirmed Op',
+            status: 'ready',
+            landing: '2026-08-16T19:00',
+            serverSpeed: 3,
+            assignedAttackerIds: ['a1'],
+            assignedTargetIds: ['t1'],
+          },
+          {
+            id: 'op2',
+            name: 'Draft Op',
+            status: 'draft',
+            landing: '2026-08-17T19:00',
+            serverSpeed: 3,
+            assignedAttackerIds: ['a1'],
+            assignedTargetIds: ['t1'],
+          },
+          {
+            id: 'op3',
+            name: 'Legacy Op (No status field)',
+            landing: '2026-08-18T19:00',
+            serverSpeed: 3,
+            assignedAttackerIds: ['a1'],
+            assignedTargetIds: ['t1'],
+          },
+        ],
+      };
+
+      const migrated = migrateToMasterRoster(roomWithStatuses as any);
+      expect(migrated.operations[0].status).toBe('ready');
+      expect(migrated.operations[1].status).toBe('draft');
+      expect(migrated.operations[2].status).toBe('draft'); // Default fallback for unannotated ops
+    });
   });
 });
+

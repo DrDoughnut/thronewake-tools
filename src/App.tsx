@@ -280,19 +280,30 @@ export default function App() {
           </div>
 
           <nav className="toolbar" aria-label="Tools">
-            {TOOLS.map((t) => (
-              <button
-                key={t.key}
-                type="button"
-                className={`pill pill--tool ${t.key === toolKey ? 'is-active' : ''}`}
-                aria-current={t.key === toolKey ? 'page' : undefined}
-                aria-label={t.name}
-                onClick={() => handleToolClick(t.key)}
-              >
-                <span className="pill__emoji" aria-hidden="true">{t.icon}</span>
-                {t.name}
-              </button>
-            ))}
+            {TOOLS.map((t) => {
+              const href = t.key === 'operations' && roomInviteCode
+                ? `#room=${encodeURIComponent(roomInviteCode)}`
+                : `#tool=${t.key}`;
+              return (
+                <a
+                  key={t.key}
+                  href={href}
+                  className={`pill pill--tool ${t.key === toolKey ? 'is-active' : ''}`}
+                  aria-current={t.key === toolKey ? 'page' : undefined}
+                  aria-label={t.name}
+                  onClick={(e) => {
+                    if (e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey) {
+                      return;
+                    }
+                    e.preventDefault();
+                    handleToolClick(t.key);
+                  }}
+                >
+                  <span className="pill__emoji" aria-hidden="true">{t.icon}</span>
+                  {t.name}
+                </a>
+              );
+            })}
           </nav>
         </div>
 

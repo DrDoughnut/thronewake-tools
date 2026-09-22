@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import type { Attacker, Player, Target } from '../engine/operations';
 import { enforceMaxSafeWindow, safeWindowDurationMinutes, parseClock, extractLegacyTags } from '../engine/operations';
+import { FactionSelect } from './FactionSelect';
 import { UnitGridPicker } from './UnitGridPicker';
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 
@@ -254,6 +255,7 @@ export interface AttackerCardProps {
   attacker: Attacker;
   index: number;
   showUnitPicker?: boolean;
+  factionFilter?: string;
   onPatch: (patch: Partial<Attacker>) => void;
   onRemove: () => void;
 }
@@ -262,6 +264,7 @@ export function AttackerCard({
   attacker,
   index,
   showUnitPicker = false,
+  factionFilter,
   onPatch,
   onRemove,
 }: AttackerCardProps) {
@@ -306,6 +309,7 @@ export function AttackerCard({
                 <UnitGridPicker
                   unitRef={attacker.unitRef}
                   onChange={(unitRef) => onPatch({ unitRef })}
+                  factionFilter={factionFilter}
                 />
               </div>
             )}
@@ -431,6 +435,13 @@ export function AttackerPlayerGroupCard({
               value={player.name}
               onChange={(e) => onPatchPlayer({ name: e.target.value })}
               placeholder="Member Account Name"
+            />
+            <FactionSelect
+              value={player.factionKey || ''}
+              onChange={(factionKey) => onPatchPlayer({ factionKey: factionKey || undefined })}
+              allowAny={true}
+              anyLabel="Race: Any"
+              ariaLabel="Alliance member race"
             />
             <SafeTimeFields
               owner={player}
@@ -705,6 +716,7 @@ export function AllianceArmiesModal({
                         key={attacker.id}
                         attacker={attacker}
                         index={index}
+                        showUnitPicker={true}
                         onPatch={(patch) => onPatchAttacker(attacker.id, patch)}
                         onRemove={() => onRemoveAttacker(attacker.id)}
                       />

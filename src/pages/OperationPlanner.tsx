@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { Fragment, memo, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { playableFactions, lookup, type UnitRef } from '../data/factions';
 import {
@@ -32,6 +32,7 @@ import {
   type ImportMode,
   type MasterRoster,
   type OperationPlan,
+  type OperationStatus,
   type ResolvedSafeTime,
   type SafeChecks,
   type SafeWindow,
@@ -49,6 +50,9 @@ import {
   Time24Input,
 } from '../components/RosterModals';
 import { OperationParticipantPicker } from '../components/OperationParticipantPicker';
+
+const EMPTY_OBJECT = Object.freeze({}) as any;
+const EMPTY_ARRAY = Object.freeze([]) as unknown as any[];
 
 interface SafeTimeOwner {
   safeEnabled: boolean;
@@ -72,6 +76,7 @@ interface Attacker extends SafeTimeOwner {
 interface Player extends SafeTimeOwner {
   id: string;
   name: string;
+  factionKey?: string;
 }
 
 interface Target extends SafeTimeOwner {
@@ -99,6 +104,9 @@ interface PlannedRoute {
   key: string;
   attacker: Attacker;
   target: Target;
+  unitRef: UnitRef;
+  isSiege?: boolean;
+  slotId?: string;
   attackerSafe: ResolvedSafeTime;
   targetSafe: ResolvedSafeTime;
   attackerWindow: SafeWindow;
@@ -704,7 +712,7 @@ function SafetimeCheckCell({
   );
 }
 
-function TimelineLane({
+const TimelineLane = memo(function TimelineLane({
   label,
   window,
   isSelected,
@@ -712,7 +720,7 @@ function TimelineLane({
   onClick,
   landPosition,
   isBlocked,
-  sendRoutes = [],
+  sendRoutes = EMPTY_ARRAY,
   onSelectRoute,
 }: {
   label: string;
@@ -802,9 +810,9 @@ function TimelineLane({
       </div>
     </div>
   );
-}
+});
 
-function ScheduleTimeline({
+const ScheduleTimeline = memo(function ScheduleTimeline({
   routes,
   route,
   onSelectRoute,
@@ -845,6 +853,44 @@ function ScheduleTimeline({
   };
   const defenderKey = (target: Target) => target.playerId || target.id;
 
+  const { routesByAttacker, routesByDefender, attackerHasRoutes, defenderHasRoutes } = useMemo(() => {
+    const byAtk = new Map<string, PlannedRoute[]>();
+    const byDef = new Map<string, PlannedRoute[]>();
+    const atkHas = new Set<string>();
+    const defHas = new Set<string>();
+
+    if (!routes || routes.length === 0) {
+      return { routesByAttacker: byAtk, routesByDefender: byDef, attackerHasRoutes: atkHas, defenderHasRoutes: defHas };
+    }
+
+    for (const r of routes) {
+      atkHas.add(r.attacker.id);
+      if (r.attacker.playerId) atkHas.add(r.attacker.playerId);
+
+      const dKey = defenderKey(r.target);
+      defHas.add(dKey);
+      defHas.add(r.target.id);
+      if (r.target.playerId) defHas.add(r.target.playerId);
+
+      const aKey = r.attacker.id;
+      const listA = byAtk.get(aKey);
+      if (listA) listA.push(r);
+      else byAtk.set(aKey, [r]);
+
+      if (r.attacker.playerId && r.attacker.playerId !== aKey) {
+        const listAP = byAtk.get(r.attacker.playerId);
+        if (listAP) listAP.push(r);
+        else byAtk.set(r.attacker.playerId, [r]);
+      }
+
+      const listD = byDef.get(dKey);
+      if (listD) listD.push(r);
+      else byDef.set(dKey, [r]);
+    }
+
+    return { routesByAttacker: byAtk, routesByDefender: byDef, attackerHasRoutes: atkHas, defenderHasRoutes: defHas };
+  }, [routes]);
+
   const defenders = useMemo(() => {
     if (allPlayers && allPlayers.length > 0) {
       const list: { key: string; label: string; window: SafeWindow; hasRoutes: boolean }[] = [];
@@ -852,14 +898,11 @@ function ScheduleTimeline({
 
       allPlayers.forEach((player) => {
         seenKeys.add(player.id);
-        const hasRoutes = routes.some(
-          (r) => r.target.playerId === player.id,
-        );
         list.push({
           key: player.id,
           label: player.name,
           window: ownerWindow(player),
-          hasRoutes,
+          hasRoutes: defenderHasRoutes.has(player.id),
         });
       });
 
@@ -867,12 +910,11 @@ function ScheduleTimeline({
         const key = defenderKey(target);
         if (!seenKeys.has(key) && (!target.playerId || !allPlayers.some((p) => p.id === target.playerId))) {
           seenKeys.add(key);
-          const hasRoutes = routes.some((r) => r.target.id === target.id);
           list.push({
             key,
             label: target.name,
             window: ownerWindow(target),
-            hasRoutes,
+            hasRoutes: defenderHasRoutes.has(key) || defenderHasRoutes.has(target.id),
           });
         }
       });
@@ -889,7 +931,7 @@ function ScheduleTimeline({
         hasRoutes: true,
       },
     ])).values()];
-  }, [allPlayers, allTargets, routes]);
+  }, [allPlayers, allTargets, routes, defenderHasRoutes]);
 
   const attackers = useMemo(() => {
     if (allAttackerPlayers && allAttackerPlayers.length > 0) {
@@ -898,14 +940,11 @@ function ScheduleTimeline({
 
       allAttackerPlayers.forEach((player) => {
         seenIds.add(player.id);
-        const hasRoutes = routes.some(
-          (r) => r.attacker.playerId === player.id,
-        );
         list.push({
           id: player.id,
           name: player.name,
           window: ownerWindow(player),
-          hasRoutes,
+          hasRoutes: attackerHasRoutes.has(player.id),
         });
       });
 
@@ -913,12 +952,11 @@ function ScheduleTimeline({
         if (!atk.playerId || !allAttackerPlayers.some((p) => p.id === atk.playerId)) {
           if (!seenIds.has(atk.id)) {
             seenIds.add(atk.id);
-            const hasRoutes = routes.some((r) => r.attacker.id === atk.id);
             list.push({
               id: atk.id,
               name: atk.name,
               window: ownerWindow(atk),
-              hasRoutes,
+              hasRoutes: attackerHasRoutes.has(atk.id),
             });
           }
         }
@@ -932,7 +970,7 @@ function ScheduleTimeline({
         id: a.id,
         name: a.name,
         window: ownerWindow(a),
-        hasRoutes: routes.some((r) => r.attacker.id === a.id),
+        hasRoutes: attackerHasRoutes.has(a.id),
       }));
     }
 
@@ -945,7 +983,7 @@ function ScheduleTimeline({
         hasRoutes: true,
       },
     ])).values()];
-  }, [allAttackerPlayers, allAttackers, routes]);
+  }, [allAttackerPlayers, allAttackers, routes, attackerHasRoutes]);
 
   const groupByParticipation = mode === 'planning' && routes.length > 0;
   const orderedAttackers = groupByParticipation
@@ -1159,7 +1197,7 @@ function ScheduleTimeline({
         )}
         <TimelineLane
           label={attacker.name}
-          sendRoutes={mode === 'planning' ? routes.filter((r) => r.attacker.id === attacker.id || r.attacker.playerId === attacker.id) : []}
+          sendRoutes={mode === 'planning' ? routesByAttacker.get(attacker.id) || EMPTY_ARRAY : EMPTY_ARRAY}
           window={attacker.window}
           isSelected={mode !== 'planning' && Boolean(route && (attacker.id === route.attacker.id || attacker.id === route.attacker.playerId))}
           type="attacker"
@@ -1180,7 +1218,7 @@ function ScheduleTimeline({
           )}
           <TimelineLane
             label={defender.label}
-            sendRoutes={mode === 'planning' ? routes.filter((r) => defenderKey(r.target) === defender.key) : []}
+            sendRoutes={mode === 'planning' ? routesByDefender.get(defender.key) || EMPTY_ARRAY : EMPTY_ARRAY}
             window={defender.window}
             isSelected={mode !== 'planning' && Boolean(route && defender.key === selectedDefenderKey)}
             isBlocked={isBlocked}
@@ -1290,7 +1328,7 @@ function ScheduleTimeline({
       )}
     </section>
   );
-}
+});
 
 function routeBlockerText(route: PlannedRoute) {
   return [
@@ -1362,6 +1400,7 @@ export function OperationPlanner({
     {
       id: 'op1',
       name: 'Operation 1',
+      status: 'draft',
       landing: initialDecoded.landing,
       serverSpeed: initialDecoded.serverSpeed,
       assignedAttackerIds: initialDecoded.attackers.map((a) => a.id),
@@ -1373,6 +1412,11 @@ export function OperationPlanner({
   ]);
 
   const [activeOpId, setActiveOpId] = useState<string | null>(() => {
+    try {
+      const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+      const op = hashParams.get('op');
+      if (op) return op;
+    } catch {}
     if (isV2Unlocked) return null;
     return 'op1';
   });
@@ -1384,11 +1428,24 @@ export function OperationPlanner({
 
   const showLocal = true;
   const [selectedKey, setSelectedKey] = useState('');
-  const [workspaceView, setWorkspaceView] = useState<'scheduling' | 'targets' | 'routes'>('scheduling');
+  const [workspaceView, setWorkspaceView] = useState<'scheduling' | 'targets' | 'routes'>(() => {
+    try {
+      const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+      const view = hashParams.get('view');
+      if (view === 'scheduling' || view === 'targets' || view === 'routes') {
+        return view;
+      }
+      if (hashParams.get('op')) {
+        return 'routes';
+      }
+    } catch {}
+    return 'scheduling';
+  });
   const [filterAttacker, setFilterAttacker] = useState<string>('all');
   const [filterTarget, setFilterTarget] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<'all' | 'possible' | 'blocked'>('all');
   const [filterType, setFilterType] = useState<'all' | 'real' | 'fake'>('all');
+  const [filterUnit, setFilterUnit] = useState<string>('all');
   const [alarmEnabled, setAlarmEnabled] = useState<boolean>(true);
   const [now, setNow] = useState<Date>(() => new Date());
   const zoneLabel = useMemo(() => localZoneLabel(), []);
@@ -1404,13 +1461,16 @@ export function OperationPlanner({
     return operations[0] || {
       id: 'op1',
       name: 'Operation 1',
+      status: 'draft' as const,
       landing: '2026-08-16T19:00',
       serverSpeed: 3,
-      assignedAttackerIds: roster.attackers.map((a) => a.id),
-      assignedTargetIds: roster.targets.map((t) => t.id),
+      assignedAttackerIds: [],
+      assignedTargetIds: [],
       fakeTargetIds: [],
     };
   }, [operations, activeOpId, roster]);
+
+  const isOpLocked = activeOp.status === 'ready';
 
   // Live 1-second ticker for countdown
   useEffect(() => {
@@ -1491,12 +1551,17 @@ export function OperationPlanner({
       .map((target) => ({ ...target, fake: fakeTargetIds.includes(target.id) }));
   }, [isV2Active, roster.targets, activeOp.assignedTargetIds, activeOp.fakeTargetIds]);
 
+  const [routeLinkCopied, setRouteLinkCopied] = useState(false);
+
   const copyShareLink = async () => {
     let fullUrl = '';
     let hash = '';
 
     if (isV2Active && roomSession) {
-      hash = `room=${encodeURIComponent(roomSession.roomName)}`;
+      const opPart = activeOpId
+        ? `&op=${encodeURIComponent(activeOpId)}&view=${encodeURIComponent(workspaceView)}`
+        : '';
+      hash = `room=${encodeURIComponent(roomSession.roomName)}${opPart}`;
       fullUrl = `${window.location.origin}${window.location.pathname}#${hash}`;
     } else {
       const currentPlannerState: PlannerState = {
@@ -1521,10 +1586,16 @@ export function OperationPlanner({
     }
   };
 
-  useEffect(() => {
+  const copyRouteLink = async () => {
+    let fullUrl = '';
+    let hash = '';
+
     if (isV2Active && roomSession) {
-      window.history.replaceState(null, '', `${window.location.pathname}#room=${encodeURIComponent(roomSession.roomName)}`);
-    } else if (!isV2Active) {
+      const targetOp = activeOpId || (operations.length > 0 ? operations[0].id : '');
+      const opPart = targetOp ? `&op=${encodeURIComponent(targetOp)}&view=routes` : '';
+      hash = `room=${encodeURIComponent(roomSession.roomName)}${opPart}`;
+      fullUrl = `${window.location.origin}${window.location.pathname}#${hash}`;
+    } else {
       const currentPlannerState: PlannerState = {
         landing: activeOp.landing,
         serverSpeed: activeOp.serverSpeed,
@@ -1532,11 +1603,76 @@ export function OperationPlanner({
         targets: activeTargets,
         players: roster.players,
       };
-      window.history.replaceState(null, '', `${window.location.pathname}#${plannerHash(currentPlannerState)}`);
+      hash = plannerHash(currentPlannerState);
+      fullUrl = `${window.location.origin}${window.location.pathname}#${hash}`;
     }
-  }, [isV2Active, roomSession, activeOp, marchingAttackers, activeTargets, roster.players]);
 
+    try {
+      await navigator.clipboard.writeText(fullUrl);
+      setRouteLinkCopied(true);
+      setTimeout(() => setRouteLinkCopied(false), 2000);
+    } catch {
+      window.location.hash = hash;
+      setRouteLinkCopied(true);
+      setTimeout(() => setRouteLinkCopied(false), 2000);
+    }
+  };
 
+  useEffect(() => {
+    if (isV2Active && roomSession) {
+      const opPart = activeOpId
+        ? `&op=${encodeURIComponent(activeOpId)}&view=${encodeURIComponent(workspaceView)}`
+        : '';
+      const newHash = `#room=${encodeURIComponent(roomSession.roomName)}${opPart}`;
+      if (window.location.hash !== newHash) {
+        window.history.replaceState(null, '', `${window.location.pathname}${newHash}`);
+      }
+    } else if (!isV2Active) {
+      const timer = setTimeout(() => {
+        const currentPlannerState: PlannerState = {
+          landing: activeOp.landing,
+          serverSpeed: activeOp.serverSpeed,
+          attackers: marchingAttackers,
+          targets: activeTargets,
+          players: roster.players,
+        };
+        window.history.replaceState(null, '', `${window.location.pathname}#${plannerHash(currentPlannerState)}`);
+      }, 350);
+      return () => clearTimeout(timer);
+    }
+  }, [
+    isV2Active,
+    roomSession,
+    activeOpId,
+    workspaceView,
+    activeOp.landing,
+    activeOp.serverSpeed,
+    marchingAttackers,
+    activeTargets,
+    roster.players,
+  ]);
+
+  // Respond to hash navigation while connected
+  useEffect(() => {
+    if (!isV2Active) return;
+    const handleHashChange = () => {
+      try {
+        const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+        const opParam = hashParams.get('op');
+        const viewParam = hashParams.get('view');
+        if (opParam && operations.some((o) => o.id === opParam)) {
+          setActiveOpId(opParam);
+          if (viewParam === 'scheduling' || viewParam === 'targets' || viewParam === 'routes') {
+            setWorkspaceView(viewParam);
+          } else {
+            setWorkspaceView('routes');
+          }
+        }
+      } catch {}
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, [isV2Active, operations]);
 
   const [lastSavedSnapshot, setLastSavedSnapshot] = useState<string>('');
 
@@ -1555,12 +1691,35 @@ export function OperationPlanner({
     setRoomSession(session);
     setRoster(migrated.roster);
     setOperations(migrated.operations);
+
+    let targetOpId: string | null = null;
+    let targetView: 'scheduling' | 'targets' | 'routes' | null = null;
+    try {
+      const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+      const opParam = hashParams.get('op');
+      const viewParam = hashParams.get('view');
+      if (opParam && migrated.operations.some((o) => o.id === opParam)) {
+        targetOpId = opParam;
+      }
+      if (viewParam === 'scheduling' || viewParam === 'targets' || viewParam === 'routes') {
+        targetView = viewParam;
+      } else if (opParam) {
+        targetView = 'routes';
+      }
+    } catch {}
+
     setActiveOpId((prev) => {
+      if (targetOpId) return targetOpId;
       if (prev && migrated.operations.some((o) => o.id === prev)) {
         return prev;
       }
       return null;
     });
+
+    if (targetView) {
+      setWorkspaceView(targetView);
+    }
+
     setLastSavedSnapshot(
       JSON.stringify({
         roster: migrated.roster,
@@ -1577,6 +1736,7 @@ export function OperationPlanner({
       localStorage.removeItem('thronewake.v2.unlocked');
       localStorage.removeItem('thronewake.teamroom.session');
     } catch {}
+    window.history.replaceState(null, '', `${window.location.pathname}#tool=operations`);
     onExitV2?.();
   };
 
@@ -1605,11 +1765,12 @@ export function OperationPlanner({
       id: newId,
       name,
       icon: icon || '🎯',
+      status: 'draft',
       landing: activeOp.landing,
       serverSpeed: activeOp.serverSpeed,
-      assignedAttackerIds: roster.attackers.map((a) => a.id),
-      assignedTargetIds: roster.targets.map((t) => t.id),
-      fakeTargetIds: roster.targets.map((t) => t.id),
+      assignedAttackerIds: [],
+      assignedTargetIds: [],
+      fakeTargetIds: [],
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
@@ -1625,6 +1786,7 @@ export function OperationPlanner({
       ...source,
       id: newId,
       name: `${source.name} (Copy)`,
+      status: 'draft',
       assignedAttackerIds: [...source.assignedAttackerIds],
       assignedTargetIds: [...source.assignedTargetIds],
       fakeTargetIds: [...(source.fakeTargetIds || [])],
@@ -1634,6 +1796,17 @@ export function OperationPlanner({
     setOperations((prev) => [...prev, newOp]);
     setActiveOpId(newId);
     setWorkspaceView('scheduling');
+  };
+
+  const handleToggleOpStatus = (opId?: string) => {
+    const targetId = opId || activeOpId || activeOp.id;
+    setOperations((prev) =>
+      prev.map((o) => {
+        if (o.id !== targetId) return o;
+        const newStatus: OperationStatus = o.status === 'ready' ? 'draft' : 'ready';
+        return { ...o, status: newStatus, updatedAt: Date.now() };
+      }),
+    );
   };
 
   const handleRenameOp = (opId: string, newName: string) => {
@@ -1810,6 +1983,26 @@ export function OperationPlanner({
     );
   };
 
+  const handleToggleRouteSiege = (routeKey: string) => {
+    const currentOpId = activeOpId || activeOp.id;
+    setOperations((prev) =>
+      prev.map((o) => {
+        if (o.id !== currentOpId) return o;
+        const currentRouteSiege = o.routeSiegeOverrides?.[routeKey];
+        const existingRoute = routes.find((r) => r.key === routeKey);
+        const nextVal = currentRouteSiege !== undefined ? !currentRouteSiege : !existingRoute?.isSiege;
+        return {
+          ...o,
+          routeSiegeOverrides: {
+            ...(o.routeSiegeOverrides || {}),
+            [routeKey]: nextVal,
+          },
+          updatedAt: Date.now(),
+        };
+      }),
+    );
+  };
+
 
 
   // Master Roster CRUD: Attackers & Alliance Members
@@ -1821,6 +2014,13 @@ export function OperationPlanner({
       ? roster.attackers.filter((a) => a.playerId === playerId).length
       : roster.attackers.length;
 
+    const playerFaction = owningPlayer?.factionKey
+      ? playableFactions.find((f) => f.key === owningPlayer.factionKey)
+      : undefined;
+    const initialUnitRef = playerFaction
+      ? (`${playerFaction.key}/${playerFaction.units[0].key}` as UnitRef)
+      : defaultUnitRef;
+
     const newAtk: Attacker = {
       id: newId,
       name: owningPlayer
@@ -1828,7 +2028,7 @@ export function OperationPlanner({
         : `Hammer ${roster.attackers.length + 1}`,
       x: 0,
       y: 0,
-      unitRef: defaultUnitRef,
+      unitRef: initialUnitRef,
       artifactMultiplier: 1,
       bannerfieldLevel: 0,
       playerId: playerId || '',
@@ -1882,10 +2082,27 @@ export function OperationPlanner({
   };
 
   const handlePatchAttackerPlayer = (id: string, patch: Partial<Player>) => {
-    setRoster((prev) => ({
-      ...prev,
-      attackerPlayers: (prev.attackerPlayers || []).map((p) => (p.id === id ? { ...p, ...patch } : p)),
-    }));
+    setRoster((prev) => {
+      const nextAttackerPlayers = (prev.attackerPlayers || []).map((p) => (p.id === id ? { ...p, ...patch } : p));
+      let nextAttackers = prev.attackers;
+      if (patch.factionKey) {
+        const targetFaction = playableFactions.find((f) => f.key === patch.factionKey);
+        if (targetFaction) {
+          const defaultUnit = `${targetFaction.key}/${targetFaction.units[0].key}`;
+          nextAttackers = prev.attackers.map((a) => {
+            if (a.playerId === id && !a.unitRef.startsWith(`${patch.factionKey}/`)) {
+              return { ...a, unitRef: defaultUnit };
+            }
+            return a;
+          });
+        }
+      }
+      return {
+        ...prev,
+        attackerPlayers: nextAttackerPlayers,
+        attackers: nextAttackers,
+      };
+    });
   };
 
   const handleRemoveAttackerPlayer = (playerId: string) => {
@@ -2060,12 +2277,21 @@ export function OperationPlanner({
     const land = parsedLanding;
     if (!land) return [];
 
-    const computed = marchingAttackers.flatMap((attacker) =>
-      activeTargets.map((target) => {
-        const unit = lookup(attacker.unitRef).unit;
+    const computed: PlannedRoute[] = [];
+
+    marchingAttackers.forEach((attacker) => {
+      const defaultUnitRef = (activeOp.attackerUnitOverrides?.[attacker.id] || attacker.unitRef) as UnitRef;
+
+      activeTargets.forEach((target) => {
+        const routeKey = `${attacker.id}:${target.id}`;
+
+        const effectiveUnitRef = (activeOp.routeUnitOverrides?.[routeKey] || defaultUnitRef) as UnitRef;
+        const unit = lookup(effectiveUnitRef).unit;
+        const isSiege = activeOp.routeSiegeOverrides?.[routeKey] ?? false;
+        const effectiveSpeed = isSiege ? unit.speed * 0.5 : unit.speed;
         const distance = distanceBetween(attacker, target);
         const travel = travelHours(distance, {
-          unitSpeed: unit.speed,
+          unitSpeed: effectiveSpeed,
           serverSpeed: serverSpeedMultiplier(activeOp.serverSpeed),
           artifactMultiplier: attacker.artifactMultiplier,
           bannerfieldLevel: attacker.bannerfieldLevel,
@@ -2076,10 +2302,13 @@ export function OperationPlanner({
         const targetSafe = resolveSafeTime(target, roster.players);
         const targetWindow = ownerWindow(targetSafe);
         const checks = safeChecks(send, land, attackerWindow, targetWindow);
-        return {
-          key: attacker.id + ':' + target.id,
+
+        computed.push({
+          key: routeKey,
           attacker,
           target,
+          unitRef: effectiveUnitRef,
+          isSiege,
           attackerSafe,
           targetSafe,
           attackerWindow,
@@ -2090,17 +2319,43 @@ export function OperationPlanner({
           land,
           checks,
           possible: routeIsPossible(checks),
-        };
-      }),
-    );
+        });
+      });
+    });
 
     return computed.sort((a, b) => a.send.getTime() - b.send.getTime());
-  }, [marchingAttackers, activeTargets, roster.players, roster.attackerPlayers, activeOp.serverSpeed, parsedLanding]);
+  }, [
+    marchingAttackers,
+    activeTargets,
+    roster.players,
+    roster.attackerPlayers,
+    activeOp.id,
+    activeOp.serverSpeed,
+    activeOp.fakeTargetIds,
+    activeOp.attackerUnitOverrides,
+    activeOp.routeUnitOverrides,
+    activeOp.routeSiegeOverrides,
+    parsedLanding,
+  ]);
 
   const selectedRoute = routes.find((route) => route.key === selectedKey) ?? routes[0];
   const handleInspectRoute = (routeKey: string) => {
     setSelectedKey(routeKey);
   };
+
+  const availableUnitsInRoutes = useMemo(() => {
+    const map = new Map<string, { key: string; unitRef: UnitRef; isSiege: boolean; count: number }>();
+    routes.forEach((r) => {
+      const key = `${r.unitRef}${r.isSiege ? ':siege' : ''}`;
+      const existing = map.get(key);
+      if (existing) {
+        existing.count += 1;
+      } else {
+        map.set(key, { key, unitRef: r.unitRef, isSiege: !!r.isSiege, count: 1 });
+      }
+    });
+    return Array.from(map.values());
+  }, [routes]);
 
   const visibleRoutes = useMemo(() => {
     return routes.filter((route) => {
@@ -2111,13 +2366,17 @@ export function OperationPlanner({
         if (!isMatch) return false;
       }
       if (filterTarget !== 'all' && route.target.id !== filterTarget) return false;
+      if (filterUnit !== 'all') {
+        const routeFilterKey = `${route.unitRef}${route.isSiege ? ':siege' : ''}`;
+        if (routeFilterKey !== filterUnit && route.unitRef !== filterUnit) return false;
+      }
       if (filterStatus === 'possible' && !route.possible) return false;
       if (filterStatus === 'blocked' && route.possible) return false;
       if (filterType === 'real' && route.target.fake) return false;
       if (filterType === 'fake' && !route.target.fake) return false;
       return true;
     });
-  }, [routes, filterAttacker, filterTarget, filterStatus, filterType]);
+  }, [routes, filterAttacker, filterTarget, filterUnit, filterStatus, filterType]);
 
   // Identify the next upcoming attack to launch (earliest send time >= now)
   const nextUpcomingRouteKey = useMemo(() => {
@@ -2172,7 +2431,35 @@ export function OperationPlanner({
     }
 
     return clashes;
-  }, [routes, now]);
+  }, [routes]);
+
+  const attackerWarnings = useMemo(() => {
+    if (marchingAttackers.length === 0 || routes.length === 0) return {};
+    const blockedRoutes = routes.filter((r) => !r.possible);
+    if (blockedRoutes.length === 0) return {};
+    const map: Record<string, string> = {};
+    for (const attacker of marchingAttackers) {
+      const msgs = blockedRoutes
+        .filter((r) => r.attacker.id === attacker.id)
+        .map((r) => `${r.target.name}: ${routeBlockerText(r)}`);
+      if (msgs.length > 0) map[attacker.id] = msgs.join('\n');
+    }
+    return map;
+  }, [marchingAttackers, routes]);
+
+  const targetWarnings = useMemo(() => {
+    if (activeTargets.length === 0 || routes.length === 0) return {};
+    const blockedRoutes = routes.filter((r) => !r.possible);
+    if (blockedRoutes.length === 0) return {};
+    const map: Record<string, string> = {};
+    for (const target of activeTargets) {
+      const msgs = blockedRoutes
+        .filter((r) => r.target.id === target.id)
+        .map((r) => `${r.attacker.name}: ${routeBlockerText(r)}`);
+      if (msgs.length > 0) map[target.id] = msgs.join('\n');
+    }
+    return map;
+  }, [activeTargets, routes]);
 
   // Audio alert tracking for 1-minute chime & 5-second countdown ticks
   const alerted1MinRef = useRef<Set<string>>(new Set());
@@ -2314,45 +2601,92 @@ export function OperationPlanner({
       {isOperationOpen && (
         <>
           {isV2Active && roomSession && activeOpId && (
-            <div className="op-workspace-bar">
-              <div className="op-workspace-bar__operation">
-                <span className="op-workspace-bar__eyebrow">Active Operation</span>
-                <strong className="op-workspace-bar__title">
-                  {activeOp.name}
-                </strong>
+            <>
+              <div className="op-workspace-bar">
+                <div className="op-workspace-bar__operation">
+                  <span className="op-workspace-bar__eyebrow">Viewing Workspace</span>
+                  <div className="op-workspace-bar__title-group">
+                    <strong className="op-workspace-bar__title">
+                      {activeOp.name}
+                    </strong>
+                    <span
+                      className={`op-status-badge ${isOpLocked ? 'op-status-badge--ready' : 'op-status-badge--draft'}`}
+                      title={isOpLocked ? 'Confirmed / Ready: Protected against accidental edits' : 'Draft: Editable'}
+                    >
+                      {isOpLocked ? '✅ Ready' : '📝 Draft'}
+                    </span>
+                    <button
+                      type="button"
+                      className={`pill pill--tiny ${isOpLocked ? 'op-lock-toggle--unlock' : 'op-lock-toggle--lock'}`}
+                      onClick={() => handleToggleOpStatus(activeOp.id)}
+                      title={isOpLocked ? 'Unlock operation to allow edits' : 'Lock operation as Ready to prevent accidental edits'}
+                      aria-label={isOpLocked ? 'Unlock operation' : 'Lock operation as Ready'}
+                    >
+                      {isOpLocked ? '🔓 Unlock' : '🔒 Mark as Ready'}
+                    </button>
+                    <button
+                      type="button"
+                      className={`pill pill--tiny pill--share ${routeLinkCopied ? 'is-copied' : ''}`}
+                      onClick={copyRouteLink}
+                      title="Copy direct route link to this operation wave to share in Discord"
+                    >
+                      {routeLinkCopied ? '✓ Copied' : '🔗 Share Routes'}
+                    </button>
+                  </div>
+                </div>
+                <nav className="op-workspace-nav" aria-label="Planner workspace">
+                  <button
+                    type="button"
+                    className={workspaceView === 'scheduling' ? 'is-active' : ''}
+                    onClick={() => setWorkspaceView('scheduling')}
+                  >
+                    🕒 1. Scheduling
+                  </button>
+                  <button
+                    type="button"
+                    className={workspaceView === 'targets' ? 'is-active' : ''}
+                    onClick={() => setWorkspaceView('targets')}
+                  >
+                    🎯 2. Targets & Setup
+                  </button>
+                  <button
+                    type="button"
+                    className={workspaceView === 'routes' ? 'is-active' : ''}
+                    onClick={() => setWorkspaceView('routes')}
+                  >
+                    🗺️ 3. Routes ({routes.length})
+                  </button>
+                </nav>
+                <button
+                  type="button"
+                  className="pill pill--tiny pill--secondary op-workspace-close"
+                  onClick={() => setActiveOpId(null)}
+                  title="Close operation workspace"
+                >
+                  ✕
+                </button>
               </div>
-              <nav className="op-workspace-nav" aria-label="Planner workspace">
-                <button
-                  type="button"
-                  className={workspaceView === 'scheduling' ? 'is-active' : ''}
-                  onClick={() => setWorkspaceView('scheduling')}
-                >
-                  🕒 1. Scheduling
-                </button>
-                <button
-                  type="button"
-                  className={workspaceView === 'targets' ? 'is-active' : ''}
-                  onClick={() => setWorkspaceView('targets')}
-                >
-                  🎯 2. Targets & Setup
-                </button>
-                <button
-                  type="button"
-                  className={workspaceView === 'routes' ? 'is-active' : ''}
-                  onClick={() => setWorkspaceView('routes')}
-                >
-                  🗺️ 3. Routes ({routes.length})
-                </button>
-              </nav>
-              <button
-                type="button"
-                className="pill pill--tiny pill--secondary op-workspace-close"
-                onClick={() => setActiveOpId(null)}
-                title="Close operation"
-              >
-✕
-              </button>
-            </div>
+
+              {isOpLocked && (
+                <div className="op-lock-banner" role="alert">
+                  <div className="op-lock-banner__info">
+                    <span className="op-lock-banner__icon">🔒</span>
+                    <div className="op-lock-banner__text">
+                      <strong>Operation Confirmed &amp; Locked ({activeOp.name})</strong>
+                      <span>Editing controls are locked to protect against accidental changes. You can safely inspect arrival times, filter attacks, and copy routes.</span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="pill pill--tiny pill--primary op-lock-banner__btn"
+                    onClick={() => handleToggleOpStatus(activeOp.id)}
+                    title="Unlock operation to allow edits"
+                  >
+                    🔓 Unlock
+                  </button>
+                </div>
+              )}
+            </>
           )}
 
           {/* In Standalone v1 mode, render everything inline on a single page */}
@@ -2519,10 +2853,12 @@ export function OperationPlanner({
                         className="text-input text-input--date"
                         type="date"
                         value={landingDate}
+                        disabled={isOpLocked}
                         onChange={(event) => updateLanding(event.target.value, landingTime)}
                       />
                       <Time24Input
                         value={landingTime}
+                        disabled={isOpLocked}
                         onChange={(newTime) => updateLanding(landingDate, newTime)}
                         placeholder="14:00:00"
                         withSeconds
@@ -2537,7 +2873,9 @@ export function OperationPlanner({
                         max={1435}
                         step={5}
                         value={sliderMinutes}
+                        disabled={isOpLocked}
                         onChange={(e) => {
+                          if (isOpLocked) return;
                           const totalMins = Number(e.target.value);
                           const h = Math.floor(totalMins / 60).toString().padStart(2, '0');
                           const m = (totalMins % 60).toString().padStart(2, '0');
@@ -2568,8 +2906,8 @@ export function OperationPlanner({
                 landingDate={landingDate}
                 landingTime={landingTime}
                 parsedLanding={parsedLanding}
-                onToggleTargetFake={handleToggleTargetFake}
-                onChangeLandingMinutes={(minutes) => updateLanding(landingDate, `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}:00`)}
+                onToggleTargetFake={isOpLocked ? () => {} : handleToggleTargetFake}
+                onChangeLandingMinutes={(minutes) => !isOpLocked && updateLanding(landingDate, `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}:00`)}
                 onReviewRoutes={() => setWorkspaceView('routes')}
                 mode="planning"
               />
@@ -2614,17 +2952,18 @@ export function OperationPlanner({
 
               {/* Mode-Specific Participant Configuration */}
               <OperationParticipantPicker
-                attackerWarnings={Object.fromEntries(marchingAttackers.map((attacker) => [attacker.id, routes.filter((r) => r.attacker.id === attacker.id && !r.possible).map((r) => `${r.target.name}: ${routeBlockerText(r)}`).join('\n')]))}
-                targetWarnings={Object.fromEntries(activeTargets.map((target) => [target.id, routes.filter((r) => r.target.id === target.id && !r.possible).map((r) => `${r.attacker.name}: ${routeBlockerText(r)}`).join('\n')]))}
+                attackerWarnings={attackerWarnings}
+                targetWarnings={targetWarnings}
                 attackers={roster.attackers}
-                attackerPlayers={roster.attackerPlayers || []}
+                attackerPlayers={roster.attackerPlayers || EMPTY_ARRAY}
                 players={roster.players}
                 targets={roster.targets}
-                assignedAttackerIds={activeOp.assignedAttackerIds || []}
-                assignedTargetIds={activeOp.assignedTargetIds || []}
-                fakeTargetIds={activeOp.fakeTargetIds || []}
-                attackerUnitOverrides={activeOp.attackerUnitOverrides || {}}
+                assignedAttackerIds={activeOp.assignedAttackerIds || EMPTY_ARRAY}
+                assignedTargetIds={activeOp.assignedTargetIds || EMPTY_ARRAY}
+                fakeTargetIds={activeOp.fakeTargetIds || EMPTY_ARRAY}
+                attackerUnitOverrides={activeOp.attackerUnitOverrides || EMPTY_OBJECT}
                 parsedLanding={parsedLanding}
+                isLocked={isOpLocked}
                 onToggleAttacker={handleToggleAttacker}
                 onToggleTarget={handleToggleTarget}
                 onToggleTargetFake={handleToggleTargetFake}
@@ -2681,6 +3020,16 @@ export function OperationPlanner({
 
               {/* Alarm Control Button Toolbar */}
               <div className="op-alarm-toolbar">
+                {isV2Active && roomSession && (
+                  <button
+                    type="button"
+                    className={`pill pill--share ${routeLinkCopied ? 'is-copied' : ''}`}
+                    onClick={copyRouteLink}
+                    title="Copy direct route link to this operation to share in Discord"
+                  >
+                    {routeLinkCopied ? '✓ Route Link Copied!' : '🔗 Share Routes'}
+                  </button>
+                )}
                 <button
                   type="button"
                   className={`pill pill--alarm ${alarmEnabled ? 'is-enabled' : 'is-muted'}`}
@@ -2757,6 +3106,28 @@ export function OperationPlanner({
                     })}
                   </select>
                 </label>
+
+                {availableUnitsInRoutes.length > 1 && (
+                  <label className="op-filter-label">
+                    <span>Troop:</span>
+                    <select
+                      className="select op-select-filter"
+                      value={filterUnit}
+                      onChange={(e) => setFilterUnit(e.target.value)}
+                      aria-label="Filter routes by troop"
+                    >
+                      <option value="all">All Troops ({routes.length})</option>
+                      {availableUnitsInRoutes.map((entry) => {
+                        const u = lookup(entry.unitRef).unit;
+                        return (
+                          <option key={entry.key} value={entry.key}>
+                            {u.name}{entry.isSiege ? ' 🔥 [Siege]' : ''} ({entry.count} routes)
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </label>
+                )}
               </div>
 
               <div className="op-filter-pills-group">
@@ -2830,6 +3201,7 @@ export function OperationPlanner({
                   <tr>
                     <th>Route</th>
                     <th>Type</th>
+                    <th>Siege</th>
                     <th>Map Pin</th>
                     <th>Launch In</th>
                     <th>Travel</th>
@@ -2842,7 +3214,7 @@ export function OperationPlanner({
                 <tbody>
                   {visibleRoutes.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="op-routes-empty">
+                      <td colSpan={8} className="op-routes-empty">
                         No routes match the selected participants or filters.
                       </td>
                     </tr>
@@ -2909,13 +3281,30 @@ export function OperationPlanner({
                             <button
                               type="button"
                               className={`pill pill--tiny op-target-mode ${route.target.fake ? 'is-fake' : 'is-real'}`}
+                              disabled={isOpLocked}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleToggleTargetFake(route.target.id);
+                                if (!isOpLocked) handleToggleTargetFake(route.target.id);
                               }}
-                              title={`Click to toggle ${route.target.name} between Real and Fake`}
+                              title={isOpLocked ? 'Operation is locked' : `Click to toggle ${route.target.name} between Real and Fake`}
                             >
                               {route.target.fake ? 'Fake' : 'Real'}
+                            </button>
+                          </td>
+                          <td data-label="Siege" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              type="button"
+                              className={`op-route-siege-toggle ${route.isSiege ? 'is-siege' : ''}`}
+                              onClick={() => !isOpLocked && handleToggleRouteSiege(route.key)}
+                              disabled={isOpLocked}
+                              title={
+                                isOpLocked
+                                  ? `Operation locked: ${route.isSiege ? 'Siege' : 'Normal'}`
+                                  : (route.isSiege ? 'Siege attack (travels at half speed) - click to switch to Normal' : 'Normal speed attack - click to switch to Siege (half speed)')
+                              }
+                              aria-label="Toggle siege mode for route"
+                            >
+                              {route.isSiege ? '🔥 Siege' : 'Normal'}
                             </button>
                           </td>
                           <td data-label="Map Pin">
@@ -2928,7 +3317,6 @@ export function OperationPlanner({
                               onClick={(e) => e.stopPropagation()}
                             >
                               <span className="op-map-pin-icon" aria-hidden="true">📍</span>
-                              <span className="op-map-pin-label">Link:</span>
                               <span className="op-map-pin-coords">({route.target.x}|{route.target.y})</span>
                               <span className="op-map-pin-arrow" aria-hidden="true">↗</span>
                             </a>

@@ -8,9 +8,16 @@ interface UnitGridPickerProps {
   onChange: (unitRef: UnitRef) => void;
   disabled?: boolean;
   compact?: boolean;
+  factionFilter?: string;
 }
 
-export function UnitGridPicker({ unitRef, onChange, disabled = false, compact = false }: UnitGridPickerProps) {
+export function UnitGridPicker({
+  unitRef,
+  onChange,
+  disabled = false,
+  compact = false,
+  factionFilter,
+}: UnitGridPickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -19,12 +26,16 @@ export function UnitGridPicker({ unitRef, onChange, disabled = false, compact = 
   const current = lookup(unitRef);
 
   const sortedFactions = useMemo(() => {
+    if (factionFilter) {
+      const matched = playableFactions.filter((f) => f.key === factionFilter);
+      if (matched.length > 0) return matched;
+    }
     const currentFactionKey = current.faction.key;
     return [
       ...playableFactions.filter((f) => f.key === currentFactionKey),
       ...playableFactions.filter((f) => f.key !== currentFactionKey),
     ];
-  }, [current.faction.key]);
+  }, [current.faction.key, factionFilter]);
 
   useEffect(() => {
     if (!isOpen || !triggerRef.current) return;
@@ -130,7 +141,11 @@ export function UnitGridPicker({ unitRef, onChange, disabled = false, compact = 
             aria-label="Choose slowest troop"
           >
             <div className="unit-grid-popover__header">
-              <span className="unit-grid-popover__title">Select Slowest Troop</span>
+              <span className="unit-grid-popover__title">
+                {factionFilter && sortedFactions.length === 1
+                  ? `Select Slowest Troop (${sortedFactions[0].name})`
+                  : 'Select Slowest Troop'}
+              </span>
               <button
                 type="button"
                 className="unit-grid-popover__close"

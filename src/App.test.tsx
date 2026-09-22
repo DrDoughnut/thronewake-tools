@@ -49,13 +49,16 @@ const setInputValue = (input: HTMLInputElement | HTMLTextAreaElement, value: str
   });
 
 describe('the app', () => {
-  it('renders Combat Calculator as the first tool on the left with double swords emoji', () => {
+  it('renders Combat Calculator as the first tool on the left with double swords emoji and link href', () => {
     const toolTabs = container.querySelectorAll('.pill--tool');
     expect(toolTabs[0].getAttribute('aria-label')).toBe('Combat Calculator');
     expect(toolTabs[0].textContent).toContain('⚔️');
+    expect(toolTabs[0].tagName.toLowerCase()).toBe('a');
+    expect(toolTabs[0].getAttribute('href')).toBe('#tool=combat');
 
     const unitsTab = [...toolTabs].find((t) => t.getAttribute('aria-label') === 'Unit Attributes');
     expect(unitsTab?.textContent).toContain('🔨');
+    expect(unitsTab?.getAttribute('href')).toBe('#tool=units');
   });
 
   it('renders a ranked table on first load', () => {
@@ -828,10 +831,10 @@ describe('the operation planner', () => {
     const benchedAttacker = container.querySelector('.op-participant-chip--attacker input[type="checkbox"]') as HTMLInputElement;
     act(() => benchedAttacker.click());
 
-    // Verify per-hammer UnitGridPicker is present and clickable in deployed row
-    const troopPickerTrigger = container.querySelector('.op-wave-troop-picker .unit-grid-picker__trigger') as HTMLButtonElement;
-    expect(troopPickerTrigger).toBeTruthy();
-    expect(troopPickerTrigger.textContent).toContain('f/h');
+    // Verify per-hammer troop dropdown selector is present in row
+    const troopPicker = container.querySelector('.op-wave-troop-picker .unit-grid-picker') as HTMLElement;
+    expect(troopPicker).toBeTruthy();
+    expect(troopPicker.textContent).toContain('f/h');
 
     const routesTabReopened = [...container.querySelectorAll('.op-workspace-nav button')].find(
       (button) => button.textContent?.includes('Routes'),
@@ -1212,6 +1215,299 @@ describe('the operation planner', () => {
     } finally {
       globalThis.fetch = originalFetch;
     }
+  });
+
+  it('supports normal vs siege speed toggle on individual routes and renders compact participant badges', async () => {
+    const opTab = [...container.querySelectorAll('.pill--tool')].find(
+      (b) => b.getAttribute('aria-label') === 'Operation Planner',
+    )!;
+    for (let i = 0; i < 10; i++) {
+      click(opTab);
+    }
+
+    const modalInput = container.querySelector('.secret-modal-input') as HTMLInputElement;
+    if (modalInput) {
+      setInputValue(modalInput, 'password123');
+      const connectBtn = container.querySelector('.secret-modal-btn-connect') as HTMLButtonElement;
+      click(connectBtn);
+    }
+
+    const roomConnectBtn = container.querySelector('.op-team-room-form button') as HTMLButtonElement;
+    if (roomConnectBtn) click(roomConnectBtn);
+
+    const start = Date.now();
+    while (!container.querySelector('.op-plan-tab')) {
+      if (Date.now() - start > 2000) break;
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 20));
+      });
+    }
+
+    const firstOpTab = container.querySelector('.op-plan-tab') as HTMLElement;
+    expect(firstOpTab).toBeTruthy();
+    click(firstOpTab);
+
+    // Go to Setup tab
+    const setupTab = [...container.querySelectorAll('.op-workspace-nav button')].find(
+      (button) => button.textContent?.includes('Targets & Setup'),
+    ) as HTMLButtonElement;
+    expect(setupTab).toBeTruthy();
+    click(setupTab);
+
+    // Verify unit dropdown selector (UnitGridPicker) is rendered for attackers on Targets & Setup page
+    const troopPickers = container.querySelectorAll('.op-wave-troop-picker .unit-grid-picker');
+    expect(troopPickers.length).toBeGreaterThan(0);
+
+    // Go to Routes tab
+    const routesTab = [...container.querySelectorAll('.op-workspace-nav button')].find(
+      (button) => button.textContent?.includes('Routes'),
+    ) as HTMLButtonElement;
+    expect(routesTab).toBeTruthy();
+    click(routesTab);
+
+    // Verify unit dropdown has been removed from the routes page to compress table,
+    // and only the individual route siege toggle is rendered in the Siege column
+    expect(container.querySelector('.op-route-troop-chip')).toBeNull();
+    expect(container.querySelector('.op-route-troop-picker')).toBeNull();
+    const siegeToggles = container.querySelectorAll('.op-route-siege-toggle') as NodeListOf<HTMLButtonElement>;
+    expect(siegeToggles.length).toBeGreaterThan(0);
+
+    // Verify individual route siege toggle toggles mode for that singular route
+    expect(siegeToggles[0].textContent).toContain('Normal');
+    expect(siegeToggles[0].classList.contains('is-siege')).toBe(false);
+    click(siegeToggles[0]);
+    expect(siegeToggles[0].textContent).toContain('Siege');
+    expect(siegeToggles[0].classList.contains('is-siege')).toBe(true);
+
+    // Verify Exclude button '✕' has been removed to condense the routes table
+    expect(container.querySelector('.op-route-exclude-btn')).toBeNull();
+  });
+
+  it('supports draft vs ready operations with divider, edit locking, and emergency unlock', async () => {
+    // Unlock v2 mode
+    const navBtn = [...container.querySelectorAll('.pill--tool')].find(
+      (b) => b.getAttribute('aria-label') === 'Operation Planner',
+    ) as HTMLButtonElement;
+    for (let i = 0; i < 10; i++) {
+      click(navBtn);
+    }
+
+    const modalInput = container.querySelector('.secret-modal-input') as HTMLInputElement;
+    if (modalInput) {
+      setInputValue(modalInput, 'password123');
+      const connectBtn = container.querySelector('.secret-modal-btn-connect') as HTMLButtonElement;
+      click(connectBtn);
+    }
+
+    const roomConnectBtn = container.querySelector('.op-team-room-form button') as HTMLButtonElement;
+    if (roomConnectBtn) click(roomConnectBtn);
+
+    const start = Date.now();
+    while (!container.querySelector('.op-plan-tab')) {
+      if (Date.now() - start > 2000) break;
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 20));
+      });
+    }
+
+    // Initial state: Operation 1 is Draft (listed in Drafts group, with no draft tag cluttering the tab name)
+    const opTabs = container.querySelectorAll('.op-plan-tab');
+    expect(opTabs.length).toBeGreaterThan(0);
+    expect(container.querySelector('.op-tab-status-badge--draft')).toBeNull();
+
+    // Ready and Drafts groups and the horizontal divider are always visible
+    expect(container.querySelector('.op-plans-group--ready')).toBeTruthy();
+    expect(container.querySelector('.op-plans-divider--horizontal')).toBeTruthy();
+    expect(container.querySelector('.op-plans-group--draft')).toBeTruthy();
+
+    // Open Operation 1
+    click(opTabs[0]);
+
+    // Check workspace bar shows Draft status and "🔒 Mark as Ready" button
+    const workspaceStatus = container.querySelector('.op-status-badge--draft');
+    expect(workspaceStatus).toBeTruthy();
+    const lockBtn = container.querySelector('.op-lock-toggle--lock') as HTMLButtonElement;
+    expect(lockBtn).toBeTruthy();
+    expect(lockBtn.textContent).toContain('Mark as Ready');
+
+    // The tab menu should NOT have a lock icon button
+    expect(container.querySelector('.op-plan-tab__btn--lock')).toBeNull();
+    expect(container.querySelector('.op-plan-tab__btn--unlock')).toBeNull();
+
+    // Lock operation (mark as Ready)
+    click(lockBtn);
+
+    // Verify status switches to Ready
+    const readyBadge = container.querySelector('.op-status-badge--ready');
+    expect(readyBadge).toBeTruthy();
+    expect(readyBadge?.textContent).toContain('Ready');
+
+    // Verify Unlock banner appears (no "emergency" wording)
+    const lockBanner = container.querySelector('.op-lock-banner');
+    expect(lockBanner).toBeTruthy();
+    expect(lockBanner?.textContent).toContain('Operation Confirmed & Locked');
+
+    // Verify inputs are disabled while locked
+    const dateInput = container.querySelector('.text-input--date') as HTMLInputElement;
+    expect(dateInput?.disabled).toBe(true);
+
+    const slider = container.querySelector('.op-time-slider') as HTMLInputElement;
+    expect(slider?.disabled).toBe(true);
+
+    // Duplicate operation 1 to create another operation
+    const duplicateBtn = container.querySelector('.op-plan-tab__btn[title="Duplicate operation"]') as HTMLButtonElement;
+    expect(duplicateBtn).toBeTruthy();
+    click(duplicateBtn);
+
+    // Verify divider and both groups remain visible
+    const divider = container.querySelector('.op-plans-divider--horizontal');
+    expect(divider).toBeTruthy();
+    expect(container.querySelector('.op-plans-group--draft')?.textContent).toContain('Drafts');
+    expect(container.querySelector('.op-plans-group--ready')?.textContent).toContain('Ready');
+
+    // Now test unlock on Operation 1
+    const readyTab = container.querySelector('.op-plan-tab.is-ready') as HTMLDivElement;
+    expect(readyTab).toBeTruthy();
+    click(readyTab);
+
+    const unlockBtn = container.querySelector('.op-lock-banner__btn') as HTMLButtonElement;
+    expect(unlockBtn).toBeTruthy();
+    expect(unlockBtn.textContent).toContain('Unlock');
+    expect(unlockBtn.textContent).not.toContain('Emergency');
+    click(unlockBtn);
+
+    // Verify lock banner disappears and inputs are re-enabled
+    expect(container.querySelector('.op-lock-banner')).toBeNull();
+    expect((container.querySelector('.text-input--date') as HTMLInputElement)?.disabled).toBe(false);
+    expect((container.querySelector('.op-time-slider') as HTMLInputElement)?.disabled).toBe(false);
+  });
+
+  it('supports player race filter in the Alliance Hammer Directory and filters unit picker to race', async () => {
+    // Unlock v2 mode
+    const navBtn = [...container.querySelectorAll('.pill--tool')].find(
+      (b) => b.getAttribute('aria-label') === 'Operation Planner',
+    ) as HTMLButtonElement;
+    for (let i = 0; i < 10; i++) {
+      click(navBtn);
+    }
+
+    const modalInput = container.querySelector('.secret-modal-input') as HTMLInputElement;
+    if (modalInput) {
+      setInputValue(modalInput, 'password123');
+      const connectBtn = container.querySelector('.secret-modal-btn-connect') as HTMLButtonElement;
+      click(connectBtn);
+    }
+
+    const roomConnectBtn = container.querySelector('.op-team-room-form button') as HTMLButtonElement;
+    if (roomConnectBtn) click(roomConnectBtn);
+
+    const start = Date.now();
+    while (!container.querySelector('.op-plan-tab')) {
+      if (Date.now() - start > 2000) break;
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 20));
+      });
+    }
+
+    // Open Alliance Hammer Directory
+    const armiesBtn = [...container.querySelectorAll('button')].find(
+      (b) => b.textContent?.includes('Alliance Hammer Directory'),
+    ) as HTMLButtonElement;
+    expect(armiesBtn).toBeTruthy();
+    click(armiesBtn);
+
+    // Check that member card has pretty race selector (FactionSelect) with tribe icon & checkmark
+    const factionTrigger = container.querySelector('.op-target-group__player-title .faction-select-trigger') as HTMLButtonElement;
+    expect(factionTrigger).toBeTruthy();
+    click(factionTrigger);
+
+    // Dropdown list appears with chief icons, names, and checkmarks
+    const dropdown = container.querySelector('.faction-select-dropdown');
+    expect(dropdown).toBeTruthy();
+    expect(dropdown?.textContent).toContain('Embermark Dominion');
+    expect(dropdown?.textContent).toContain('Stormfang Clans');
+    expect(dropdown?.textContent).toContain('Verdant Wardens');
+
+    // Select Stormfang Clans
+    const stormfangItem = [...container.querySelectorAll('.faction-select-item')].find(
+      (item) => item.textContent?.includes('Stormfang Clans'),
+    ) as HTMLElement;
+    expect(stormfangItem).toBeTruthy();
+    click(stormfangItem);
+
+    // Verify trigger now shows Stormfang Clans
+    expect(factionTrigger.textContent).toContain('Stormfang Clans');
+
+    // Verify catapult / troop dropdown is NOT shown anywhere in the directory
+    expect(container.querySelector('.unit-grid-picker')).toBeNull();
+
+    // Close Alliance Armies modal
+    const closeRosterBtn = [...container.querySelectorAll('button')].find(
+      (b) => b.textContent === 'Done' || b.getAttribute('aria-label')?.includes('Close'),
+    ) as HTMLButtonElement;
+    if (closeRosterBtn) click(closeRosterBtn);
+
+    // Open Operation 1 and go to Targets & Setup page
+    const op1Tab = container.querySelector('.op-plan-tab') as HTMLDivElement;
+    click(op1Tab);
+
+    const targetsNavBtn = [...container.querySelectorAll('.op-workspace-nav button')].find(
+      (b) => b.textContent?.includes('Targets & Setup'),
+    ) as HTMLButtonElement;
+    click(targetsNavBtn);
+
+    // Check hammer unit picker trigger on Targets & Setup page
+    const unitPickerTrigger = container.querySelector('.unit-grid-picker__trigger') as HTMLButtonElement;
+    expect(unitPickerTrigger).toBeTruthy();
+    click(unitPickerTrigger);
+
+    // The popover should be opened in document.body
+    const popover = document.querySelector('.unit-grid-popover');
+    expect(popover).toBeTruthy();
+    // Only Stormfang Clans should be present in the filtered popover
+    expect(popover?.textContent).toContain('Stormfang Clans');
+    expect(popover?.textContent).not.toContain('Verdant Wardens');
+    expect(popover?.textContent).not.toContain('Embermark Dominion');
+
+    // Close picker by pressing Escape
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    });
+    expect(document.querySelector('.unit-grid-popover')).toBeNull();
+  });
+
+  it('deep-links directly to room, operation wave, and routes view', async () => {
+    // Navigate with hash containing room, op, and view
+    act(() => {
+      window.location.hash = '#room=AlphaTeam&op=op1&view=routes';
+      window.dispatchEvent(new Event('hashchange'));
+    });
+
+    const roomConnectBtn = container.querySelector('.op-team-room-form button') as HTMLButtonElement;
+    if (roomConnectBtn) click(roomConnectBtn);
+
+    const start = Date.now();
+    while (!container.querySelector('.op-results')) {
+      if (Date.now() - start > 2000) break;
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 20));
+      });
+    }
+
+    // Verify workspace is opened directly to routes
+    expect(container.querySelector('.op-results')).toBeTruthy();
+    expect(container.textContent).toContain('Route Plan (Sorted by Send Time)');
+
+    // Verify Share Routes button is present
+    const shareRoutesBtn = [...container.querySelectorAll('.pill--share')].find(
+      (b) => b.textContent?.includes('Share Routes'),
+    );
+    expect(shareRoutesBtn).toBeTruthy();
+
+    // Verify hash is synchronized with room, op, and view
+    expect(window.location.hash.toLowerCase()).toContain('room=alphateam');
+    expect(window.location.hash).toContain('op=op1');
+    expect(window.location.hash).toContain('view=routes');
   });
 });
 

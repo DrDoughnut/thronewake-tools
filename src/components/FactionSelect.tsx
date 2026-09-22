@@ -8,6 +8,8 @@ export interface FactionSelectProps {
   className?: string;
   ariaLabel?: string;
   id?: string;
+  allowAny?: boolean;
+  anyLabel?: string;
 }
 
 export function FactionSelect({
@@ -16,11 +18,14 @@ export function FactionSelect({
   className = '',
   ariaLabel = 'Select race',
   id,
+  allowAny = false,
+  anyLabel = 'Race: Any',
 }: FactionSelectProps) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
-  const selectedFaction = safeFaction(value);
-  const selectedChief = factionChief(selectedFaction.key);
+  const isAny = allowAny && !value;
+  const selectedFaction = !isAny ? safeFaction(value) : null;
+  const selectedChief = selectedFaction ? factionChief(selectedFaction.key) : undefined;
 
   useEffect(() => {
     if (!open) return;
@@ -51,11 +56,12 @@ export function FactionSelect({
       <select
         id={id ? `${id}-native` : undefined}
         className="faction-select-native"
-        value={selectedFaction.key}
+        value={isAny ? '' : selectedFaction!.key}
         aria-hidden="true"
         tabIndex={-1}
         onChange={(e) => onChange(e.target.value)}
       >
+        {allowAny && <option value="">{anyLabel}</option>}
         {playableFactions.map((f) => (
           <option key={f.key} value={f.key}>
             {f.name}
@@ -81,7 +87,7 @@ export function FactionSelect({
             aria-hidden="true"
           />
         )}
-        <span className="faction-select-name">{selectedFaction.name}</span>
+        <span className="faction-select-name">{isAny ? anyLabel : selectedFaction!.name}</span>
         <span className="faction-select-chevron" aria-hidden="true">
           ▾
         </span>
@@ -90,9 +96,20 @@ export function FactionSelect({
       {/* Custom Dropdown showing Chief icon for every race */}
       {open && (
         <ul className="faction-select-dropdown" role="listbox" aria-label={ariaLabel}>
+          {allowAny && (
+            <li
+              role="option"
+              aria-selected={isAny}
+              className={`faction-select-item ${isAny ? 'is-selected' : ''}`}
+              onClick={() => handleSelect('')}
+            >
+              <span className="faction-select-item-name">{anyLabel}</span>
+              {isAny && <span className="faction-select-check">✓</span>}
+            </li>
+          )}
           {playableFactions.map((f) => {
             const chief = factionChief(f.key);
-            const isSelected = f.key === selectedFaction.key;
+            const isSelected = !isAny && f.key === selectedFaction!.key;
             return (
               <li
                 key={f.key}

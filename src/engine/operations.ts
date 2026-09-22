@@ -306,6 +306,8 @@ export interface CompactAttacker extends CompactSafeTimeOwner {
 export interface CompactPlayer extends CompactSafeTimeOwner {
   id: string;
   name: string;
+  /** Optional faction / race key (e.g. 'embermark_dominion', 'verdant_wardens', 'stormfang_clans'). */
+  factionKey?: string;
 }
 
 export interface CompactTarget extends CompactSafeTimeOwner {
@@ -409,10 +411,24 @@ export interface MasterRoster {
   attackerPlayers?: CompactPlayer[];
 }
 
+export interface AttackerWaveSlot {
+  id: string;
+  unitRef: string;
+  /** Whether this wave is sent in Siege mode (takes twice as long to travel). */
+  isSiege?: boolean;
+  targetScope: 'all' | 'real_only' | 'fake_only' | 'custom';
+  customTargetIds?: string[];
+  label?: string;
+}
+
+export type OperationStatus = 'draft' | 'ready';
+
 export interface OperationPlan {
   id: string;
   name: string;
   icon?: string;
+  /** Lifecycle state: 'draft' (editable, autosaved) or 'ready' (confirmed, locked against fat-finger edits). */
+  status?: OperationStatus;
   landing: string;
   serverSpeed: number;
   assignedAttackerIds: string[];
@@ -421,6 +437,14 @@ export interface OperationPlan {
   fakeTargetIds: string[];
   /** Overridden slowest troop per attacker for this operation only (attackerId -> unitRef). */
   attackerUnitOverrides?: Record<string, string>;
+  /** Multi-speed slots per attacker for this operation only (attackerId -> AttackerWaveSlot[]). */
+  attackerWaveSlots?: Record<string, AttackerWaveSlot[]>;
+  /** Excluded routes by route key so users can prune individual routes on the routes page. */
+  excludedRouteKeys?: string[];
+  /** Route-level unit override (routeKey -> unitRef) for final edits on the routes page. */
+  routeUnitOverrides?: Record<string, string>;
+  /** Route-level siege mode override (routeKey -> boolean) for final edits on the routes page. */
+  routeSiegeOverrides?: Record<string, boolean>;
   createdAt?: number;
   updatedAt?: number;
 }
@@ -533,6 +557,7 @@ export function migrateToMasterRoster(raw: any, fallbackState?: CompactPlannerSt
           assignedAttackerIds: fallback.attackers.map((a) => a.id),
           assignedTargetIds: fallback.targets.map((t) => t.id),
           fakeTargetIds: fallback.targets.filter((t) => t.fake).map((t) => t.id),
+          status: 'draft',
           attackerUnitOverrides: undefined,
           createdAt: Date.now(),
           updatedAt: Date.now(),
@@ -556,9 +581,11 @@ export function migrateToMasterRoster(raw: any, fallbackState?: CompactPlannerSt
       }
       const memberId = atk.playerId || `ap_member_${atk.id || idx + 1}`;
       if (!memberMap.has(memberId)) {
+        const initialFaction = atk.unitRef ? atk.unitRef.split('/')[0] : undefined;
         memberMap.set(memberId, {
           id: memberId,
           name: atk.name || `Member ${memberMap.size + 1}`,
+          factionKey: initialFaction,
           safeEnabled: atk.safeEnabled,
           safeStart: atk.safeStart,
           safeEnd: atk.safeEnd,
@@ -598,6 +625,7 @@ export function migrateToMasterRoster(raw: any, fallbackState?: CompactPlannerSt
         id: op.id || `op_${index + 1}`,
         name: op.name || `Operation ${index + 1}`,
         icon: op.icon || undefined,
+        status: op.status === 'ready' ? 'ready' : 'draft',
         landing: op.landing || '2026-08-16T19:00',
         serverSpeed: op.serverSpeed || 3,
         assignedAttackerIds: Array.isArray(op.assignedAttackerIds)
@@ -614,6 +642,18 @@ export function migrateToMasterRoster(raw: any, fallbackState?: CompactPlannerSt
               .filter((id: string) => !Array.isArray(op.assignedTargetIds) || op.assignedTargetIds.includes(id)),
         attackerUnitOverrides: op.attackerUnitOverrides && typeof op.attackerUnitOverrides === 'object'
           ? op.attackerUnitOverrides
+          : undefined,
+        attackerWaveSlots: op.attackerWaveSlots && typeof op.attackerWaveSlots === 'object'
+          ? op.attackerWaveSlots
+          : undefined,
+        excludedRouteKeys: Array.isArray(op.excludedRouteKeys)
+          ? op.excludedRouteKeys
+          : undefined,
+        routeUnitOverrides: op.routeUnitOverrides && typeof op.routeUnitOverrides === 'object'
+          ? op.routeUnitOverrides
+          : undefined,
+        routeSiegeOverrides: op.routeSiegeOverrides && typeof op.routeSiegeOverrides === 'object'
+          ? op.routeSiegeOverrides
           : undefined,
         createdAt: op.createdAt || Date.now(),
         updatedAt: op.updatedAt || Date.now(),
@@ -668,6 +708,7 @@ export function migrateToMasterRoster(raw: any, fallbackState?: CompactPlannerSt
       icon: op.icon || undefined,
       landing: op.landing || '2026-08-16T19:00',
       serverSpeed: op.serverSpeed || 3,
+      status: op.status === 'ready' ? 'ready' : 'draft',
       assignedAttackerIds: opAttackers.filter((a) => a.active !== false).map((a) => a.id),
       assignedTargetIds: opTargets.filter((t) => t.active !== false).map((t) => t.id),
       fakeTargetIds: opTargets.filter((t) => t.active !== false && t.fake).map((t) => t.id),
@@ -682,6 +723,7 @@ export function migrateToMasterRoster(raw: any, fallbackState?: CompactPlannerSt
       id: 'op1',
       name: 'Operation 1',
       icon: '🎯',
+      status: 'draft',
       landing: '2026-08-16T19:00',
       serverSpeed: 3,
       assignedAttackerIds: Array.from(masterAttackersMap.keys()),
@@ -886,9 +928,11 @@ export function importPlanIntoMasterRoster(
       let mappedPlayerId = impAtk.playerId;
       if (!mappedPlayerId || !attackerPlayers.some((p) => p.id === mappedPlayerId)) {
         mappedPlayerId = `ap_${Date.now()}_${idx + 1}`;
+        const initialFaction = impAtk.unitRef ? impAtk.unitRef.split('/')[0] : undefined;
         attackerPlayers.push({
           id: mappedPlayerId,
           name: impAtk.name || `Member ${attackerPlayers.length + 1}`,
+          factionKey: initialFaction,
           safeEnabled: impAtk.safeEnabled,
           safeStart: impAtk.safeStart,
           safeEnd: impAtk.safeEnd,
