@@ -98,6 +98,8 @@ interface PlannerState {
   attackers: Attacker[];
   targets: Target[];
   players: Player[];
+  routeSiegeOverrides?: Record<string, boolean>;
+  attackerPlayers?: Player[];
 }
 
 interface PlannedRoute {
@@ -244,6 +246,7 @@ export function decodeState(rawHash?: string): PlannerState {
         attackers: cleanAttackers,
         targets: cleanTargets,
         players: cleanPlayers,
+        routeSiegeOverrides: compactParsed.routeSiegeOverrides,
       };
     }
   }
@@ -782,7 +785,7 @@ const TimelineLane = memo(function TimelineLane({
           />
         ))}
         {sendRoutes.map((route) => {
-          const isOverlapping = (type === 'attacker' ? route.checks.sendAttacker : route.checks.sendDefender) || isInSafeWindow(route.send, window);
+          const isOverlapping = (type === 'attacker' ? route.checks.sendAttacker : (route.checks.landDefender || route.checks.sendDefender)) || isInSafeWindow(route.send, window);
           return (
             <span
               key={route.key}
@@ -1190,27 +1193,37 @@ const ScheduleTimeline = memo(function ScheduleTimeline({
       </div>
 
       <p className="schedule__group">Attackers</p>
-      {orderedAttackers.map((attacker, index) => (
-        <Fragment key={attacker.id}>
-        {groupByParticipation && !attacker.hasRoutes && (index === 0 || orderedAttackers[index - 1].hasRoutes) && (
-          <div className="schedule__no-routes">no routes</div>
-        )}
-        <TimelineLane
-          label={attacker.name}
-          sendRoutes={mode === 'planning' ? routesByAttacker.get(attacker.id) || EMPTY_ARRAY : EMPTY_ARRAY}
-          window={attacker.window}
-          isSelected={mode !== 'planning' && Boolean(route && (attacker.id === route.attacker.id || attacker.id === route.attacker.playerId))}
-          type="attacker"
-          onClick={routes.length > 0 && mode !== 'planning' ? () => handleSelectAttacker(attacker.id) : undefined}
-          onSelectRoute={onSelectRoute}
-          landPosition={landPosition}
-        />
-        </Fragment>
-      ))}
+      {orderedAttackers.map((attacker, index) => {
+        const attackerRoutes = routesByAttacker.get(attacker.id) || EMPTY_ARRAY;
+        const sendRoutes = mode === 'planning' ? attackerRoutes : EMPTY_ARRAY;
+        const isAttackerBlocked = attackerRoutes.some((r) => !r.possible || r.checks.sendAttacker);
+        return (
+          <Fragment key={attacker.id}>
+          {groupByParticipation && !attacker.hasRoutes && (index === 0 || orderedAttackers[index - 1].hasRoutes) && (
+            <div className="schedule__no-routes">no routes</div>
+          )}
+          <TimelineLane
+            label={attacker.name}
+            sendRoutes={sendRoutes}
+            window={attacker.window}
+            isSelected={mode !== 'planning' && Boolean(route && (attacker.id === route.attacker.id || attacker.id === route.attacker.playerId))}
+            isBlocked={isAttackerBlocked}
+            type="attacker"
+            onClick={routes.length > 0 && mode !== 'planning' ? () => handleSelectAttacker(attacker.id) : undefined}
+            onSelectRoute={onSelectRoute}
+            landPosition={landPosition}
+          />
+          </Fragment>
+        );
+      })}
 
       <p className="schedule__group">Defenders</p>
       {orderedDefenders.map((defender, index) => {
-        const isBlocked = targetLandingDate ? isInSafeWindow(targetLandingDate, defender.window) : false;
+        const defenderRoutes = routesByDefender.get(defender.key) || EMPTY_ARRAY;
+        const sendRoutes = mode === 'planning' ? defenderRoutes : EMPTY_ARRAY;
+        const isLandingBlocked = targetLandingDate ? isInSafeWindow(targetLandingDate, defender.window) : false;
+        const isSendBlocked = defenderRoutes.some((r) => !r.possible || r.checks.sendDefender);
+        const isBlocked = isLandingBlocked || isSendBlocked;
         return (
           <Fragment key={defender.key}>
           {groupByParticipation && !defender.hasRoutes && (index === 0 || orderedDefenders[index - 1].hasRoutes) && (
@@ -1218,7 +1231,7 @@ const ScheduleTimeline = memo(function ScheduleTimeline({
           )}
           <TimelineLane
             label={defender.label}
-            sendRoutes={mode === 'planning' ? routesByDefender.get(defender.key) || EMPTY_ARRAY : EMPTY_ARRAY}
+            sendRoutes={sendRoutes}
             window={defender.window}
             isSelected={mode !== 'planning' && Boolean(route && defender.key === selectedDefenderKey)}
             isBlocked={isBlocked}
@@ -1260,9 +1273,9 @@ const ScheduleTimeline = memo(function ScheduleTimeline({
               {/* Send Pin */}
               {route && sendPosition !== null && (
                 <div
-                  className="schedule__pin schedule__pin--send"
+                  className={`schedule__pin schedule__pin--send ${!route.possible ? 'is-overlapping' : ''}`}
                   style={{ left: `${sendPosition}%` }}
-                  title={'Send ' + formatDateTime(route.send, true)}
+                  title={'Send ' + formatDateTime(route.send, true) + (!route.possible ? ' · ⚠️ OVERLAPS SAFE TIME (Conflict)' : '')}
                 >
                   <div className="schedule__pin-badge">
                     <span className="schedule__pin-dot" />
@@ -1393,6 +1406,7 @@ export function OperationPlanner({
     attackers: initialDecoded.attackers,
     players: initialDecoded.players,
     targets: initialDecoded.targets,
+    attackerPlayers: initialDecoded.attackerPlayers,
   }));
 
   // Multi-Operation Plans
@@ -1406,6 +1420,7 @@ export function OperationPlanner({
       assignedAttackerIds: initialDecoded.attackers.map((a) => a.id),
       assignedTargetIds: initialDecoded.targets.map((t) => t.id),
       fakeTargetIds: initialDecoded.targets.filter((t) => t.fake).map((t) => t.id),
+      routeSiegeOverrides: initialDecoded.routeSiegeOverrides,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     },
@@ -1445,7 +1460,6 @@ export function OperationPlanner({
   const [filterTarget, setFilterTarget] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<'all' | 'possible' | 'blocked'>('all');
   const [filterType, setFilterType] = useState<'all' | 'real' | 'fake'>('all');
-  const [filterUnit, setFilterUnit] = useState<string>('all');
   const [alarmEnabled, setAlarmEnabled] = useState<boolean>(true);
   const [now, setNow] = useState<Date>(() => new Date());
   const zoneLabel = useMemo(() => localZoneLabel(), []);
@@ -1485,11 +1499,12 @@ export function OperationPlanner({
     const handleHashChange = () => {
       if (!roomSession) {
         const decoded = decodeState();
-        setRoster({
+        setRoster((prev) => ({
           attackers: decoded.attackers,
           players: decoded.players,
           targets: decoded.targets,
-        });
+          attackerPlayers: prev.attackerPlayers || decoded.attackerPlayers,
+        }));
         setOperations((prev) =>
           prev.map((o) =>
             o.id === activeOpId
@@ -1500,6 +1515,7 @@ export function OperationPlanner({
                   assignedAttackerIds: decoded.attackers.map((a) => a.id),
                   assignedTargetIds: decoded.targets.map((t) => t.id),
                   fakeTargetIds: decoded.targets.filter((t) => t.fake).map((t) => t.id),
+                  routeSiegeOverrides: decoded.routeSiegeOverrides ?? o.routeSiegeOverrides,
                 }
               : o,
           ),
@@ -1570,6 +1586,8 @@ export function OperationPlanner({
         attackers: marchingAttackers,
         targets: activeTargets,
         players: roster.players,
+        routeSiegeOverrides: activeOp.routeSiegeOverrides,
+        attackerPlayers: roster.attackerPlayers,
       };
       hash = plannerHash(currentPlannerState);
       fullUrl = `${window.location.origin}${window.location.pathname}#${hash}`;
@@ -1602,6 +1620,8 @@ export function OperationPlanner({
         attackers: marchingAttackers,
         targets: activeTargets,
         players: roster.players,
+        routeSiegeOverrides: activeOp.routeSiegeOverrides,
+        attackerPlayers: roster.attackerPlayers,
       };
       hash = plannerHash(currentPlannerState);
       fullUrl = `${window.location.origin}${window.location.pathname}#${hash}`;
@@ -1635,6 +1655,8 @@ export function OperationPlanner({
           attackers: marchingAttackers,
           targets: activeTargets,
           players: roster.players,
+          routeSiegeOverrides: activeOp.routeSiegeOverrides,
+          attackerPlayers: roster.attackerPlayers,
         };
         window.history.replaceState(null, '', `${window.location.pathname}#${plannerHash(currentPlannerState)}`);
       }, 350);
@@ -1647,9 +1669,11 @@ export function OperationPlanner({
     workspaceView,
     activeOp.landing,
     activeOp.serverSpeed,
+    activeOp.routeSiegeOverrides,
     marchingAttackers,
     activeTargets,
     roster.players,
+    roster.attackerPlayers,
   ]);
 
   // Respond to hash navigation while connected
@@ -2297,7 +2321,7 @@ export function OperationPlanner({
           bannerfieldLevel: attacker.bannerfieldLevel,
         });
         const send = new Date(land.getTime() - travel * 3_600_000);
-        const attackerSafe = resolveSafeTime(attacker, roster.attackerPlayers || []);
+        const attackerSafe = resolveSafeTime(attacker, (roster.attackerPlayers && roster.attackerPlayers.length > 0) ? roster.attackerPlayers : roster.players);
         const attackerWindow = ownerWindow(attackerSafe);
         const targetSafe = resolveSafeTime(target, roster.players);
         const targetWindow = ownerWindow(targetSafe);
@@ -2343,20 +2367,6 @@ export function OperationPlanner({
     setSelectedKey(routeKey);
   };
 
-  const availableUnitsInRoutes = useMemo(() => {
-    const map = new Map<string, { key: string; unitRef: UnitRef; isSiege: boolean; count: number }>();
-    routes.forEach((r) => {
-      const key = `${r.unitRef}${r.isSiege ? ':siege' : ''}`;
-      const existing = map.get(key);
-      if (existing) {
-        existing.count += 1;
-      } else {
-        map.set(key, { key, unitRef: r.unitRef, isSiege: !!r.isSiege, count: 1 });
-      }
-    });
-    return Array.from(map.values());
-  }, [routes]);
-
   const visibleRoutes = useMemo(() => {
     return routes.filter((route) => {
       if (filterAttacker !== 'all') {
@@ -2366,17 +2376,13 @@ export function OperationPlanner({
         if (!isMatch) return false;
       }
       if (filterTarget !== 'all' && route.target.id !== filterTarget) return false;
-      if (filterUnit !== 'all') {
-        const routeFilterKey = `${route.unitRef}${route.isSiege ? ':siege' : ''}`;
-        if (routeFilterKey !== filterUnit && route.unitRef !== filterUnit) return false;
-      }
       if (filterStatus === 'possible' && !route.possible) return false;
       if (filterStatus === 'blocked' && route.possible) return false;
       if (filterType === 'real' && route.target.fake) return false;
       if (filterType === 'fake' && !route.target.fake) return false;
       return true;
     });
-  }, [routes, filterAttacker, filterTarget, filterUnit, filterStatus, filterType]);
+  }, [routes, filterAttacker, filterTarget, filterStatus, filterType]);
 
   // Identify the next upcoming attack to launch (earliest send time >= now)
   const nextUpcomingRouteKey = useMemo(() => {
@@ -3107,27 +3113,6 @@ export function OperationPlanner({
                   </select>
                 </label>
 
-                {availableUnitsInRoutes.length > 1 && (
-                  <label className="op-filter-label">
-                    <span>Troop:</span>
-                    <select
-                      className="select op-select-filter"
-                      value={filterUnit}
-                      onChange={(e) => setFilterUnit(e.target.value)}
-                      aria-label="Filter routes by troop"
-                    >
-                      <option value="all">All Troops ({routes.length})</option>
-                      {availableUnitsInRoutes.map((entry) => {
-                        const u = lookup(entry.unitRef).unit;
-                        return (
-                          <option key={entry.key} value={entry.key}>
-                            {u.name}{entry.isSiege ? ' 🔥 [Siege]' : ''} ({entry.count} routes)
-                          </option>
-                        );
-                      })}
-                    </select>
-                  </label>
-                )}
               </div>
 
               <div className="op-filter-pills-group">

@@ -1283,6 +1283,122 @@ describe('the operation planner', () => {
     expect(container.querySelector('.op-route-exclude-btn')).toBeNull();
   });
 
+  it('properly rechecks safetimes with new send times when siege mode is toggled', async () => {
+    const opTab = [...container.querySelectorAll('.pill--tool')].find(
+      (b) => b.getAttribute('aria-label') === 'Operation Planner',
+    )!;
+    for (let i = 0; i < 10; i++) {
+      click(opTab);
+    }
+
+    const modalInput = container.querySelector('.secret-modal-input') as HTMLInputElement;
+    if (modalInput) {
+      setInputValue(modalInput, 'password123');
+      const connectBtn = container.querySelector('.secret-modal-btn-connect') as HTMLButtonElement;
+      click(connectBtn);
+    }
+
+    const roomConnectBtn = container.querySelector('.op-team-room-form button') as HTMLButtonElement;
+    if (roomConnectBtn) click(roomConnectBtn);
+
+    const start = Date.now();
+    while (!container.querySelector('.op-plan-tab')) {
+      if (Date.now() - start > 2000) break;
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 20));
+      });
+    }
+
+    // Open Alliance Hammer Directory to set safe hours on the member
+    const armiesBtn = [...container.querySelectorAll('button')].find(
+      (b) => b.textContent?.includes('Alliance Hammer Directory'),
+    ) as HTMLButtonElement;
+    expect(armiesBtn).toBeTruthy();
+    click(armiesBtn);
+
+    // Turn on safe hours for the member (18:00 to 18:30 UTC)
+    // Landing is 19:00 UTC. At normal speed (dist ~14.14, speed 14 * 3 = 42), travel is ~20m -> send ~18:39 UTC (CLEAR)
+    // In siege mode (speed 7 * 3 = 21), travel is ~40m -> send ~18:19 UTC (BLOCKED in 18:00-18:30)
+    const safeToggle = container.querySelector('.op-safetime-compact input[type="checkbox"]') as HTMLInputElement;
+    expect(safeToggle).toBeTruthy();
+    act(() => safeToggle.click());
+
+    const timeInputs = container.querySelectorAll('.op-safetime-compact .text-input--time24') as NodeListOf<HTMLInputElement>;
+    expect(timeInputs.length).toBeGreaterThanOrEqual(2);
+    setInputValue(timeInputs[0], '16:00');
+    setInputValue(timeInputs[1], '17:00');
+
+    // Close Alliance Armies modal
+    const closeBtn = [...container.querySelectorAll('button')].find(
+      (b) => b.textContent === 'Done' || b.getAttribute('aria-label')?.includes('Close'),
+    ) as HTMLButtonElement;
+    if (closeBtn) click(closeBtn);
+
+    // Open Operation 1 and go to Routes page
+    const op1Tab = container.querySelector('.op-plan-tab') as HTMLDivElement;
+    click(op1Tab);
+
+    const routesTab = [...container.querySelectorAll('.op-workspace-nav button')].find(
+      (button) => button.textContent?.includes('Routes'),
+    ) as HTMLButtonElement;
+    expect(routesTab).toBeTruthy();
+    click(routesTab);
+
+    // Initially at normal speed: send time is ~17:49 UTC -> Clear
+    const checkPillBefore = container.querySelector('.op-check-pill') as HTMLElement;
+    expect(checkPillBefore).toBeTruthy();
+    expect(checkPillBefore.textContent).toBe('Clear');
+    expect(checkPillBefore.classList.contains('is-clear')).toBe(true);
+
+    const sendStampBefore = container.querySelector('.op-timestamp--send')?.textContent;
+    expect(sendStampBefore).toContain('17:49');
+
+    // Toggle siege mode on route
+    const siegeToggle = container.querySelector('.op-route-siege-toggle') as HTMLButtonElement;
+    expect(siegeToggle).toBeTruthy();
+    expect(siegeToggle.textContent).toContain('Normal');
+    click(siegeToggle);
+
+    // After toggling to siege mode:
+    expect(siegeToggle.textContent).toContain('Siege');
+    expect(siegeToggle.classList.contains('is-siege')).toBe(true);
+
+    const sendStampAfter = container.querySelector('.op-timestamp--send')?.textContent;
+    expect(sendStampAfter).toContain('16:38');
+
+    // Safe time MUST recheck with the new send time and be BLOCKED!
+    const checkPillAfter = container.querySelector('.op-check-pill') as HTMLElement;
+    expect(checkPillAfter).toBeTruthy();
+    expect(checkPillAfter.textContent).toBe('Blocked');
+    expect(checkPillAfter.classList.contains('is-blocked')).toBe(true);
+
+    // Switch to Scheduling view and verify the attacker timeline lane and send pins are flagged as blocked
+    const schedulingTab = [...container.querySelectorAll('.op-workspace-nav button')].find(
+      (b) => b.textContent?.includes('Scheduling'),
+    ) as HTMLButtonElement;
+    expect(schedulingTab).toBeTruthy();
+    click(schedulingTab);
+
+    const blockedLane = container.querySelector('.schedule__row.is-safetime-blocked');
+    expect(blockedLane).toBeTruthy();
+
+    const overlappingPins = container.querySelectorAll('.schedule__send-line.is-overlapping');
+    expect(overlappingPins.length).toBeGreaterThan(0);
+    expect(container.querySelector('.schedule__send-pin-pulse')).toBeTruthy();
+
+    // Switch to Targets & Setup view and verify participant picker flags the blocked attacker
+    const targetsTab = [...container.querySelectorAll('.op-workspace-nav button')].find(
+      (b) => b.textContent?.includes('Targets'),
+    ) as HTMLButtonElement;
+    expect(targetsTab).toBeTruthy();
+    click(targetsTab);
+
+    const blockedParticipantBlock = container.querySelector('.op-participant-player-block.is-blocked-attacker');
+    expect(blockedParticipantBlock).toBeTruthy();
+    expect(blockedParticipantBlock?.textContent).toContain('Send in Safetime');
+    expect(blockedParticipantBlock?.textContent).toContain('Blocked');
+  });
+
   it('supports draft vs ready operations with divider, edit locking, and emergency unlock', async () => {
     // Unlock v2 mode
     const navBtn = [...container.querySelectorAll('.pill--tool')].find(

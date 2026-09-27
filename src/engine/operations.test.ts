@@ -401,6 +401,73 @@ describe('safe time', () => {
     expect(decoded?.attackers[1].active).toBe(false);
     expect(decoded?.targets[0].active).toBe(false);
   });
+
+  it('round-trips routeSiegeOverrides in compact URL encoding', () => {
+    const state: Parameters<typeof encodeCompactPlan>[0] = {
+      landing: '2026-08-16T19:00',
+      serverSpeed: 3,
+      attackers: [
+        {
+          id: 'a1',
+          name: 'Hero Hammer',
+          x: 0,
+          y: 0,
+          unitRef: 'embermark_dominion/emberblade',
+          artifactMultiplier: 1,
+          bannerfieldLevel: 0,
+          safeEnabled: true,
+          safeStart: '16:00',
+          safeEnd: '17:00',
+        },
+      ],
+      targets: [
+        {
+          id: 't1',
+          name: 'Enemy Capital',
+          x: 10,
+          y: 10,
+          fake: false,
+          playerId: '',
+          safeEnabled: false,
+          safeStart: '00:00',
+          safeEnd: '00:00',
+        },
+      ],
+      players: [],
+      routeSiegeOverrides: {
+        'a1:t1': true,
+        'a1:t2': false,
+      },
+    };
+
+    const encoded = encodeCompactPlan(state);
+    expect(encoded).toContain('~s:a1:t1');
+    expect(encoded).not.toContain('a1:t2');
+
+    const decoded = decodeCompactPlan(encoded);
+    expect(decoded).toBeTruthy();
+    expect(decoded?.routeSiegeOverrides).toEqual({ 'a1:t1': true });
+  });
+
+  it('correctly reports safetime conflicts when travel time is doubled by siege mode', () => {
+    const landing = new Date(Date.UTC(2026, 7, 16, 19, 0, 0));
+    const attackerSafe = { enabled: true, start: 16 * 60, end: 17 * 60 }; // 16:00 - 17:00 UTC
+    const defenderSafe = { enabled: false, start: 0, end: 0 };
+
+    // Normal speed: distance ~14.14 at speed 14 * 2 (world 3x = multiplier 2) = 28 -> ~0.505h (~30.3m)
+    // Send time ~ 18:29 UTC -> NOT in safe window [16:00, 17:00]
+    const normalSend = new Date(Date.UTC(2026, 7, 16, 18, 29, 41));
+    const normalChecks = safeChecks(normalSend, landing, attackerSafe, defenderSafe);
+    expect(normalChecks.sendAttacker).toBe(false);
+    expect(routeIsPossible(normalChecks)).toBe(true);
+
+    // Siege speed (50% slower = 2x travel duration): ~1.01h (~60.6m)
+    // Send time ~ 16:59 UTC -> IN safe window [16:00, 17:00]!
+    const siegeSend = new Date(Date.UTC(2026, 7, 16, 16, 59, 22));
+    const siegeChecks = safeChecks(siegeSend, landing, attackerSafe, defenderSafe);
+    expect(siegeChecks.sendAttacker).toBe(true);
+    expect(routeIsPossible(siegeChecks)).toBe(false);
+  });
 });
 
 describe('operation-level target modes', () => {

@@ -79,15 +79,17 @@ export const OperationParticipantPicker = memo(function OperationParticipantPick
   // Group attackers by alliance member, sorted by member name
   const attackerPlayerGroups = useMemo(() => {
     if (!attackerPlayers || attackerPlayers.length === 0) {
-      return [{ player: null, attackers }];
+      const anyBlocked = attackers.some((a) => Boolean(attackerWarnings[a.id]));
+      return [{ player: null, attackers, isBlocked: anyBlocked }];
     }
 
-    const groups: { player: Player | null; attackers: Attacker[] }[] = [];
+    const groups: { player: Player | null; attackers: Attacker[]; isBlocked: boolean }[] = [];
 
     attackerPlayers.forEach((p) => {
       const pAttackers = attackers.filter((a) => a.playerId === p.id);
       if (pAttackers.length > 0) {
-        groups.push({ player: p, attackers: pAttackers });
+        const hasBlockedRoute = pAttackers.some((a) => Boolean(attackerWarnings[a.id]));
+        groups.push({ player: p, attackers: pAttackers, isBlocked: hasBlockedRoute });
       }
     });
 
@@ -95,11 +97,12 @@ export const OperationParticipantPicker = memo(function OperationParticipantPick
       (a) => !a.playerId || !attackerPlayers.some((p) => p.id === a.playerId),
     );
     if (unassigned.length > 0) {
-      groups.push({ player: null, attackers: unassigned });
+      const anyBlocked = unassigned.some((a) => Boolean(attackerWarnings[a.id]));
+      groups.push({ player: null, attackers: unassigned, isBlocked: anyBlocked });
     }
 
     return groups;
-  }, [attackerPlayers, attackers]);
+  }, [attackerPlayers, attackers, attackerWarnings]);
 
   // Group targets by player, sorted with unblocked accounts first, blocked accounts at the bottom
   const playerGroups = useMemo(() => {
@@ -108,14 +111,15 @@ export const OperationParticipantPicker = memo(function OperationParticipantPick
     players.forEach((p) => {
       const pTargets = targets.filter((t) => t.playerId === p.id);
       if (pTargets.length > 0) {
-        const isBlocked = isOwnerBlocked(p);
+        const hasBlockedRoute = pTargets.some((t) => Boolean(targetWarnings[t.id]));
+        const isBlocked = isOwnerBlocked(p) || hasBlockedRoute;
         groups.push({ player: p, targets: pTargets, isBlocked });
       }
     });
 
     const unassigned = targets.filter((t) => !t.playerId || !players.some((p) => p.id === t.playerId));
     if (unassigned.length > 0) {
-      const anyBlocked = unassigned.some((t) => isOwnerBlocked(t));
+      const anyBlocked = unassigned.some((t) => isOwnerBlocked(t) || Boolean(targetWarnings[t.id]));
       groups.push({ player: null, targets: unassigned, isBlocked: anyBlocked });
     }
 
@@ -126,7 +130,7 @@ export const OperationParticipantPicker = memo(function OperationParticipantPick
     });
 
     return groups;
-  }, [players, targets, parsedLanding]);
+  }, [players, targets, parsedLanding, targetWarnings]);
 
   return (
     <section className="panel op-participant-picker" aria-label="Operation Participants">
@@ -197,15 +201,17 @@ export const OperationParticipantPicker = memo(function OperationParticipantPick
               {attackerPlayerGroups.map((group, gIdx) => (
                 <div
                   key={group.player?.id || `unassigned-${gIdx}`}
-                  className="op-participant-player-block"
+                  className={`op-participant-player-block ${group.isBlocked ? 'is-blocked-attacker' : ''}`}
                 >
                   <div className="op-participant-player-header op-participant-player-header--attacker">
                     <span>Member: <strong>{group.player ? group.player.name : 'Alliance Member'}</strong></span>
                     {group.player && (
-                      <span className={`op-safetime__tag ${group.player.safeEnabled ? 'is-enabled' : ''}`}>
+                      <span className={`op-safetime__tag ${group.player.safeEnabled ? 'is-enabled' : ''} ${group.isBlocked ? 'is-safetime-danger' : ''}`}>
                         {group.player.safeEnabled
-                          ? `🛡️ ${group.player.safeStart}–${group.player.safeEnd} UTC`
-                          : '🛡️ Safe: Off'}
+                          ? (group.isBlocked
+                              ? `🛡️ Send in Safetime (${group.player.safeStart}–${group.player.safeEnd} UTC) · Blocked`
+                              : `🛡️ ${group.player.safeStart}–${group.player.safeEnd} UTC`)
+                          : (group.isBlocked ? '🛡️ Safe Conflict · Blocked' : '🛡️ Safe: Off')}
                       </span>
                     )}
                   </div>
@@ -324,9 +330,9 @@ export const OperationParticipantPicker = memo(function OperationParticipantPick
                         >
                           {group.player.safeEnabled
                             ? (isGroupBlocked
-                                ? `🛡️ Landing in Safetime (${group.player.safeStart}–${group.player.safeEnd} UTC) · Blocked`
+                                ? `🛡️ ${isOwnerBlocked(group.player) ? 'Landing in Safetime' : 'Route Conflict'} (${group.player.safeStart}–${group.player.safeEnd} UTC) · Blocked`
                                 : `🛡️ ${group.player.safeStart}–${group.player.safeEnd} UTC`)
-                            : '🛡️ Safe: Off'}
+                            : (isGroupBlocked ? '🛡️ Safe Conflict · Blocked' : '🛡️ Safe: Off')}
                         </span>
                       )}
                     </div>

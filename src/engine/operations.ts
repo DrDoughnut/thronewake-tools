@@ -395,6 +395,8 @@ export interface CompactPlannerState {
   attackers: CompactAttacker[];
   targets: CompactTarget[];
   players: CompactPlayer[];
+  routeSiegeOverrides?: Record<string, boolean>;
+  attackerPlayers?: CompactPlayer[];
 }
 
 export type Attacker = CompactAttacker;
@@ -713,6 +715,8 @@ export function migrateToMasterRoster(raw: any, fallbackState?: CompactPlannerSt
       assignedTargetIds: opTargets.filter((t) => t.active !== false).map((t) => t.id),
       fakeTargetIds: opTargets.filter((t) => t.active !== false && t.fake).map((t) => t.id),
       attackerUnitOverrides: Object.keys(opOverrides).length > 0 ? opOverrides : undefined,
+      routeUnitOverrides: op.routeUnitOverrides && typeof op.routeUnitOverrides === 'object' ? op.routeUnitOverrides : undefined,
+      routeSiegeOverrides: op.routeSiegeOverrides && typeof op.routeSiegeOverrides === 'object' ? op.routeSiegeOverrides : undefined,
       createdAt: op.createdAt || Date.now(),
       updatedAt: op.updatedAt || Date.now(),
     });
@@ -1181,6 +1185,15 @@ export function encodeCompactPlan(state: CompactPlannerState): string {
     parts.push(`t:${cleanName},${x},${y},${safeOn},${sStart}-${sEnd},${fake},${ownerIndex},${active},${isCap},${isCity},${encodedArt}`);
   }
 
+  if (state.routeSiegeOverrides) {
+    const siegeKeys = Object.entries(state.routeSiegeOverrides)
+      .filter(([, v]) => Boolean(v))
+      .map(([k]) => k);
+    if (siegeKeys.length > 0) {
+      parts.push(`s:${siegeKeys.join(',')}`);
+    }
+  }
+
   return parts.join('~');
 }
 
@@ -1211,6 +1224,7 @@ export function decodeCompactPlan(compactStr: string): CompactPlannerState | nul
   const attackers: CompactAttacker[] = [];
   const targets: CompactTarget[] = [];
   const players: CompactPlayer[] = [];
+  const routeSiegeOverrides: Record<string, boolean> = {};
   /** Villages hold a 1-based player position until every `p:` record is read. */
   const ownerIndexByTarget: number[] = [];
 
@@ -1296,6 +1310,11 @@ export function decodeCompactPlan(compactStr: string): CompactPlannerState | nul
         safeStart: safe.safeStart,
         safeEnd: safe.safeEnd,
       });
+    } else if (seg.startsWith('s:')) {
+      const keys = seg.slice(2).split(',').filter(Boolean);
+      keys.forEach((k) => {
+        routeSiegeOverrides[k] = true;
+      });
     }
   }
 
@@ -1311,6 +1330,7 @@ export function decodeCompactPlan(compactStr: string): CompactPlannerState | nul
     attackers,
     targets,
     players,
+    routeSiegeOverrides: Object.keys(routeSiegeOverrides).length > 0 ? routeSiegeOverrides : undefined,
   };
 }
 

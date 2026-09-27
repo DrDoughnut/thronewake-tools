@@ -5373,12 +5373,14 @@ select:focus, .select:focus, .text-input:focus {
   flex-direction: column;
   gap: 6px;
 }
-.op-participant-player-block.is-blocked-defender {
+.op-participant-player-block.is-blocked-defender,
+.op-participant-player-block.is-blocked-attacker {
   opacity: 0.52;
   filter: saturate(0.65);
   transition: opacity 0.2s ease, filter 0.2s ease;
 }
-.op-participant-player-block.is-blocked-defender:hover {
+.op-participant-player-block.is-blocked-defender:hover,
+.op-participant-player-block.is-blocked-attacker:hover {
   opacity: 0.88;
   filter: saturate(0.9);
 }
