@@ -349,11 +349,28 @@ describe('the army calculator', () => {
 });
 
 describe('the operation planner', () => {
+  const realFetch = globalThis.fetch;
+
   beforeEach(() => {
+    // An in-memory room server. Without it the team-room tests reached for the
+    // real one: in a sandbox that failed and only "worked" because a failed
+    // read used to masquerade as an empty room; online, they wrote to it.
+    const rooms = new Map<string, string>();
+    globalThis.fetch = vi.fn(async (_url: string, init: { body: string }) => {
+      const [command, key, value] = JSON.parse(init.body) as [string, string, string?];
+      if (command === 'SET') rooms.set(key, value ?? '');
+      const result = command === 'GET' ? rooms.get(key) ?? null : 'OK';
+      return { ok: true, status: 200, json: async () => ({ result }) };
+    }) as unknown as typeof fetch;
+
     const opTab = [...container.querySelectorAll('.pill--tool')].find(
       (b) => b.getAttribute('aria-label') === 'Operation Planner',
     )!;
     click(opTab);
+  });
+
+  afterEach(() => {
+    globalThis.fetch = realFetch;
   });
 
   it('renders attackers, targets, and the route plan table', () => {

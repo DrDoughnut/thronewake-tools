@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { afterEach, describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   normalizeRoomName,
   deriveRoomSession,
@@ -6,6 +6,7 @@ import {
   decryptPayload,
   saveToCloud,
   loadFromCloud,
+  packageTimestamp,
 } from './cryptoSync';
 
 describe('cryptoSync Zero-Knowledge Engine', () => {
@@ -73,15 +74,38 @@ describe('cryptoSync Zero-Knowledge Engine', () => {
   });
 
   describe('Cloud KV functions', () => {
+    let store: Map<string, string>;
+
+    /** A fetch that never answers until its request is aborted. */
+    const hangingFetch = () =>
+      vi.fn((_url: string, init: { signal: AbortSignal }) =>
+        new Promise((_resolve, reject) => {
+          init.signal.addEventListener('abort', () =>
+            reject(Object.assign(new Error('aborted'), { name: 'AbortError' })));
+        }));
+
+    const answer = (body: unknown, status = 200) =>
+      vi.fn().mockResolvedValue({ ok: status < 400, status, json: async () => body });
+
     beforeEach(() => {
       vi.restoreAllMocks();
+      vi.unstubAllEnvs();
+      store = new Map();
+      vi.stubGlobal('localStorage', {
+        getItem: (k: string) => store.get(k) ?? null,
+        setItem: (k: string, v: string) => void store.set(k, String(v)),
+        removeItem: (k: string) => void store.delete(k),
+      });
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+      vi.unstubAllGlobals();
+      vi.unstubAllEnvs();
     });
 
     it('saves encrypted payload to cloud Upstash endpoint', async () => {
-      const mockFetch = vi.fn().mockResolvedValue({
-        ok: true,
-        status: 200,
-      });
+      const mockFetch = answer({ result: 'OK' });
       globalThis.fetch = mockFetch;
 
       const res = await saveToCloud('test_room_id', '{"iv":"abc","ct":"xyz"}');
@@ -95,30 +119,99 @@ describe('cryptoSync Zero-Knowledge Engine', () => {
       );
     });
 
-    it('loads encrypted payload from cloud Upstash endpoint', async () => {
-      const mockFetch = vi.fn().mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: async () => ({ result: '{"iv":"abc","ct":"xyz"}' }),
-      });
-      globalThis.fetch = mockFetch;
-
-      const res = await loadFromCloud('test_room_id');
-      expect(res.success).toBe(true);
-      expect(res.data).toBe('{"iv":"abc","ct":"xyz"}');
+    it('reports a save the server rejected', async () => {
+      globalThis.fetch = answer({}, 500);
+      const res = await saveToCloud('room', 'x');
+      expect(res.success).toBe(false);
+      expect(res.error).toContain('500');
     });
 
-    it('returns null data when room is not found in cloud', async () => {
-      const mockFetch = vi.fn().mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: async () => ({ result: null }),
-      });
-      globalThis.fetch = mockFetch;
+    it('reports a save the server refused in its body', async () => {
+      globalThis.fetch = answer({ error: 'WRONGPASS invalid token' });
+      const res = await saveToCloud('room', 'x');
+      expect(res.success).toBe(false);
+      expect(res.error).toContain('WRONGPASS');
+    });
 
-      const res = await loadFromCloud('new_room_id');
-      expect(res.success).toBe(true);
-      expect(res.data).toBeNull();
+    it('loads encrypted payload from cloud Upstash endpoint', async () => {
+      globalThis.fetch = answer({ result: '{"iv":"abc","ct":"xyz"}' });
+
+      const res = await loadFromCloud('test_room_id');
+      expect(res).toEqual({ status: 'found', data: '{"iv":"abc","ct":"xyz"}' });
+      // Kept for the next time the server cannot be reached.
+      expect(store.get('thronewake.room_cache.test_room_id')).toBe('{"iv":"abc","ct":"xyz"}');
+    });
+
+    it('calls a room the server holds nothing for empty', async () => {
+      globalThis.fetch = answer({ result: null });
+      expect(await loadFromCloud('new_room_id')).toEqual({ status: 'empty', cached: null });
+    });
+
+    it('hands back the local copy with an empty answer, so a wiped room can be restored', async () => {
+      store.set('thronewake.room_cache.room', 'cached-cipher');
+      globalThis.fetch = answer({ result: null });
+      expect(await loadFromCloud('room')).toEqual({ status: 'empty', cached: 'cached-cipher' });
+    });
+
+    // The bug behind blank rooms: every one of these used to come back as a
+    // success with no data, indistinguishable from a brand-new room.
+    describe('failures stay failures', () => {
+      it('when the server answers with an error status', async () => {
+        globalThis.fetch = answer({}, 503);
+        const res = await loadFromCloud('room');
+        expect(res.status).toBe('error');
+        expect(res.status === 'error' && res.error).toContain('503');
+      });
+
+      it('when the request never gets out — blocked, offline, DNS', async () => {
+        globalThis.fetch = vi.fn().mockRejectedValue(new TypeError('Failed to fetch'));
+        const res = await loadFromCloud('room');
+        expect(res).toEqual({ status: 'error', error: 'Failed to fetch', cached: null });
+      });
+
+      it('when the server takes too long', async () => {
+        vi.useFakeTimers();
+        globalThis.fetch = hangingFetch() as unknown as typeof fetch;
+        const pending = loadFromCloud('room');
+        await vi.advanceTimersByTimeAsync(10_000);
+        const res = await pending;
+        expect(res.status).toBe('error');
+        expect(res.status === 'error' && res.error).toBe('timed out');
+      });
+
+      it('when the server refuses in its body', async () => {
+        globalThis.fetch = answer({ error: 'ERR max requests limit exceeded' });
+        const res = await loadFromCloud('room');
+        expect(res.status).toBe('error');
+      });
+
+      it('and still offers the local copy to fall back on', async () => {
+        store.set('thronewake.room_cache.room', 'cached-cipher');
+        globalThis.fetch = vi.fn().mockRejectedValue(new TypeError('Failed to fetch'));
+        const res = await loadFromCloud('room');
+        expect(res.status === 'error' && res.cached).toBe('cached-cipher');
+      });
+    });
+
+    describe('through a proxy', () => {
+      it('sends commands to the proxy without the Upstash token', async () => {
+        vi.stubEnv('VITE_ROOM_API', 'https://rooms.example.workers.dev');
+        const mockFetch = answer({ result: null });
+        globalThis.fetch = mockFetch;
+
+        await loadFromCloud('room');
+
+        const [url, init] = mockFetch.mock.calls[0];
+        expect(url).toBe('https://rooms.example.workers.dev');
+        expect(init.headers).not.toHaveProperty('Authorization');
+        expect(init.body).toBe(JSON.stringify(['GET', 'tw_room']));
+      });
+    });
+
+    it('reads the save time out of a package without decrypting it', () => {
+      expect(packageTimestamp('{"v":1,"iv":"a","ct":"b","ts":1700000000000}')).toBe(1700000000000);
+      expect(packageTimestamp('not json')).toBeNull();
+      expect(packageTimestamp(null)).toBeNull();
     });
   });
 });

@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.12.1] - 2026-10-01
+
+### Fixed
+- **Team Rooms could start blank and save that blank over the real room.** Every failed read — a blocked request, a timeout, a rate limit — came back as "success, no data", indistinguishable from a brand-new room, so the planner built a default plan and saved it under the room's key. Loads now tell *empty* apart from *unreachable*, and a room is only created when the store actually answers that it holds nothing.
+- **Saves no longer write blind.** A save reads the room first to merge teammates' changes; if that read failed it used to write anyway, overwriting anything newer. It now holds the changes back, says so, and retries once the store answers.
+- **Offline is shown as offline.** With the store unreachable the planner shows this browser's last copy, labelled offline, rather than a green "Up to Date" badge — and merges anything newer on the server once it is back.
+- **Connect errors are visible.** Every message set before a room was joined — including decryption failures — was being hidden, so a failed connect looked like nothing happened.
+- **Sync no longer claims "Already up to date"** when it could not reach the store.
+- **A room missing from the store is restored** from the copy in the browser of anyone still connected, instead of staying empty.
+
+### Added
+- **Room proxy** (`worker/`): a Cloudflare Worker that keeps the Upstash token server-side and allows only a read or a write of a single room — no listing, deleting or flushing. Opt-in via `VITE_ROOM_API`; see "Team Room sync" in the README for the rollout order.
+
+### Tests
+- The planner tests now run against an in-memory room store. They previously reached for the real one: in a sandbox the request failed and only passed because of the bug above; with network access they wrote to production.
+
 ## [1.12.0] - 2026-09-15
 
 ### Changed

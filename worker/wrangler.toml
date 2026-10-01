@@ -1,0 +1,10 @@
+name = "thronewake-rooms"
+main = "room-proxy.js"
+compatibility_date = "2026-09-01"
+
+[vars]
+ALLOWED_ORIGINS = "https://drdoughnut.github.io,http://localhost:5173"
+UPSTASH_URL = "https://capable-firefly-231120.upstash.io"
+
+# The token is a secret, never a var — set it with:
+#   npx wrangler secret put UPSTASH_TOKEN

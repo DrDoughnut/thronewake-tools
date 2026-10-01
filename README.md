@@ -1,9 +1,10 @@
 # Thronewake Tools
 
-Browser-only calculators for Thronewake. No backend, no database, no API — the
-whole thing is static files, and every number is computed in your browser.
-Deploy it to GitHub Pages, Netlify, S3, or open `dist/index.html` from a USB
-stick; it works the same.
+Browser-only calculators for Thronewake. The whole thing is static files, and
+every number is computed in your browser. Deploy it to GitHub Pages, Netlify,
+S3, or open `dist/index.html` from a USB stick; it works the same. The one
+exception is the Operation Planner's Team Room, which syncs encrypted plans
+through a key-value store — see [Team Room sync](#team-room-sync).
 
 Seven tools so far:
 
@@ -36,6 +37,45 @@ npm run dev      # http://localhost:5173
 npm run build    # → dist/
 npm test         # engine, data and UI tests
 ```
+
+## Team Room sync
+
+Team Rooms are encrypted in the browser before they leave it: the room code
+derives both the AES-256-GCM key and the storage key, so the store only ever
+holds ciphertext, under a name derived from the code. Plans live in Upstash
+Redis.
+
+**⚠ The Upstash token is currently in the client bundle**, and anyone holding it
+can list, overwrite or delete every room without a code. Listing also exposes
+the key names, which are a fast hash of the code — so a short or guessable
+code can be cracked offline. Until the proxy below is live, use long, random
+room codes. `worker/` contains a
+Cloudflare Worker that keeps the token server-side and lets through only a read
+or a write of one room. To switch over without downtime, do these in order:
+
+1. **Deploy the proxy with the current token.**
+   ```bash
+   cd worker
+   npx wrangler deploy
+   npx wrangler secret put UPSTASH_TOKEN   # paste the current token
+   ```
+   Note the `*.workers.dev` URL it prints, and check `ALLOWED_ORIGINS` in
+   `worker/wrangler.toml` lists wherever the site is served from.
+2. **Point the site at it.** Add `VITE_ROOM_API=<worker URL>` to
+   `.env.production`, then build and publish as usual. The client sends no
+   token when this is set.
+3. **Rotate the token** in the Upstash console, then
+   `npx wrangler secret put UPSTASH_TOKEN` again with the new one. The old
+   token stays in git history and in old builds, which is fine once it no
+   longer works.
+4. **Delete the direct path** — `UPSTASH_REST_TOKEN` and the fallback in
+   `src/engine/cryptoSync.ts`'s `endpoint()` — so a missing env var fails
+   loudly instead of quietly going back to the public token.
+
+A failed read is reported, never treated as an empty room: the planner shows
+this browser's last copy marked offline, and holds back saves until the store
+can be read again, so a flaky connection cannot save a stale or blank plan over
+a teammate's.
 
 ## Where things live
 

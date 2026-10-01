@@ -2,7 +2,7 @@
  * Player release notes. Bump `APP_VERSION` and add an entry here
  * whenever a change is worth telling returning players about.
  */
-export const APP_VERSION = '1.11.0';
+export const APP_VERSION = '1.12.1';
 
 export interface ChangelogEntry {
   version: string;
@@ -11,6 +11,14 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '1.12.1',
+    date: '2026-10-01',
+    changes: [
+      'Team Rooms: a connection problem no longer shows up as a blank room. If the room server can\u2019t be reached you\u2019ll see your last copy marked offline, and nothing is saved until it\u2019s back \u2014 so a bad connection can\u2019t wipe the room for everyone else.',
+      'Team Rooms: connection errors are now shown instead of silently doing nothing, and Sync reports when it couldn\u2019t reach the server.',
+    ],
+  },
   {
     version: '1.11.0',
     date: '2026-09-11',

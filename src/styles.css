@@ -4985,6 +4985,16 @@ select:focus, .select:focus, .text-input:focus {
   color: #ff6b6b;
 }
 
+.op-team-room-status--offline {
+  color: #f39c12;
+}
+
+/* These two carry a sentence about what went wrong, not a two-word state. */
+.op-team-room-status--error,
+.op-team-room-status--offline {
+  white-space: normal;
+}
+
 .op-team-room-synctime {
   color: var(--text-dim);
   font-size: 11px;
