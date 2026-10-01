@@ -171,8 +171,71 @@ export async function decryptPayload<T = unknown>(
   }
 }
 
+/**
+ * ⚠ This token is public — it ships in the built bundle and sits in git
+ * history — so treat it as burned. Anyone holding it can list, overwrite or
+ * delete every room without a passcode. Set VITE_ROOM_API to a proxy (see
+ * worker/room-proxy.js) that keeps the real token server-side, then rotate
+ * this one and delete the direct path below.
+ */
 const UPSTASH_REST_URL = 'https://capable-firefly-231120.upstash.io';
 const UPSTASH_REST_TOKEN = 'gQAAAAAAA4bQAAIgcDFhZTI5MzNmNjFmNjE0MzUyYjBmNzhjYmMwMzlmOWZkMQ';
+
+/** Generous enough for slow mobile links, since a timeout surfaces as an error. */
+const REQUEST_TIMEOUT_MS = 8000;
+
+const cacheKey = (roomId: string) => `thronewake.room_cache.${roomId}`;
+const storeKey = (roomId: string) => `tw_${roomId.slice(0, 32)}`;
+
+/** Where room commands go: the proxy when one is configured, Upstash directly otherwise. */
+function endpoint(): { url: string; headers: Record<string, string> } {
+  const proxy = import.meta.env.VITE_ROOM_API as string | undefined;
+  if (proxy) {
+    return { url: proxy, headers: { 'Content-Type': 'application/json' } };
+  }
+  return {
+    url: UPSTASH_REST_URL,
+    headers: {
+      Authorization: `Bearer ${UPSTASH_REST_TOKEN}`,
+      'Content-Type': 'application/json',
+    },
+  };
+}
+
+async function sendCommand(command: string[]): Promise<{ result?: string | null; error?: string }> {
+  const { url, headers } = endpoint();
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(command),
+      signal: controller.signal,
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    let payload: { result?: string | null; error?: string } = {};
+    try {
+      payload = (await res.json()) ?? {};
+    } catch {}
+    if (payload.error) throw new Error(payload.error);
+    return payload;
+  } catch (err: unknown) {
+    if (err instanceof Error && err.name === 'AbortError') throw new Error('timed out');
+    throw err instanceof Error ? err : new Error('network error');
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+function readCache(roomId: string): string | null {
+  try {
+    return localStorage.getItem(cacheKey(roomId));
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Saves encrypted ciphertext to the cloud store and local cache.
@@ -183,78 +246,59 @@ export async function saveToCloud(
 ): Promise<{ success: boolean; error?: string }> {
   // Always cache locally as offline fallback
   try {
-    localStorage.setItem(`thronewake.room_cache.${roomId}`, encryptedCiphertext);
+    localStorage.setItem(cacheKey(roomId), encryptedCiphertext);
   } catch {}
 
   try {
-    const key = `tw_${roomId.slice(0, 32)}`;
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3500);
-    const res = await fetch(UPSTASH_REST_URL, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${UPSTASH_REST_TOKEN}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(['SET', key, encryptedCiphertext]),
-      signal: controller.signal,
-    });
-    clearTimeout(timeoutId);
-
-    if (!res.ok) {
-      return { success: false, error: `Cloud save failed (HTTP ${res.status})` };
-    }
-
+    await sendCommand(['SET', storeKey(roomId), encryptedCiphertext]);
     return { success: true };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Network error';
-    return { success: false, error: message };
+    return { success: false, error: err instanceof Error ? err.message : 'network error' };
   }
 }
 
 /**
- * Fetches encrypted ciphertext from the cloud store with local cache fallback.
+ * What a load found. "empty" and "error" have to stay distinct: the server
+ * saying a room has no data is the only safe signal to create one, while not
+ * reaching the server at all says nothing about the room. Treating the two
+ * alike is what let a blocked request quietly start a blank room.
  */
-export async function loadFromCloud(
-  roomId: string
-): Promise<{ success: boolean; data?: string | null; error?: string }> {
-  let localCached: string | null = null;
+export type CloudLoad =
+  | { status: 'found'; data: string }
+  | { status: 'empty'; cached: string | null }
+  | { status: 'error'; error: string; cached: string | null };
+
+/**
+ * Fetches encrypted ciphertext from the cloud store. On failure the local
+ * cache comes back alongside the error, for the caller to show read-only.
+ */
+export async function loadFromCloud(roomId: string): Promise<CloudLoad> {
   try {
-    localCached = localStorage.getItem(`thronewake.room_cache.${roomId}`);
-  } catch {}
+    const payload = await sendCommand(['GET', storeKey(roomId)]);
+    const text = typeof payload.result === 'string' ? payload.result : null;
+    if (!text) return { status: 'empty', cached: readCache(roomId) };
 
+    try {
+      localStorage.setItem(cacheKey(roomId), text);
+    } catch {}
+    return { status: 'found', data: text };
+  } catch (err: unknown) {
+    return {
+      status: 'error',
+      error: err instanceof Error ? err.message : 'network error',
+      cached: readCache(roomId),
+    };
+  }
+}
+
+/** The save time stamped inside an encrypted package, without decrypting it. */
+export function packageTimestamp(encrypted: string | null): number | null {
+  if (!encrypted) return null;
   try {
-    const key = `tw_${roomId.slice(0, 32)}`;
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3500);
-    const res = await fetch(UPSTASH_REST_URL, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${UPSTASH_REST_TOKEN}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(['GET', key]),
-      signal: controller.signal,
-    });
-    clearTimeout(timeoutId);
-
-    if (!res.ok) {
-      return { success: true, data: localCached };
-    }
-
-    const payload = (await res.json()) as { result?: string | null; error?: string };
-    const text = payload.result ?? null;
-
-    if (text) {
-      try {
-        localStorage.setItem(`thronewake.room_cache.${roomId}`, text);
-      } catch {}
-      return { success: true, data: text };
-    }
-
-    return { success: true, data: localCached };
+    const pkg = JSON.parse(encrypted) as Partial<EncryptedPackage>;
+    return typeof pkg.ts === 'number' ? pkg.ts : null;
   } catch {
-    return { success: true, data: localCached };
+    return null;
   }
 }
 

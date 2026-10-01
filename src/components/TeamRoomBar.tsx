@@ -5,6 +5,7 @@ import {
   decryptPayload,
   saveToCloud,
   loadFromCloud,
+  packageTimestamp,
   type RoomCryptoSession,
 } from '../engine/cryptoSync';
 import { mergeTeamRoomData, type TeamRoomData } from '../engine/operations';
@@ -19,6 +20,67 @@ interface TeamRoomBarProps {
   onRoomDataLoaded: (data: TeamRoomData, session: RoomCryptoSession) => void;
   onRoomDisconnected: () => void;
   onSaveRequested: () => Promise<TeamRoomData>;
+}
+
+/** The plan a brand-new room starts with. */
+function newRoomPlan(roomName: string): TeamRoomData {
+  return {
+    version: 2,
+    roomName,
+    activeOpId: null,
+    roster: {
+      attackers: [
+        {
+          id: 'a1',
+          name: 'Attacker 1',
+          x: 0,
+          y: 0,
+          unitRef: 'embermark_dominion/emberblade',
+          artifactMultiplier: 1,
+          bannerfieldLevel: 0,
+          safeEnabled: false,
+          safeStart: '22:00',
+          safeEnd: '04:00',
+        },
+      ],
+      players: [
+        {
+          id: 'p1',
+          name: 'Defender 1',
+          safeEnabled: false,
+          safeStart: '22:00',
+          safeEnd: '04:00',
+        },
+      ],
+      targets: [
+        {
+          id: 't1',
+          name: 'Village 1',
+          x: 10,
+          y: 10,
+          fake: false,
+          playerId: 'p1',
+          safeEnabled: false,
+          safeStart: '22:00',
+          safeEnd: '04:00',
+        },
+      ],
+    },
+    operations: [
+      {
+        id: 'op1',
+        name: 'Operation 1',
+        landing: '2026-08-16T19:00',
+        serverSpeed: 3,
+        assignedAttackerIds: ['a1'],
+        assignedTargetIds: ['t1'],
+        fakeTargetIds: [],
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      },
+    ],
+    updatedAt: Date.now(),
+  };
 }
 
 export function TeamRoomBar({
@@ -40,13 +102,20 @@ export function TeamRoomBar({
     }
   });
   const [session, setSession] = useState<RoomCryptoSession | null>(null);
-  const [status, setStatus] = useState<'idle' | 'connecting' | 'connected' | 'saving' | 'error'>('idle');
+  // 'offline' has to be its own status: on 'connected' the bar hides the
+  // message and shows "Up to Date", which would paper over a stale copy.
+  const [status, setStatus] = useState<
+    'idle' | 'connecting' | 'connected' | 'offline' | 'saving' | 'error'
+  >('idle');
   const [statusMsg, setStatusMsg] = useState<string>('');
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
 
   const saveInProgressRef = useRef(false);
   const isConnectingRef = useRef(false);
   const hasAutoConnectedRef = useRef(false);
+  const offlineRef = useRef(false);
+  /** A save was refused because the server could not be read; retry once it can. */
+  const saveBlockedRef = useRef(false);
 
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [exportData, setExportData] = useState<TeamRoomData | null>(null);
@@ -84,97 +153,59 @@ export function TeamRoomBar({
         }
 
         setStatusMsg('Connecting to room...');
-        const cloudRes = await loadFromCloud(sess.roomId);
+        const cloud = await loadFromCloud(sess.roomId);
 
         let loadedData: TeamRoomData | null = null;
+        let syncedAt = new Date();
+        let offline = false;
 
-        if (cloudRes.success && cloudRes.data) {
-          // Decrypt existing room payload
-          loadedData = await decryptPayload<TeamRoomData>(cloudRes.data, sess.cryptoKey);
+        if (cloud.status === 'found') {
+          loadedData = await decryptPayload<TeamRoomData>(cloud.data, sess.cryptoKey);
           if (!loadedData) {
             setStatus('error');
             setStatusMsg('Decryption failed: Room payload was modified or corrupted.');
             return;
           }
-        } else {
-          // If cloud returned no data or failed, check offline cache
-          try {
-            const cachedCipher = localStorage.getItem(`thronewake.room_cache.${sess.roomId}`);
-            if (cachedCipher) {
-              loadedData = await decryptPayload<TeamRoomData>(cachedCipher, sess.cryptoKey);
-            }
-          } catch {}
-
-          if (!loadedData) {
-            // New Room initialized clean
-            const cleanPlan: TeamRoomData = {
-              version: 2,
-              roomName: sess.roomName,
-              activeOpId: null,
-              roster: {
-                attackers: [
-                  {
-                    id: 'a1',
-                    name: 'Attacker 1',
-                    x: 0,
-                    y: 0,
-                    unitRef: 'embermark_dominion/emberblade',
-                    artifactMultiplier: 1,
-                    bannerfieldLevel: 0,
-                    safeEnabled: false,
-                    safeStart: '22:00',
-                    safeEnd: '04:00',
-                  },
-                ],
-                players: [
-                  {
-                    id: 'p1',
-                    name: 'Defender 1',
-                    safeEnabled: false,
-                    safeStart: '22:00',
-                    safeEnd: '04:00',
-                  },
-                ],
-                targets: [
-                  {
-                    id: 't1',
-                    name: 'Village 1',
-                    x: 10,
-                    y: 10,
-                    fake: false,
-                    playerId: 'p1',
-                    safeEnabled: false,
-                    safeStart: '22:00',
-                    safeEnd: '04:00',
-                  },
-                ],
-              },
-              operations: [
-                {
-                  id: 'op1',
-                  name: 'Operation 1',
-                  landing: '2026-08-16T19:00',
-                  serverSpeed: 3,
-                  assignedAttackerIds: ['a1'],
-                  assignedTargetIds: ['t1'],
-                  fakeTargetIds: [],
-                  createdAt: Date.now(),
-                  updatedAt: Date.now(),
-                },
-              ],
-              updatedAt: Date.now(),
-            };
-            loadedData = cleanPlan;
-            // Save initial encrypted payload to cloud / local cache
-            const encrypted = await encryptPayload(loadedData, sess.cryptoKey);
-            void saveToCloud(sess.roomId, encrypted);
+        } else if (cloud.status === 'error') {
+          // Not reaching the server says nothing about the room, so never
+          // start a new one here: that blank plan would then be saved over the
+          // real room. Show this browser's last copy instead, if it has one.
+          const cached = cloud.cached
+            ? await decryptPayload<TeamRoomData>(cloud.cached, sess.cryptoKey)
+            : null;
+          if (!cached) {
+            setStatus('error');
+            setStatusMsg(
+              `Couldn't reach the room server (${cloud.error}). Nothing was changed — check your connection or ad blocker, then try again.`
+            );
+            return;
           }
+          loadedData = cached;
+          offline = true;
+          // Synced only as of that copy, so anything newer on the server gets
+          // merged in rather than overwritten once it's reachable again.
+          const ts = packageTimestamp(cloud.cached);
+          if (ts) syncedAt = new Date(ts);
+        } else {
+          // The server answered and holds nothing: a new room, or one that was
+          // wiped. A copy cached in this browser restores the latter.
+          if (cloud.cached) {
+            loadedData = await decryptPayload<TeamRoomData>(cloud.cached, sess.cryptoKey);
+          }
+          if (!loadedData) loadedData = newRoomPlan(sess.roomName);
+          const encrypted = await encryptPayload(loadedData, sess.cryptoKey);
+          void saveToCloud(sess.roomId, encrypted);
         }
 
+        offlineRef.current = offline;
         setSession(sess);
-        setStatus('connected');
-        setStatusMsg(cloudRes.success ? `Connected to ${sess.roomName}` : `Connected to ${sess.roomName} (Offline Mode)`);
-        setLastSyncedAt(new Date());
+        setStatus(offline ? 'offline' : 'connected');
+        setStatusMsg(
+          offline
+            ? `Offline — showing your last saved copy of ${sess.roomName}. It will sync once the server is reachable.`
+            : `Connected to ${sess.roomName}`
+        );
+        setLastSyncedAt(syncedAt);
 
         try {
           localStorage.setItem(ROOM_STORAGE_KEY, code);
@@ -232,28 +263,39 @@ export function TeamRoomBar({
         let currentData = await onSaveRequestedRef.current();
 
         // Check if cloud has newer updates from a teammate to merge with
-        const cloudRes = await loadFromCloud(session.roomId);
-        if (cloudRes.success && cloudRes.data) {
-          try {
-            const pkg = JSON.parse(cloudRes.data) as { ts?: number };
-            if (lastSyncedAt && pkg.ts && pkg.ts > lastSyncedAt.getTime() + 500) {
-              const cloudData = await decryptPayload<TeamRoomData>(cloudRes.data, session.cryptoKey);
-              if (cloudData) {
-                // Seamlessly merge cloud changes with local changes
-                currentData = mergeTeamRoomData(cloudData, currentData);
-                onRoomDataLoadedRef.current(currentData, session);
-              }
+        const cloud = await loadFromCloud(session.roomId);
+        if (cloud.status === 'error') {
+          // Writing without that read would overwrite anything a teammate
+          // saved since, so the changes stay here until the server answers.
+          saveBlockedRef.current = true;
+          setStatus('error');
+          setStatusMsg(
+            `Not saved — couldn't reach the room server (${cloud.error}). Your changes are kept and will save when it's back.`
+          );
+          return;
+        }
+        if (cloud.status === 'found') {
+          const ts = packageTimestamp(cloud.data);
+          if (lastSyncedAt && ts && ts > lastSyncedAt.getTime() + 500) {
+            const cloudData = await decryptPayload<TeamRoomData>(cloud.data, session.cryptoKey);
+            if (cloudData) {
+              // Seamlessly merge cloud changes with local changes
+              currentData = mergeTeamRoomData(cloudData, currentData);
+              onRoomDataLoadedRef.current(currentData, session);
             }
-          } catch {}
+          }
         }
 
         const encrypted = await encryptPayload(currentData, session.cryptoKey);
         const res = await saveToCloud(session.roomId, encrypted);
 
         if (!res.success) {
+          saveBlockedRef.current = true;
           setStatus('error');
-          setStatusMsg(res.error || 'Save failed');
+          setStatusMsg(`Not saved (${res.error || 'save failed'}). Your changes are kept and will retry.`);
         } else {
+          saveBlockedRef.current = false;
+          offlineRef.current = false;
           setStatus('connected');
           setStatusMsg(`Saved to ${session.roomName}`);
           setLastSyncedAt(new Date());
@@ -267,6 +309,11 @@ export function TeamRoomBar({
     },
     [session, lastSyncedAt]
   );
+
+  const handleSaveRef = useRef(handleSave);
+  useEffect(() => {
+    handleSaveRef.current = handleSave;
+  });
 
   // Responsive 800ms debounced auto-save effect (always on)
   useEffect(() => {
@@ -284,12 +331,27 @@ export function TeamRoomBar({
     const interval = setInterval(async () => {
       if (saveInProgressRef.current || isConnectingRef.current) return;
       try {
-        const cloudRes = await loadFromCloud(session.roomId);
-        if (!cloudRes.success || !cloudRes.data) return;
+        const cloud = await loadFromCloud(session.roomId);
+        if (cloud.status === 'error') return;
 
-        const pkg = JSON.parse(cloudRes.data) as { ts?: number };
-        if (lastSyncedAt && pkg.ts && pkg.ts > lastSyncedAt.getTime() + 1000) {
-          const decrypted = await decryptPayload<TeamRoomData>(cloudRes.data, session.cryptoKey);
+        if (offlineRef.current) {
+          offlineRef.current = false;
+          setStatus('connected');
+          setStatusMsg(`Back online — connected to ${session.roomName}`);
+        }
+
+        // Changes held back while the server was unreachable, or a room that
+        // has gone missing from the server: either way, this copy goes back up.
+        // handleSave reads first, so anything newer is merged rather than lost.
+        if ((saveBlockedRef.current && hasUnsavedChanges) || cloud.status === 'empty') {
+          void handleSaveRef.current(true);
+          return;
+        }
+        saveBlockedRef.current = false;
+
+        const ts = packageTimestamp(cloud.data);
+        if (lastSyncedAt && ts && ts > lastSyncedAt.getTime() + 1000) {
+          const decrypted = await decryptPayload<TeamRoomData>(cloud.data, session.cryptoKey);
           if (decrypted) {
             if (!hasUnsavedChanges) {
               onRoomDataLoadedRef.current(decrypted, session);
@@ -319,15 +381,21 @@ export function TeamRoomBar({
     setStatusMsg('Checking cloud updates...');
 
     try {
-      const cloudRes = await loadFromCloud(session.roomId);
-      if (!cloudRes.success || !cloudRes.data) {
-        setStatus('connected');
-        setStatusMsg('Already up to date');
-        setLastSyncedAt(new Date());
+      const cloud = await loadFromCloud(session.roomId);
+      if (cloud.status === 'error') {
+        // An unreachable server is not "up to date"; say so.
+        setStatus('error');
+        setStatusMsg(`Couldn't reach the room server (${cloud.error}).`);
+        return;
+      }
+      if (cloud.status === 'empty') {
+        // The server lost its copy; put this one back.
+        await handleSaveRef.current(false);
         return;
       }
 
-      const decrypted = await decryptPayload<TeamRoomData>(cloudRes.data, session.cryptoKey);
+      offlineRef.current = false;
+      const decrypted = await decryptPayload<TeamRoomData>(cloud.data, session.cryptoKey);
       if (decrypted) {
         onRoomDataLoadedRef.current(decrypted, session);
         setStatus('connected');
@@ -368,7 +436,11 @@ export function TeamRoomBar({
       ).padStart(2, '0')}:${String(lastSyncedAt.getUTCSeconds()).padStart(2, '0')} UTC`
     : null;
 
-  const showTransientStatus = Boolean(session && statusMsg && status !== 'connected');
+  // Before a room is joined there is no badge to fall back on, so every
+  // message shows — otherwise a failed connect looks like nothing happened.
+  const showTransientStatus = Boolean(
+    statusMsg && (session ? status !== 'connected' : status !== 'idle'),
+  );
 
   return (
     <>
