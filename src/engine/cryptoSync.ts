@@ -184,7 +184,7 @@ export async function decryptPayload<T = unknown>(
  * default user's token.
  */
 const UPSTASH_REST_URL = 'https://capable-firefly-231120.upstash.io';
-const UPSTASH_REST_TOKEN = 'gQAAAAAAA4bQAAIgcDFhZTI5MzNmNjFmNjE0MzUyYjBmNzhjYmMwMzlmOWZkMQ';
+const UPSTASH_REST_TOKEN = 'gwAAAAAAA4bQAAIIQHAxdHctcm9vbXO_s3QWdFg-PsXfZQqwo_izAL-Lp5ElaogstZxFhLrP6VDKuXtIYxmmgsyTLQWru6YdOhGA9kyJ9nsyMwcitBFo';
 
 /** Generous enough for slow mobile links, since a timeout surfaces as an error. */
 const REQUEST_TIMEOUT_MS = 8000;
