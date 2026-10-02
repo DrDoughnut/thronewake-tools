@@ -2,7 +2,7 @@
  * Player release notes. Bump `APP_VERSION` and add an entry here
  * whenever a change is worth telling returning players about.
  */
-export const APP_VERSION = '1.12.1';
+export const APP_VERSION = '1.13.0';
 
 export interface ChangelogEntry {
   version: string;
@@ -11,6 +11,15 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '1.13.0',
+    date: '2026-10-02',
+    changes: [
+      'Ancient Monument as a Catapult Target: aim catapults at the Monument, with its own icon and levels up to 100.',
+      'Monument Damage Carries Between Waves: a later wave hitting the Monument starts from the level the last wave left it at, marked \u26a1 Auto. Set a level by hand to override it, and \u21ba Auto to go back.',
+      'Wave Reports Show the Real Starting Level: \u201cdamaged from level X\u201d and the rebuild cost now count from the level each wave actually met, not the level typed into the form.',
+    ],
+  },
   {
     version: '1.12.1',
     date: '2026-10-01',

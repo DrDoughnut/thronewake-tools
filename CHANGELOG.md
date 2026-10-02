@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.13.0] - 2026-10-02
+
+### Added
+- **Ancient Monument as a catapult target** in the Combat Calculator (GID 40), with its own icon and levels up to 100.
+- **Monument level carries forward across waves.** A later wave aimed at the Monument enters at the level the previous wave left it, shown as ⚡ Auto; typing a level marks it as a manual override (kept in share links with a trailing `!`), and ↺ Auto reverts it. Adding a wave after one that hits the Monument copies its targets.
+
+### Changed
+- **Wave reports and rebuild costs count from each wave's entering level** rather than the level entered on the form.
+
 ## [1.12.1] - 2026-10-01
 
 ### Fixed
