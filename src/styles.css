@@ -9444,6 +9444,42 @@ select:focus, .select:focus, .text-input:focus {
   white-space: nowrap;
 }
 
+.cc-target-card-compact__head {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.cc-target-auto-pill {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #10b981;
+  background: color-mix(in srgb, #10b981 15%, transparent);
+  border: 1px solid color-mix(in srgb, #10b981 30%, transparent);
+  padding: 1px 4px;
+  border-radius: 3px;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+.cc-target-reset-btn {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  padding: 1px 4px;
+  border-radius: 3px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.cc-target-reset-btn:hover {
+  background: var(--accent);
+  color: var(--bg);
+}
+
 .cc-target-select {
   min-width: 130px;
   max-width: 165px;
@@ -9475,6 +9511,12 @@ select:focus, .select:focus, .text-input:focus {
   border-radius: var(--radius);
   color: var(--text);
   font-variant-numeric: tabular-nums;
+}
+
+.cc-target-lvl-input--auto {
+  color: #10b981;
+  border-color: color-mix(in srgb, #10b981 40%, transparent);
+  font-weight: 600;
 }
 
 .cc-wave-pills {

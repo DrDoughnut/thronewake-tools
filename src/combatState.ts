@@ -16,6 +16,8 @@ export interface Army {
 export interface CatapultTarget {
   gid: number;
   level: number;
+  /** Explicit manual override; if false or omitted on Ancient Monument (GID 40) in waves > 0, level auto-inherits from prior wave */
+  isCustomOverride?: boolean;
 }
 
 export const DEFAULT_TARGET_GID = 10;
@@ -141,7 +143,7 @@ function serializeArmies(armies: Army[]): string {
       const targetsStr = army.targets
         ? army.targets
             .slice(0, army.targetCount || army.targets.length)
-            .map((t) => `${t.gid}@${t.level}`)
+            .map((t) => `${t.gid}@${t.level}${t.isCustomOverride ? '!' : ''}`)
             .join(',')
         : '';
 
@@ -217,10 +219,15 @@ function deserializeArmies(rawStr: string | null, prefix: string): Army[] {
         targets = targetsRaw
           .split(',')
           .map((tChunk) => {
-            const [gidStr, lvlStr] = tChunk.split('@');
+            const [gidStr, lvlRaw] = tChunk.split('@');
+            const isOverride = lvlRaw ? lvlRaw.endsWith('!') : false;
+            const lvlStr = isOverride ? lvlRaw.slice(0, -1) : lvlRaw;
+            const gid = Number(gidStr) || DEFAULT_TARGET_GID;
+            const maxLvl = gid === 40 ? 100 : 22;
             return {
-              gid: Number(gidStr) || DEFAULT_TARGET_GID,
-              level: clamp(Number(lvlStr) || DEFAULT_TARGET_LEVEL, 0, 22),
+              gid,
+              level: clamp(Number(lvlStr) || DEFAULT_TARGET_LEVEL, 0, maxLvl),
+              ...(isOverride ? { isCustomOverride: true } : {}),
             };
           })
           .filter(Boolean);
@@ -388,15 +395,18 @@ export function decodeCombatState(hash: string): CombatState | null {
   if (tgsParam) {
     targets = tgsParam.split(',').map((chunk) => {
       const [g, l] = chunk.split(':');
+      const gid = clamp(Number(g) || 10, 1, 99);
+      const maxLvl = gid === 40 ? 100 : 22;
       return {
-        gid: clamp(Number(g) || 10, 1, 99),
-        level: clamp(Number(l) || 20, 0, 22),
+        gid,
+        level: clamp(Number(l) || 20, 0, maxLvl),
       };
     }).slice(0, 4);
   }
   if (targets.length === 0) {
     const fallbackGid = num('tg', initialCombatState.targetGid, 1, 99);
-    const fallbackLvl = num('tl', initialCombatState.targetLevel, 0, 22);
+    const fallbackMax = fallbackGid === 40 ? 100 : 22;
+    const fallbackLvl = num('tl', initialCombatState.targetLevel, 0, fallbackMax);
     targets = Array.from({ length: targetCount }, () => ({ gid: fallbackGid, level: fallbackLvl }));
   } else {
     // Fill up to targetCount if fewer

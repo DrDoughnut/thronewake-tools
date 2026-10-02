@@ -15,6 +15,8 @@ import {
   type Regiment,
   type Village,
   type Wave,
+  type WaveResult,
+  type BattleResult,
 } from '../engine/combat';
 import { buildingCumulativeCost } from '../engine/cpOptimizer';
 import { defaultModifiers, effectiveTime, offenseFactor, totalCost, upgradeStat, type Modifiers } from '../engine/stats';
@@ -254,6 +256,8 @@ export function CombatCalculator() {
         pop: state.attackerPop,
         type: army?.type || 'attack',
         targets: targets.map((t) => t.level),
+        targetGids: targets.map((t) => t.gid),
+        targetOverrides: targets.map((t) => !!t.isCustomOverride),
         morale: state.morale,
       };
     });
@@ -267,10 +271,20 @@ export function CombatCalculator() {
 
   const side = (kind: 'attackers' | 'defenders') => ({
     add: () =>
-      setState((p) => ({
-        ...p,
-        [kind]: [...p[kind], makeArmy(p[kind][p[kind].length - 1]?.faction ?? 'embermark_dominion')],
-      })),
+      setState((p) => {
+        const lastArmy = p[kind][p[kind].length - 1];
+        const newArmy = makeArmy(lastArmy?.faction ?? 'embermark_dominion');
+        if (kind === 'attackers' && lastArmy?.targets && lastArmy.targets.some((t) => t.gid === 40)) {
+          newArmy.targets = lastArmy.targets.map((t) =>
+            t.gid === 40 ? { gid: 40, level: 100, isCustomOverride: false } : { ...t }
+          );
+          newArmy.targetCount = lastArmy.targetCount ?? 1;
+        }
+        return {
+          ...p,
+          [kind]: [...p[kind], newArmy],
+        };
+      }),
     remove: (id: string) =>
       setState((p) => ({ ...p, [kind]: p[kind].filter((a) => a.id !== id) })),
     move: (id: string, direction: -1 | 1) =>
@@ -422,20 +436,21 @@ export function CombatCalculator() {
       const tc = attArmy.targetCount || 1;
       const targets = (attArmy.targets || [{ gid: 10, level: 20 }]).slice(0, tc);
       targets.forEach((target, tIdx) => {
+        const startLevel = waveRes.initialTargets?.[tIdx] ?? target.level;
         const finalLevel = waveRes.targets[tIdx] ?? target.level;
         const bldg = BUILDINGS.find((b) => b.gid === target.gid);
         const bldgName = bldg?.name || 'Building';
         const destroyed = finalLevel === 0;
         const prefix = state.attackers.length > 1 ? `Wave ${wIdx + 1}: ` : '';
-        if (finalLevel < target.level) {
+        if (finalLevel < startLevel) {
           items.push({
             gid: target.gid,
-            text: `${prefix}Target #${tIdx + 1} (${bldgName}) damaged from level ${target.level} to ${finalLevel}${destroyed ? ' (destroyed)' : ''}.`,
+            text: `${prefix}Target #${tIdx + 1} (${bldgName}) damaged from level ${startLevel} to ${finalLevel}${destroyed ? ' (destroyed)' : ''}.`,
           });
         } else {
           items.push({
             gid: target.gid,
-            text: `${prefix}Target #${tIdx + 1} (${bldgName}) held firm at level ${target.level}.`,
+            text: `${prefix}Target #${tIdx + 1} (${bldgName}) held firm at level ${startLevel}.`,
           });
         }
       });
@@ -519,7 +534,8 @@ export function CombatCalculator() {
               sum +
               waveRes.targets.reduce((wSum, finalLevel, tIdx) => {
                 const t = targets[tIdx] ?? { gid: 10, level: 20 };
-                const before = buildingCumulativeCost(t.gid, t.level).total;
+                const initialLevel = waveRes.initialTargets?.[tIdx] ?? t.level;
+                const before = buildingCumulativeCost(t.gid, initialLevel).total;
                 const after = buildingCumulativeCost(t.gid, finalLevel).total;
                 return wSum + Math.max(0, before - after);
               }, 0)
@@ -542,7 +558,8 @@ export function CombatCalculator() {
             : [{ gid: 10, level: 20 }]).slice(0, tc);
           const targetsDamage = waveRes.targets.reduce((wSum, finalLevel, tIdx) => {
             const t = targets[tIdx] ?? { gid: 10, level: 20 };
-            const before = buildingCumulativeCost(t.gid, t.level).total;
+            const initialLevel = waveRes.initialTargets?.[tIdx] ?? t.level;
+            const before = buildingCumulativeCost(t.gid, initialLevel).total;
             const after = buildingCumulativeCost(t.gid, finalLevel).total;
             return wSum + Math.max(0, before - after);
           }, 0);
@@ -1075,6 +1092,7 @@ export function CombatCalculator() {
                         {/* Catapult Target Outcomes for Wave */}
                         {catsInWave > 0 &&
                           waveActiveTargets.map((target, tIdx) => {
+                            const initialLevel = w.initialTargets?.[tIdx] ?? target.level;
                             const finalLevel = w.targets[tIdx] ?? target.level;
                             const bldg = BUILDINGS.find((b) => b.gid === target.gid);
                             const bldgName = bldg?.name || 'Building';
@@ -1083,15 +1101,15 @@ export function CombatCalculator() {
                               <li key={tIdx} className="cc-report-outcome-item">
                                 <img src={buildingIcon(target.gid)} alt="" className="cc-report-outcome-icon" />
                                 <span>
-                                  {finalLevel < target.level ? (
+                                  {finalLevel < initialLevel ? (
                                     <>
-                                      Target #{tIdx + 1} ({bldgName}) damaged from level {target.level} to{' '}
+                                      Target #{tIdx + 1} ({bldgName}) damaged from level {initialLevel} to{' '}
                                       {finalLevel}
                                       {destroyed ? ' (destroyed)' : ''}.
                                     </>
                                   ) : (
                                     <>
-                                      Target #{tIdx + 1} ({bldgName}) held firm at level {target.level}.
+                                      Target #{tIdx + 1} ({bldgName}) held firm at level {initialLevel}.
                                     </>
                                   )}
                                 </span>
@@ -1326,6 +1344,7 @@ export function CombatCalculator() {
             title="Attackers"
             armies={state.attackers}
             controls={attackers}
+            battleResult={battle?.result}
           />
 
           {/* 2. The Village (in the middle) */}
@@ -1714,6 +1733,7 @@ interface ArmyCardProps {
   caption?: string;
   armies: Army[];
   controls: SideControls;
+  battleResult?: BattleResult;
 }
 
 function ArmyCard({
@@ -1722,6 +1742,7 @@ function ArmyCard({
   caption,
   armies,
   controls,
+  battleResult,
 }: ArmyCardProps) {
   return (
     <section className={`panel cc-army cc-army--${kind}`}>
@@ -1743,11 +1764,13 @@ function ArmyCard({
           <ArmyRow
             key={army.id}
             army={army}
+            allArmies={armies}
             index={index}
             totalArmies={armies.length}
             kind={kind}
             removable={armies.length > 1}
             controls={controls}
+            waveResult={battleResult?.waves?.[index]}
           />
         ))}
       </div>
@@ -1759,20 +1782,24 @@ function ArmyCard({
 
 interface ArmyRowProps {
   army: Army;
+  allArmies: Army[];
   index: number;
   totalArmies: number;
   kind: 'off' | 'def';
   removable: boolean;
   controls: SideControls;
+  waveResult?: WaveResult;
 }
 
 function ArmyRow({
   army,
+  allArmies,
   index,
   totalArmies,
   kind,
   removable,
   controls,
+  waveResult,
 }: ArmyRowProps) {
   const faction = safeFaction(army.faction);
   const units = fightable(faction);
@@ -1968,10 +1995,43 @@ function ArmyRow({
             {Array.from({ length: army.targetCount ?? 1 }, (_, tIdx) => {
               const target = army.targets?.[tIdx] ?? { gid: 10, level: 20 };
               const bldg = BUILDINGS.find((b) => b.gid === target.gid);
-              const maxLvl = bldg?.maxLevel ?? 20;
+              const isMonument = target.gid === 40;
+              const maxLvl = isMonument ? 100 : (bldg?.maxLevel ?? 20);
+
+              // Auto-carry-forward is specifically for Ancient Monument (GID 40)
+              const hasPriorMonument =
+                kind === 'off' &&
+                index > 0 &&
+                isMonument &&
+                allArmies.slice(0, index).some((a) => a.targets?.some((t) => t.gid === 40));
+
+              const isAuto = hasPriorMonument && !target.isCustomOverride;
+              const displayLevel =
+                isAuto && waveResult?.initialTargets?.[tIdx] !== undefined
+                  ? waveResult.initialTargets[tIdx]
+                  : target.level;
+
               return (
                 <div key={tIdx} className="cc-target-card-compact">
-                  <span className="cc-target-card-compact__badge">#{tIdx + 1}</span>
+                  <div className="cc-target-card-compact__head">
+                    <span className="cc-target-card-compact__badge">#{tIdx + 1}</span>
+                    {hasPriorMonument && (
+                      isAuto ? (
+                        <span className="cc-target-auto-pill" title="Auto-inherited from previous wave">
+                          ⚡ Auto
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          className="cc-target-reset-btn"
+                          title="Revert to auto-inherited level"
+                          onClick={() => controls.target?.(army.id, tIdx, { isCustomOverride: false })}
+                        >
+                          ↺ Auto
+                        </button>
+                      )
+                    )}
+                  </div>
                   <select
                     className="ds-field__input cc-target-select"
                     value={target.gid}
@@ -1979,10 +2039,11 @@ function ArmyRow({
                     onChange={(e) => {
                       const newGid = Number(e.target.value);
                       const newBldg = BUILDINGS.find((b) => b.gid === newGid);
-                      const newMax = newBldg?.maxLevel ?? 20;
+                      const newMax = newGid === 40 ? 100 : (newBldg?.maxLevel ?? 20);
                       controls.target?.(army.id, tIdx, {
                         gid: newGid,
-                        level: Math.min(target.level, newMax),
+                        level: newGid === 40 ? 100 : Math.min(target.level, newMax),
+                        isCustomOverride: false,
                       });
                     }}
                   >
@@ -1998,14 +2059,17 @@ function ArmyRow({
                       type="number"
                       min={0}
                       max={maxLvl}
-                      className="ds-field__input cc-target-lvl-input"
-                      value={target.level}
+                      className={`ds-field__input cc-target-lvl-input ${isAuto ? 'cc-target-lvl-input--auto' : ''}`}
+                      value={displayLevel}
                       aria-label={`Target #${tIdx + 1} level`}
-                      onChange={(e) =>
+                      onChange={(e) => {
+                        const parsed = parseInt(e.target.value, 10);
+                        const val = isNaN(parsed) ? 0 : Math.min(maxLvl, Math.max(0, parsed));
                         controls.target?.(army.id, tIdx, {
-                          level: Math.min(maxLvl, Math.max(0, parseInt(e.target.value, 10) || 0)),
-                        })
-                      }
+                          level: val,
+                          ...(hasPriorMonument ? { isCustomOverride: true } : {}),
+                        });
+                      }}
                     />
                   </label>
                 </div>
