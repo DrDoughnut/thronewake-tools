@@ -96,16 +96,27 @@ const GID_TO_ICON_KEY: Record<number, string> = {
   37: 'expedition_camp',
   38: 'great_warehouse',
   39: 'great_granary',
+  40: 'ancient_monument',
   41: 'riders_wells',
   46: 'herbalist',
 };
 
+const MONUMENT_CASTLE_ICON =
+  'data:image/svg+xml,' +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><text x="50%" y="54%" font-size="48" text-anchor="middle" dominant-baseline="central">🏰</text></svg>'
+  );
+
 export const buildingIcon = (gidOrSlug: number | string): string | undefined => {
   if (typeof gidOrSlug === 'number') {
+    if (gidOrSlug === 40) return buildingIcons.get('ancient_monument') || MONUMENT_CASTLE_ICON;
     const key = GID_TO_ICON_KEY[gidOrSlug];
     if (key && buildingIcons.has(key)) return buildingIcons.get(key);
   }
   const cleanSlug = String(gidOrSlug).replace(/-/g, '_').toLowerCase();
+  if (cleanSlug === 'ancient_monument' || cleanSlug === '40') {
+    return buildingIcons.get('ancient_monument') || MONUMENT_CASTLE_ICON;
+  }
   if (cleanSlug === 'town_hall') {
     return buildingIcons.get('main_building') || buildingIcons.get('town_hall');
   }

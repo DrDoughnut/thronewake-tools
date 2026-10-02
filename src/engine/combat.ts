@@ -81,6 +81,10 @@ export interface Wave {
   targets: number[];
   /** Morale is a T4.6 mechanic; later Travian removed it. */
   morale: boolean;
+  /** Building GID for each target (e.g. 40 for Ancient Monument). */
+  targetGids?: number[];
+  /** Whether a target in this wave is an explicit manual override. */
+  targetOverrides?: boolean[];
 }
 
 export interface WaveResult {
@@ -100,6 +104,8 @@ export interface WaveResult {
   wallDuringBattle: number;
   /** Resulting level of each catapult target, in the order given. */
   targets: number[];
+  /** Initial level of each catapult target entering this wave. */
+  initialTargets?: number[];
   /** Survivors, so a caller can price what is left. */
   attackerSurvivors: Regiment[];
   defenderSurvivors: Regiment[];
@@ -450,14 +456,47 @@ export function resolveBattle(
   let currentTraps = Math.max(0, village.trapperCapacity ?? 0);
   const results: WaveResult[] = [];
   let targets = waves[0]?.targets ? [...waves[0].targets] : [];
+  let runningMonumentLevel: number | null = null;
 
-  for (const wave of waves) {
+  for (let wIdx = 0; wIdx < waves.length; wIdx++) {
+    const wave = waves[wIdx];
+
+    // Resolve entering target levels (Ancient Monument GID 40 carries forward across waves unless explicitly overridden)
+    const effectiveTargets = wave.targets.map((baseLvl, tIdx) => {
+      const gid = wave.targetGids?.[tIdx];
+      if (gid === 40) {
+        const isOverride = wave.targetOverrides?.[tIdx] ?? false;
+        if (wIdx === 0 || isOverride || runningMonumentLevel === null) {
+          runningMonumentLevel = baseLvl;
+          return baseLvl;
+        } else {
+          return runningMonumentLevel;
+        }
+      }
+      return baseLvl;
+    });
+
+    const currentWave: Wave = {
+      ...wave,
+      targets: effectiveTargets,
+    };
+
     const waveVillage: Village = {
       ...place,
       trapperCapacity: currentTraps,
     };
-    const result = resolveWave(waveVillage, standing, wave);
+    const result = resolveWave(waveVillage, standing, currentWave);
+    result.initialTargets = [...effectiveTargets];
     results.push(result);
+
+    // If Ancient Monument was targeted in this wave, update runningMonumentLevel
+    if (wave.targetGids) {
+      wave.targetGids.forEach((gid, tIdx) => {
+        if (gid === 40 && result.targets[tIdx] !== undefined) {
+          runningMonumentLevel = result.targets[tIdx];
+        }
+      });
+    }
 
     // Update remaining traps for subsequent waves:
     // Traps that caught troops are either destroyed (if liberated) or occupied (if not liberated).

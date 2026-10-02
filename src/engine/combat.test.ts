@@ -610,6 +610,108 @@ describe('Combat Engine', () => {
         expect(rammedWithGuards.defPoints).toBe(flatExpected);
       });
     });
+
+    describe('Multi-wave catapult target pass-forward (Ancient Monument)', () => {
+      it('automatically carries damaged monument level forward across consecutive waves', () => {
+        const defenders: Regiment[] = []; // empty village
+        const catWave = (initialLvl: number, catCount: number, overrides?: boolean[]): Wave =>
+          wave(
+            [
+              { key: 'cata', count: catCount, off: 50, defInf: 10, defCav: 10, cavalry: false, siege: 'catapult', upgrade: 0 },
+            ],
+            {
+              targets: [initialLvl],
+              targetGids: [40],
+              targetOverrides: overrides,
+            }
+          );
+
+        // 3 waves with 50 catapults each against Monument starting at 100
+        const result = resolveBattle(
+          village(),
+          defenders,
+          [catWave(100, 50), catWave(100, 50), catWave(100, 50)]
+        );
+
+        expect(result.waves).toHaveLength(3);
+        const w1 = result.waves[0];
+        const w2 = result.waves[1];
+        const w3 = result.waves[2];
+
+        // Wave 1 entered at 100, damaged monument
+        expect(w1.initialTargets).toEqual([100]);
+        expect(w1.targets[0]).toBeLessThan(100);
+
+        // Wave 2 entered at Wave 1's post-battle level
+        expect(w2.initialTargets).toEqual([w1.targets[0]]);
+        expect(w2.targets[0]).toBeLessThan(w1.targets[0]);
+
+        // Wave 3 entered at Wave 2's post-battle level
+        expect(w3.initialTargets).toEqual([w2.targets[0]]);
+        expect(w3.targets[0]).toBeLessThan(w2.targets[0]);
+      });
+
+      it('respects custom override on a wave and continues forward from the overridden level', () => {
+        const defenders: Regiment[] = [];
+        const catWave = (lvl: number, catCount: number, isOverride?: boolean): Wave =>
+          wave(
+            [
+              { key: 'cata', count: catCount, off: 50, defInf: 10, defCav: 10, cavalry: false, siege: 'catapult', upgrade: 0 },
+            ],
+            {
+              targets: [lvl],
+              targetGids: [40],
+              targetOverrides: isOverride !== undefined ? [isOverride] : undefined,
+            }
+          );
+
+        // Wave 1 attacks lvl 100 -> damaged.
+        // Wave 2 has custom override to 50.
+        // Wave 3 does not override -> should inherit from Wave 2's damage to 50.
+        const result = resolveBattle(
+          village(),
+          defenders,
+          [
+            catWave(100, 50, false),
+            catWave(50, 50, true),
+            catWave(100, 50, false),
+          ]
+        );
+
+        const w1 = result.waves[0];
+        const w2 = result.waves[1];
+        const w3 = result.waves[2];
+
+        expect(w1.initialTargets).toEqual([100]);
+        expect(w2.initialTargets).toEqual([50]); // overridden
+        expect(w2.targets[0]).toBeLessThan(50);
+        expect(w3.initialTargets).toEqual([w2.targets[0]]); // inherited from overridden outcome
+      });
+
+      it('does NOT carry forward level for non-monument buildings', () => {
+        const defenders: Regiment[] = [];
+        const catWave = (gid: number, lvl: number): Wave =>
+          wave(
+            [
+              { key: 'cata', count: 50, off: 50, defInf: 10, defCav: 10, cavalry: false, siege: 'catapult', upgrade: 0 },
+            ],
+            {
+              targets: [lvl],
+              targetGids: [gid],
+            }
+          );
+
+        // Target Warehouse (GID 10) across 2 waves
+        const result = resolveBattle(
+          village(),
+          defenders,
+          [catWave(10, 20), catWave(10, 20)]
+        );
+
+        expect(result.waves[0].initialTargets).toEqual([20]);
+        expect(result.waves[1].initialTargets).toEqual([20]); // Warehouse does not auto carry forward
+      });
+    });
   });
 });
 
