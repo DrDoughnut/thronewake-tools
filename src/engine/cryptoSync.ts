@@ -179,9 +179,6 @@ export async function decryptPayload<T = unknown>(
  * database's default token here; it can run every command on every key.
  *
  *   ACL SETUSER tw-rooms on >TOKEN resetkeys ~tw_* resetchannels -@all +get +set
- *
- * TODO: replace with the tw-rooms token. The value below is still the
- * default user's token.
  */
 const UPSTASH_REST_URL = 'https://capable-firefly-231120.upstash.io';
 const UPSTASH_REST_TOKEN = 'gwAAAAAAA4bQAAIIQHAxdHctcm9vbXO_s3QWdFg-PsXfZQqwo_izAL-Lp5ElaogstZxFhLrP6VDKuXtIYxmmgsyTLQWru6YdOhGA9kyJ9nsyMwcitBFo';
