@@ -172,11 +172,16 @@ export async function decryptPayload<T = unknown>(
 }
 
 /**
- * ⚠ This token is public — it ships in the built bundle and sits in git
- * history — so treat it as burned. Anyone holding it can list, overwrite or
- * delete every room without a passcode. Set VITE_ROOM_API to a proxy (see
- * worker/room-proxy.js) that keeps the real token server-side, then rotate
- * this one and delete the direct path below.
+ * This token ships in the bundle, so it is public by design. It must belong
+ * to the restricted Upstash ACL user `tw-rooms`, which may only GET and SET
+ * keys matching `tw_*`: no listing, deleting or flushing. Reaching a room
+ * then still needs its key, and its key needs the room code. Never put the
+ * database's default token here; it can run every command on every key.
+ *
+ *   ACL SETUSER tw-rooms on >TOKEN resetkeys ~tw_* resetchannels -@all +get +set
+ *
+ * TODO: replace with the tw-rooms token. The value below is still the
+ * default user's token.
  */
 const UPSTASH_REST_URL = 'https://capable-firefly-231120.upstash.io';
 const UPSTASH_REST_TOKEN = 'gQAAAAAAA4bQAAIgcDFhZTI5MzNmNjFmNjE0MzUyYjBmNzhjYmMwMzlmOWZkMQ';
@@ -187,29 +192,18 @@ const REQUEST_TIMEOUT_MS = 8000;
 const cacheKey = (roomId: string) => `thronewake.room_cache.${roomId}`;
 const storeKey = (roomId: string) => `tw_${roomId.slice(0, 32)}`;
 
-/** Where room commands go: the proxy when one is configured, Upstash directly otherwise. */
-function endpoint(): { url: string; headers: Record<string, string> } {
-  const proxy = import.meta.env.VITE_ROOM_API as string | undefined;
-  if (proxy) {
-    return { url: proxy, headers: { 'Content-Type': 'application/json' } };
-  }
-  return {
-    url: UPSTASH_REST_URL,
-    headers: {
-      Authorization: `Bearer ${UPSTASH_REST_TOKEN}`,
-      'Content-Type': 'application/json',
-    },
-  };
-}
+const REQUEST_HEADERS = {
+  Authorization: `Bearer ${UPSTASH_REST_TOKEN}`,
+  'Content-Type': 'application/json',
+};
 
 async function sendCommand(command: string[]): Promise<{ result?: string | null; error?: string }> {
-  const { url, headers } = endpoint();
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
-    const res = await fetch(url, {
+    const res = await fetch(UPSTASH_REST_URL, {
       method: 'POST',
-      headers,
+      headers: REQUEST_HEADERS,
       body: JSON.stringify(command),
       signal: controller.signal,
     });

@@ -17,8 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Sync no longer claims "Already up to date"** when it could not reach the store.
 - **A room missing from the store is restored** from the copy in the browser of anyone still connected, instead of staying empty.
 
-### Added
-- **Room proxy** (`worker/`): a Cloudflare Worker that keeps the Upstash token server-side and allows only a read or a write of a single room — no listing, deleting or flushing. Opt-in via `VITE_ROOM_API`; see "Team Room sync" in the README for the rollout order.
+### Security
+- **The client now uses a restricted Upstash token.** The bundled token used to be the database's default user, so anyone could copy it and list, delete or flush every room without a room code. It now belongs to an ACL user, `tw-rooms`, limited to `GET` and `SET` on `tw_*` keys, so touching a room needs its key, and its key needs the code. The old default token must be reset in the Upstash dashboard once this build is live. See "Team Room sync" in the README.
 
 ### Tests
 - The planner tests now run against an in-memory room store. They previously reached for the real one: in a sandbox the request failed and only passed because of the bug above; with network access they wrote to production.
