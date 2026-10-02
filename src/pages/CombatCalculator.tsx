@@ -1600,8 +1600,14 @@ export function CombatCalculator() {
                     </td>
                   </tr>
                   <tr className="cc-summary-casualties">
-                    <td style={{ color: lossPctColor(totalOffLossPct), fontWeight: 750 }}>{pct(totalOffLossPct)}</td>
-                    <td style={{ color: lossPctColor(totalDefLossPct), fontWeight: 750 }}>{pct(totalDefLossPct)}</td>
+                    <td>
+                      <span style={{ color: lossPctColor(totalOffLossPct), fontWeight: 750 }}>{pct(totalOffLossPct)}</span>
+                      <div className="cc-summary-casualties-sub">{round(attRes.xp).toLocaleString()} upkeep</div>
+                    </td>
+                    <td>
+                      <span style={{ color: lossPctColor(totalDefLossPct), fontWeight: 750 }}>{pct(totalDefLossPct)}</span>
+                      <div className="cc-summary-casualties-sub">{round(defRes.xp).toLocaleString()} upkeep</div>
+                    </td>
                   </tr>
                   <tr className="cc-summary-divider">
                     <td colSpan={2}>
