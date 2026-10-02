@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.13.2] - 2026-10-02
+
+### Added
+- **Casualties in upkeep.** The Combat Calculator's Battle Summary now shows the upkeep of the troops lost under each side's casualty percentage, for the overall battle and for each wave.
+
 ## [1.13.1] - 2026-10-02
 
 ### Changed

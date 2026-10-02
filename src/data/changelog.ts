@@ -2,7 +2,7 @@
  * Player release notes. Bump `APP_VERSION` and add an entry here
  * whenever a change is worth telling returning players about.
  */
-export const APP_VERSION = '1.13.1';
+export const APP_VERSION = '1.13.2';
 
 export interface ChangelogEntry {
   version: string;
@@ -11,6 +11,13 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '1.13.2',
+    date: '2026-10-02',
+    changes: [
+      'Casualties in Upkeep: the Battle Summary in the Combat Calculator now shows how much upkeep each side lost, right under the casualty percentage.',
+    ],
+  },
   {
     version: '1.13.1',
     date: '2026-10-02',
