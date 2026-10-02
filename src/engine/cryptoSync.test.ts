@@ -193,21 +193,6 @@ describe('cryptoSync Zero-Knowledge Engine', () => {
       });
     });
 
-    describe('through a proxy', () => {
-      it('sends commands to the proxy without the Upstash token', async () => {
-        vi.stubEnv('VITE_ROOM_API', 'https://rooms.example.workers.dev');
-        const mockFetch = answer({ result: null });
-        globalThis.fetch = mockFetch;
-
-        await loadFromCloud('room');
-
-        const [url, init] = mockFetch.mock.calls[0];
-        expect(url).toBe('https://rooms.example.workers.dev');
-        expect(init.headers).not.toHaveProperty('Authorization');
-        expect(init.body).toBe(JSON.stringify(['GET', 'tw_room']));
-      });
-    });
-
     it('reads the save time out of a package without decrypting it', () => {
       expect(packageTimestamp('{"v":1,"iv":"a","ct":"b","ts":1700000000000}')).toBe(1700000000000);
       expect(packageTimestamp('not json')).toBeNull();

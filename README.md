@@ -45,32 +45,26 @@ derives both the AES-256-GCM key and the storage key, so the store only ever
 holds ciphertext, under a name derived from the code. Plans live in Upstash
 Redis.
 
-**⚠ The Upstash token is currently in the client bundle**, and anyone holding it
-can list, overwrite or delete every room without a code. Listing also exposes
-the key names, which are a fast hash of the code — so a short or guessable
-code can be cracked offline. Until the proxy below is live, use long, random
-room codes. `worker/` contains a
-Cloudflare Worker that keeps the token server-side and lets through only a read
-or a write of one room. To switch over without downtime, do these in order:
+The token in `src/engine/cryptoSync.ts` ships in the bundle, so it is public
+by design, and what keeps rooms safe is what it is allowed to do. It belongs
+to a restricted Redis ACL user, `tw-rooms`, created in the Upstash console:
 
-1. **Deploy the proxy with the current token.**
-   ```bash
-   cd worker
-   npx wrangler deploy
-   npx wrangler secret put UPSTASH_TOKEN   # paste the current token
-   ```
-   Note the `*.workers.dev` URL it prints, and check `ALLOWED_ORIGINS` in
-   `worker/wrangler.toml` lists wherever the site is served from.
-2. **Point the site at it.** Add `VITE_ROOM_API=<worker URL>` to
-   `.env.production`, then build and publish as usual. The client sends no
-   token when this is set.
-3. **Rotate the token** in the Upstash console, then
-   `npx wrangler secret put UPSTASH_TOKEN` again with the new one. The old
-   token stays in git history and in old builds, which is fine once it no
-   longer works.
-4. **Delete the direct path** — `UPSTASH_REST_TOKEN` and the fallback in
-   `src/engine/cryptoSync.ts`'s `endpoint()` — so a missing env var fails
-   loudly instead of quietly going back to the public token.
+```
+ACL SETUSER tw-rooms on >TOKEN resetkeys ~tw_* resetchannels -@all +get +set
+```
+
+That user can read or write a key only if it already knows the name, and
+the name is a hash of the room code. It cannot list keys, delete them or
+flush the database, so the room code really is required. Check it with
+`ACL GETUSER tw-rooms`, which should show `-@all +get +set` and `~tw_*`.
+Upstash generates the password with `ACL GENTOKEN tw-rooms`, and the same
+string is the REST token.
+
+**Never put the database's default token in the client.** That one runs
+every command on every key: `FLUSHDB`, or `SCAN` followed by `DEL`, wipes every
+room without a single code, and the listed key names are a fast hash that
+cracks short codes offline. An earlier build shipped it, so it must be reset
+in the Upstash dashboard, after the build with the restricted token is live.
 
 A failed read is reported, never treated as an empty room: the planner shows
 this browser's last copy marked offline, and holds back saves until the store
