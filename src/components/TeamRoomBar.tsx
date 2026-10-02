@@ -453,14 +453,7 @@ export function TeamRoomBar({
             <span className="op-team-room-badge">
               <span className="op-team-room-badge__icon">🛡️</span> Team Room
             </span>
-            <span className="op-v2-classified-banner__tag">v2 Live Collaboration</span>
           </div>
-          <span
-            className="op-team-room-secure-pill"
-            title="End-to-End Encrypted: Only people with the secret code can decrypt and read your plans."
-          >
-            🔒 Zero-Knowledge AES-256
-          </span>
         </div>
 
         {/* Main Content Strip: Room Connection + Server Speed + Live Status */}

@@ -78,8 +78,7 @@ const TOOLS: Tool[] = [
     icon: '🗺️',
     blurb:
       'Coordinate launch times across alliance members to land attacks simultaneously, respecting each player’s safe hours.',
-    footer:
-      'Safe hours are interpreted in 24-hour UTC; local times are displayed for convenience and are not stored.',
+    footer: '',
     render: (v2) => <OperationPlanner isV2Unlocked={v2} />,
   },
   {
@@ -308,8 +307,9 @@ export default function App() {
         </div>
 
         <p className="app__blurb">
-          {tool.blurb} Runs entirely in your browser; the link in your address bar
-          carries your settings.
+          {tool.blurb}
+          {tool.key !== 'operations' &&
+            ' Runs entirely in your browser; the link in your address bar carries your settings.'}
         </p>
       </header>
 
@@ -318,12 +318,14 @@ export default function App() {
         {tool.render(v2Unlocked)}
       </div>
 
-      <footer className="app__footer">
-        <p>
-          Unit names, stats, costs and training times are taken from the live game
-          data. {tool.footer}
-        </p>
-      </footer>
+      {tool.footer && (
+        <footer className="app__footer">
+          <p>
+            Unit names, stats, costs and training times are taken from the live game
+            data. {tool.footer}
+          </p>
+        </footer>
+      )}
 
       {showChangelog && <Changelog onClose={() => setShowChangelog(false)} />}
 

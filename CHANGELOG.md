@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.13.1] - 2026-10-02
+
+### Changed
+- **Operation Planner decluttered.** Removed helper copy that restated what the controls already show: the Team Room encryption and "v2 Live Collaboration" tags, the Master Directory, standby, scheduling, targets and directory-modal descriptions, the step label, the alarm hint and the page footer.
+- **Route problems are warnings, not a summary line.** The "N of M routes clear all safetime checks · real/fake" line is gone (the filter pills carry those counts). Blocked routes and sends under 10 s apart now raise a compact warning above the route plan, with a shortcut back to Scheduling in Team Room mode.
+
 ## [1.13.0] - 2026-10-02
 
 ### Added

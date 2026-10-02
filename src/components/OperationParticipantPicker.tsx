@@ -140,10 +140,9 @@ export const OperationParticipantPicker = memo(function OperationParticipantPick
           <strong>
             {activeAttackerCount} of {totalAttackerCount} armies deployed · {activeTargetCount} of {totalTargetCount} targets assigned
           </strong>
-          <span>Select which registered alliance armies march and which enemy villages are targeted for this operation wave. Set troop speeds for this wave without modifying the master directory.</span>
           {isLocked && (
             <div className="op-participant-picker__locked-notice">
-              🔒 <strong>Operation Locked (Ready)</strong> · Armies, targets, and speed slots are protected against edits. Unlock to modify.
+              🔒 <strong>Locked</strong>
             </div>
           )}
         </div>

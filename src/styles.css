@@ -7578,6 +7578,13 @@ select:focus, .select:focus, .text-input:focus {
   flex-direction: column;
   gap: 3px;
 }
+.op-route-clash-banner--compact {
+  align-items: center;
+  flex-wrap: wrap;
+}
+.op-route-clash-banner--compact .op-route-clash-banner__content {
+  flex: 1;
+}
 
 .op-route-clash-banner__title {
   color: #ff9b9b;

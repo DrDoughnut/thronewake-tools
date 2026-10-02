@@ -1154,11 +1154,6 @@ const ScheduleTimeline = memo(function ScheduleTimeline({
         )}
       </div>
 
-      {mode === 'planning' && routes.length > 0 && (
-        <p className="hint">
-          Yellow pins show send times for selected routes. Pulsing animated pins indicate a conflict where a send time overlaps safe hours. Drag the green landing pin or slider to clear them.
-        </p>
-      )}
       <div className="schedule__axis-row">
         <span className="schedule__axis-spacer" />
         <div className="schedule__axis-track" ref={axisRef}>
@@ -1379,6 +1374,49 @@ function OperationRouteWarnings({ routes }: { routes: PlannedRoute[] }) {
         </details>
       </div>
     </section>
+  );
+}
+
+/** Problems with the route plan, shown above it only when there are any. */
+function RouteAlerts({
+  routes,
+  clashCount,
+  onBackToScheduling,
+}: {
+  routes: PlannedRoute[];
+  clashCount: number;
+  onBackToScheduling?: () => void;
+}) {
+  const blocked = routes.filter((route) => !route.possible).length;
+  if (!blocked && !clashCount) return null;
+  return (
+    <>
+      {blocked > 0 && (
+        <div className="op-route-clash-banner op-route-clash-banner--compact" role="alert">
+          <span className="op-route-clash-banner__icon" aria-hidden="true">⚠️</span>
+          <div className="op-route-clash-banner__content">
+            <strong className="op-route-clash-banner__title">
+              {blocked} of {routes.length} routes blocked by safe hours
+            </strong>
+          </div>
+          {onBackToScheduling && (
+            <button type="button" className="pill pill--tiny pill--primary" onClick={onBackToScheduling}>
+              ← Change landing time
+            </button>
+          )}
+        </div>
+      )}
+      {clashCount > 0 && (
+        <div className="op-route-clash-banner op-route-clash-banner--compact" role="alert">
+          <span className="op-route-clash-banner__icon" aria-hidden="true">⚠️</span>
+          <div className="op-route-clash-banner__content">
+            <strong className="op-route-clash-banner__title">
+              {clashCount} sends less than 10s apart from the same attacker
+            </strong>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -2522,10 +2560,7 @@ export function OperationPlanner({
             <>
               <section className="panel op-v2-roster" aria-label="Master Directory (Alliance Roster and Targets)">
                 <div className="op-v2-roster__head">
-                  <div>
-                    <h2 className="op-section-title">📚 Master Directory (Alliance Roster & Targets)</h2>
-                    <p>Shared room library. Register all alliance armies and defender targets here once, then assign them to specific operation waves below.</p>
-                  </div>
+                  <h2 className="op-section-title">📚 Master Directory</h2>
                   <button type="button" className="pill pill--tiny pill--import-btn" onClick={() => setIsImportModalOpen(true)}>📥 Import</button>
                 </div>
                 <div className="op-v2-roster__cards">
@@ -2569,9 +2604,6 @@ export function OperationPlanner({
           <div className="op-standby-panel__body">
             <span className="op-standby-panel__icon">🗺️</span>
             <h3 className="op-standby-panel__title">No Operation Wave Open</h3>
-            <p className="op-standby-panel__desc">
-              Select an operation wave from the list above or click <strong>+ New Operation</strong> to plan launch timings, deploy registered alliance armies, and view coordinated route plans.
-            </p>
             <div className="op-standby-panel__actions">
               <button
                 type="button"
@@ -2596,9 +2628,6 @@ export function OperationPlanner({
                 🎯 Enemy Target Directory
               </button>
             </div>
-            <p className="op-standby-panel__hint">
-              Tip: Manage your Alliance Armies and Defender Targets anytime using the Master Directory cards above.
-            </p>
           </div>
         </section>
       )}
@@ -2678,8 +2707,7 @@ export function OperationPlanner({
                   <div className="op-lock-banner__info">
                     <span className="op-lock-banner__icon">🔒</span>
                     <div className="op-lock-banner__text">
-                      <strong>Operation Confirmed &amp; Locked ({activeOp.name})</strong>
-                      <span>Editing controls are locked to protect against accidental changes. You can safely inspect arrival times, filter attacks, and copy routes.</span>
+                      <strong>Locked: {activeOp.name}</strong>
                     </div>
                   </div>
                   <button
@@ -2775,10 +2803,6 @@ export function OperationPlanner({
                     </button>
                   </div>
                 </div>
-
-                <p className="op-command__sub">
-                  Drag the slider to coordinate attacks across safe hours. All calculations update live.
-                </p>
               </section>
 
               {/* Standard v1: Direct Inline Attacking Armies and Target Defenders Panels */}
@@ -2787,7 +2811,6 @@ export function OperationPlanner({
                   <div className="op-section-head__title-group">
                     <span className="op-section-tag op-section-tag--attacker">Attackers</span>
                     <h2 className="panel__title">Attacking Armies ({roster.attackers.length})</h2>
-                    <p className="op-section-copy">Configure slowest troop, speed modifiers, coordinates, and safe hours.</p>
                   </div>
                   <button type="button" className="pill pill--tiny pill--primary" onClick={handleAddAttacker}>
                     + Add Attacker
@@ -2815,9 +2838,6 @@ export function OperationPlanner({
                     <h2 className="panel__title">
                       Target Defenders ({roster.players.length} {roster.players.length === 1 ? 'account' : 'accounts'} · {roster.targets.length} {roster.targets.length === 1 ? 'village' : 'villages'})
                     </h2>
-                    <p className="op-section-copy">
-                      Each defender account defines its safe hours once. All villages under an account inherit its safe hours.
-                    </p>
                   </div>
                   <button type="button" className="pill pill--tiny pill--primary" onClick={handleAddPlayer}>
                     + Add Defender
@@ -2919,9 +2939,6 @@ export function OperationPlanner({
               />
 
               <div className="op-step-nav-bar">
-                <span className="hint" style={{ margin: 0 }}>
-                  Step 1 of 3: Coordinated Landing & Safetime Planning
-                </span>
                 <div className="op-step-nav-bar__right">
                   <button
                     type="button"
@@ -3006,23 +3023,15 @@ export function OperationPlanner({
 
           {(!isV2Active || workspaceView === 'routes') && (
             <>
-          {isV2Active && routes.some((route) => !route.possible) && (
-            <section className="panel" aria-label="Resolve blocked routes">
-              <strong>{routes.filter((route) => !route.possible).length} routes blocked</strong>
-              <p>Go back to Scheduling and try another landing time. The selected routes’ send lines move with it. If no time works, remove the affected armies or targets from this operation; they cannot participate with blocked routes.</p>
-              <button type="button" className="pill pill--primary" onClick={() => setWorkspaceView('scheduling')}>← Back to Scheduling</button>
-            </section>
-          )}
+          <RouteAlerts
+            routes={routes}
+            clashCount={routeClashes.size}
+            onBackToScheduling={isV2Active ? () => setWorkspaceView('scheduling') : undefined}
+          />
           {/* Results Section */}
           <section className="panel op-results">
             <div className="op-section-head op-results__head-wrap">
-              <div>
-                <h2 className="panel__title">Route Plan (Sorted by Send Time)</h2>
-                <p className="op-section-copy">
-                  {!isV2Active && 'Click anywhere on a row to inspect its schedule. '}{routes.filter((route) => route.possible).length} of {routes.length} routes clear all safetime checks
-                  {' · '}{routes.filter((route) => !route.target.fake).length} real, {routes.filter((route) => route.target.fake).length} fake.
-                </p>
-              </div>
+              <h2 className="panel__title">Route Plan</h2>
 
               {/* Alarm Control Button Toolbar */}
               <div className="op-alarm-toolbar">
@@ -3044,7 +3053,6 @@ export function OperationPlanner({
                 >
                   {alarmEnabled ? '🔔 Alarm: ON' : '🔕 Alarm: Muted'}
                 </button>
-                <span className="hint">Alarms follow the route filters below.</span>
                 <div className="op-alarm-test-group">
                   <button
                     type="button"
@@ -3165,20 +3173,6 @@ export function OperationPlanner({
                 </div>
               </div>
             </div>
-
-            {routeClashes.size > 0 && (
-              <div className="op-route-clash-banner" role="alert">
-                <span className="op-route-clash-banner__icon">⚠️</span>
-                <div className="op-route-clash-banner__content">
-                  <strong className="op-route-clash-banner__title">
-                    Warning: Fast Attack Conflict Detected (&lt; 10s gap)
-                  </strong>
-                  <p className="op-route-clash-banner__desc">
-                    One or more attackers have multiple upcoming attacks scheduled less than 10 seconds apart. Sending attacks this quickly is difficult in-game; check the flagged routes in the table below.
-                  </p>
-                </div>
-              </div>
-            )}
 
             <div className="op-routes">
               <table>

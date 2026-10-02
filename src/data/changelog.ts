@@ -2,7 +2,7 @@
  * Player release notes. Bump `APP_VERSION` and add an entry here
  * whenever a change is worth telling returning players about.
  */
-export const APP_VERSION = '1.13.0';
+export const APP_VERSION = '1.13.1';
 
 export interface ChangelogEntry {
   version: string;
@@ -11,6 +11,14 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '1.13.1',
+    date: '2026-10-02',
+    changes: [
+      'Cleaner Operation Planner: removed most of the explanatory text, so the page is easier to scan.',
+      'Route Warnings Up Top: blocked routes and sends less than 10 seconds apart now show as a warning above the route plan, only when there is a problem.',
+    ],
+  },
   {
     version: '1.13.0',
     date: '2026-10-02',

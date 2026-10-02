@@ -651,9 +651,6 @@ export function AllianceArmiesModal({
             <span className="op-modal__icon">🔨</span>
             <div>
               <h2 className="op-modal__title">Alliance Hammer Directory ({attackers.length} Registered)</h2>
-              <p className="op-modal__subtitle">
-                Register alliance members and their hammer villages here. Members define their safe hours once, and all their hammers inherit that sleep schedule.
-              </p>
             </div>
           </div>
           <div className="op-modal__header-actions">
@@ -1111,9 +1108,6 @@ export function TargetDatabaseModal({
               <h2 className="op-modal__title">
                 Enemy Target Directory ({players.length} Accounts · {targets.length} Villages)
               </h2>
-              <p className="op-modal__subtitle">
-                Register defender accounts and target villages here. Any village saved in this master directory can be targeted across multiple operation waves.
-              </p>
             </div>
           </div>
           <div className="op-modal__header-actions">

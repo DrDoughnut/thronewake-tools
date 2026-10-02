@@ -443,7 +443,8 @@ describe('the operation planner', () => {
     // Total 2 routes against single attacker (1 on Defender 1 + 1 on Defender 2)
     const rows = [...container.querySelectorAll('.op-routes tbody tr')];
     expect(rows).toHaveLength(2);
-    expect(container.textContent).toContain('1 real, 1 fake');
+    expect(container.textContent).toContain('Real (1)');
+    expect(container.textContent).toContain('Fake (1)');
   });
 
   it('sorts routes chronologically by Send time and includes seconds in send timestamps', () => {
@@ -664,8 +665,7 @@ describe('the operation planner', () => {
     // Top warning banner must be visible
     const clashBanner = container.querySelector('.op-route-clash-banner');
     expect(clashBanner).toBeTruthy();
-    expect(clashBanner?.textContent).toContain('Fast Attack Conflict Detected');
-    expect(clashBanner?.textContent).toContain('less than 10 seconds apart');
+    expect(clashBanner?.textContent).toContain('2 sends less than 10s apart');
 
     // Both clashing routes must display the <10s clash tag in the Launch In column
     const clashTags = container.querySelectorAll('.op-launch-clash-tag');
@@ -774,7 +774,6 @@ describe('the operation planner', () => {
     const roomBar = container.querySelector('.op-team-room-bar');
     expect(roomBar).toBeTruthy();
     expect(roomBar?.textContent).toContain('Team Room');
-    expect(roomBar?.textContent).toContain('Zero-Knowledge AES-256');
 
     const input = container.querySelector('.op-team-room-input') as HTMLInputElement;
     expect(input).toBeTruthy();
@@ -1389,6 +1388,11 @@ describe('the operation planner', () => {
     expect(checkPillAfter.textContent).toBe('Blocked');
     expect(checkPillAfter.classList.contains('is-blocked')).toBe(true);
 
+    // A blocked route raises the warning above the route plan, with a way back.
+    const blockedBanner = container.querySelector('.op-route-clash-banner');
+    expect(blockedBanner?.textContent).toContain('1 of 1 routes blocked by safe hours');
+    expect(blockedBanner?.textContent).toContain('Change landing time');
+
     // Switch to Scheduling view and verify the attacker timeline lane and send pins are flagged as blocked
     const schedulingTab = [...container.querySelectorAll('.op-workspace-nav button')].find(
       (b) => b.textContent?.includes('Scheduling'),
@@ -1478,7 +1482,7 @@ describe('the operation planner', () => {
     // Verify Unlock banner appears (no "emergency" wording)
     const lockBanner = container.querySelector('.op-lock-banner');
     expect(lockBanner).toBeTruthy();
-    expect(lockBanner?.textContent).toContain('Operation Confirmed & Locked');
+    expect(lockBanner?.textContent).toContain('Locked: Operation 1');
 
     // Verify inputs are disabled while locked
     const dateInput = container.querySelector('.text-input--date') as HTMLInputElement;
@@ -1629,7 +1633,7 @@ describe('the operation planner', () => {
 
     // Verify workspace is opened directly to routes
     expect(container.querySelector('.op-results')).toBeTruthy();
-    expect(container.textContent).toContain('Route Plan (Sorted by Send Time)');
+    expect(container.textContent).toContain('Route Plan');
 
     // Verify Share Routes button is present
     const shareRoutesBtn = [...container.querySelectorAll('.pill--share')].find(
