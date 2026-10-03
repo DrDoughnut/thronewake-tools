@@ -70,11 +70,14 @@ export function BuildingStats() {
     firstLevel: number | null;
     startLevel: number;
     endLevel: number;
-  }>({
-    step: 0,
-    firstLevel: null,
-    startLevel: 0,
-    endLevel: 22,
+  }>(() => {
+    const building = initialGid !== null ? BUILDINGS_BY_GID.get(initialGid) ?? null : null;
+    return {
+      step: 0,
+      firstLevel: null,
+      startLevel: 0,
+      endLevel: building?.maxLevel ?? 20,
+    };
   });
 
   const selectedBuilding: CatalogBuilding | null = useMemo(() => {
@@ -83,7 +86,10 @@ export function BuildingStats() {
 
   const maxLvl = selectedBuilding?.maxLevel ?? 20;
   const isCityBuilding = selectedBuilding ? CITY_UPGRADEABLE_GIDS.has(selectedBuilding.gid) : false;
-  const thFactor = getTownHallFactor(thLevel);
+  const isNonCityVillage = selectedBuilding?.gid === 40;
+  const maxTh = isNonCityVillage ? 20 : 22;
+  const effectiveTh = Math.min(thLevel, maxTh);
+  const thFactor = getTownHallFactor(effectiveTh);
 
   // Sync state to URL hash
   useEffect(() => {
@@ -497,11 +503,11 @@ export function BuildingStats() {
                 <select
                   id="bs-th-select"
                   className="select bs-modifier-select"
-                  value={thLevel}
+                  value={effectiveTh}
                   onChange={(e) => setThLevel(Number(e.target.value))}
                   aria-label="Town Hall Level"
                 >
-                  {Array.from({ length: 22 }, (_, i) => i + 1).map((lvl) => {
+                  {Array.from({ length: maxTh }, (_, i) => i + 1).map((lvl) => {
                     const factor = getTownHallFactor(lvl);
                     const speedPct = (100 / factor).toFixed(0);
                     return (
@@ -649,7 +655,7 @@ export function BuildingStats() {
                     <th className="bs-th">res / CP</th>
                     <th className="bs-th">res / Pop</th>
                     {rangeSummary.prodKey && <th className="bs-th">Breakeven</th>}
-                    <th className="bs-th">Build Time (TH {thLevel})</th>
+                    <th className="bs-th">Build Time (TH {effectiveTh})</th>
                     <th className="bs-th bs-th--effects">Effects & Production</th>
                   </tr>
                 </thead>
@@ -663,7 +669,7 @@ export function BuildingStats() {
                     const resPerPop = popDelta > 0 ? Math.round(levelCost / popDelta) : null;
                     const baseTime = lvl.time ?? 0;
                     const scaledTime = lvl.time !== null ? (baseTime * thFactor) / serverSpeed : null;
-                    const isCityLevel = lvl.level > 20;
+                    const isCityLevel = isCityBuilding && lvl.level > 20;
                     const isInRange = selection.step > 0 && lvl.level > selection.startLevel && lvl.level <= selection.endLevel;
 
                     const effectsList = Object.entries(lvl.effects || {})

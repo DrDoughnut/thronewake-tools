@@ -287,6 +287,40 @@ describe('BuildingStats Component & Effect Helpers', () => {
 
     expect(container.textContent).toContain('Grazing Field');
   });
+
+  it('renders Ancient Monument (GID 40) with authentic 50% Natar WW build speed and no city badges', () => {
+    act(() => root.unmount());
+    // 1. Example 1: 3x speed, TH 1, Monument Lvl 1 -> 50m 0s, Lvl 50 -> 3h 35m
+    window.location.hash = '#tool=buildings&b=ancient-monument&th=1&speed=3';
+    root = createRoot(container);
+    act(() => root.render(<BuildingStats />));
+
+    expect(container.textContent).toContain('Ancient Monument');
+    expect(container.textContent).toContain('Lvl 100');
+
+    // Level 1 at TH 1 and 3x speed: exactly 50m 0s
+    expect(container.textContent).toContain('50m 0s');
+
+    // Level 50 at TH 1 and 3x speed: ~3h 35m
+    expect(container.textContent).toContain('3h 35m');
+
+    // 2. Example 2: 3x speed, TH 20, Monument Lvl 20 -> ~50m 23s
+    act(() => root.unmount());
+    window.location.hash = '#tool=buildings&b=ancient-monument&th=20&speed=3';
+    root = createRoot(container);
+    act(() => root.render(<BuildingStats />));
+
+    expect(container.textContent).toContain('50m 23s');
+
+    // Ancient Monument is non-city only: levels > 20 must NOT have city badges
+    const cityBadges = container.querySelectorAll('.bs-badge-city');
+    expect(cityBadges.length).toBe(0);
+
+    // Town hall dropdown should only go up to level 20 for Ancient Monument
+    const thSelect = container.querySelector('#bs-th-select') as HTMLSelectElement;
+    expect(thSelect.options.length).toBe(20);
+    expect(thSelect.value).toBe('20');
+  });
 });
 
 
