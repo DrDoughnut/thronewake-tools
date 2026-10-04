@@ -2815,7 +2815,7 @@ select:focus, .select:focus, .text-input:focus {
 }
 
 .schedule__axis-row, .schedule__row { display: grid; grid-template-columns: 96px minmax(0, 1fr); align-items: center; }
-.schedule__axis-row { margin-bottom: 5px; }
+.schedule__axis-row { margin-top: 6px; margin-bottom: 6px; }
 .schedule__axis-spacer { padding-right: 12px; }
 .schedule__axis-track { position: relative; height: 14px; margin: 0; }
 .schedule__axis-tick {
@@ -3084,6 +3084,63 @@ select:focus, .select:focus, .text-input:focus {
   border-radius: 4px;
   white-space: nowrap;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
+}
+
+/* Real-time "NOW" Marker and Dotted Guide Line */
+.schedule__now-line {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 0;
+  border-left: 2px dotted #fbbf24;
+  box-shadow: 0 0 6px rgba(251, 191, 36, 0.45);
+  z-index: 13;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.schedule__axis-now-pin {
+  position: absolute;
+  top: -8px;
+  transform: translateX(-50%);
+  z-index: 24;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: top 0.15s ease;
+}
+
+.schedule__axis-now-pin.is-offset {
+  top: -26px;
+}
+
+.schedule__axis-now-pin.is-offset::after {
+  content: '';
+  width: 0;
+  height: 12px;
+  border-left: 2px dotted #fbbf24;
+  margin-top: 2px;
+}
+
+.schedule__axis-now-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: #f59e0b;
+  color: #1c1917;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 1.5px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
+  letter-spacing: 0.02em;
+}
+
+.schedule__axis-now-badge .schedule__pin-local {
+  color: rgba(28, 25, 23, 0.75);
+  font-weight: 700;
 }
 
 .schedule__villages-footer {

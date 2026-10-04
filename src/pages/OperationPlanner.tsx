@@ -722,6 +722,8 @@ const TimelineLane = memo(function TimelineLane({
   type,
   onClick,
   landPosition,
+  nowPosition,
+  nowClock,
   isBlocked,
   sendRoutes = EMPTY_ARRAY,
   onSelectRoute,
@@ -732,6 +734,8 @@ const TimelineLane = memo(function TimelineLane({
   type: 'attacker' | 'defender';
   onClick?: () => void;
   landPosition?: number | null;
+  nowPosition?: number | null;
+  nowClock?: string;
   isBlocked?: boolean;
   sendRoutes?: PlannedRoute[];
   onSelectRoute?: (routeKey: string) => void;
@@ -810,6 +814,13 @@ const TimelineLane = memo(function TimelineLane({
             title={`Coordinated Landing at ${landPosition.toFixed(1)}%`}
           />
         )}
+        {nowPosition !== null && nowPosition !== undefined && (
+          <div
+            className="schedule__now-line"
+            style={{ left: `${nowPosition}%` }}
+            title={nowClock ? `Current time (NOW): ${nowClock} UTC` : 'Current time (NOW)'}
+          />
+        )}
       </div>
     </div>
   );
@@ -849,6 +860,13 @@ const ScheduleTimeline = memo(function ScheduleTimeline({
   onReviewRoutes?: () => void;
 }) {
   const axisRef = useRef<HTMLDivElement>(null);
+  const [nowDate, setNowDate] = useState(() => new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNowDate(new Date()), 10000);
+    return () => clearInterval(timer);
+  }, []);
+
   const dragLanding = (clientX: number) => {
     const bounds = axisRef.current?.getBoundingClientRect();
     if (!bounds?.width) return;
@@ -1000,6 +1018,9 @@ const ScheduleTimeline = memo(function ScheduleTimeline({
   const sendPosition = route ? Math.min(100, Math.max(0, minuteOfDay(route.send) / 14.4)) : null;
   const targetLandingDate = (mode === 'planning' || !route) ? parsedLanding : route.land;
   const landPosition = targetLandingDate ? Math.min(100, Math.max(0, minuteOfDay(targetLandingDate) / 14.4)) : null;
+  const nowMinute = minuteOfDay(nowDate);
+  const nowPosition = Math.min(100, Math.max(0, nowMinute / 14.4));
+  const nowClock = formatClock(nowMinute, false);
 
   const defenderVillages = route
     ? routes
@@ -1184,6 +1205,22 @@ const ScheduleTimeline = memo(function ScheduleTimeline({
               </span>
             </div>
           )}
+          {nowPosition !== null && (
+            <div
+              className={`schedule__axis-now-pin ${landPosition !== null && Math.abs(landPosition - nowPosition) < 7.5 ? 'is-offset' : ''}`}
+              style={{ left: `${nowPosition}%` }}
+            >
+              <span
+                className="schedule__axis-now-badge"
+                title={`Current time (NOW): ${nowClock} UTC${showLocal ? ` (${formatLocalClock(nowDate, false)} local)` : ''}`}
+              >
+                ⏱️ NOW {nowClock}
+                {showLocal && (
+                  <span className="schedule__pin-local">({formatLocalClock(nowDate, false)})</span>
+                )}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -1207,6 +1244,8 @@ const ScheduleTimeline = memo(function ScheduleTimeline({
             onClick={routes.length > 0 && mode !== 'planning' ? () => handleSelectAttacker(attacker.id) : undefined}
             onSelectRoute={onSelectRoute}
             landPosition={landPosition}
+            nowPosition={nowPosition}
+            nowClock={nowClock}
           />
           </Fragment>
         );
@@ -1234,6 +1273,8 @@ const ScheduleTimeline = memo(function ScheduleTimeline({
             onClick={routes.length > 0 && mode !== 'planning' ? () => handleSelectDefender(defender.key) : undefined}
             onSelectRoute={onSelectRoute}
             landPosition={landPosition}
+            nowPosition={nowPosition}
+            nowClock={nowClock}
           />
           </Fragment>
         );
@@ -1264,6 +1305,15 @@ const ScheduleTimeline = memo(function ScheduleTimeline({
                   } as CSSProperties}
                 />
               ))}
+
+              {/* NOW Guide Line */}
+              {nowPosition !== null && (
+                <div
+                  className="schedule__now-line"
+                  style={{ left: `${nowPosition}%` }}
+                  title={`Current time (NOW): ${nowClock} UTC`}
+                />
+              )}
 
               {/* Send Pin */}
               {route && sendPosition !== null && (
