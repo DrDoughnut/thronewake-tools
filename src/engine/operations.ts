@@ -1335,6 +1335,37 @@ export function decodeCompactPlan(compactStr: string): CompactPlannerState | nul
 }
 
 /**
+ * Strips formatting artifacts and supporter emblems like "Patron of the Throne"
+ * from player names extracted from in-game profile clipboards.
+ * E.g.: "small cat1 month Patron of the Throne" -> "small cat"
+ */
+export function cleanPlayerName(raw: string): string {
+  let name = (raw || '').trim();
+  if (!name) return '';
+
+  // Strip markdown link if present: [Player Name](https://...) -> Player Name
+  name = name.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+
+  // Strip Patron of the/a Throne emblem (with optional duration)
+  // Handles:
+  // "small cat1 month Patron of the Throne"
+  // "small cat 12 months Patron of the Throne"
+  // "small cat Patron of the Throne"
+  // "small cat1 month Patron of a Throne"
+  // "small cat - 1 month Patron of the Throne"
+  name = name.replace(
+    /\s*[-–—·|•]?\s*(?:(?:1\s+month|\d{1,2}\s+months|1\s+year|\d{1,2}\s+years|1\s+day|\d{1,2}\s+days|\d{1,2}\s*mos?|\d{1,2}\s*yrs?)\s+)?Patron\s+of\s+(?:the|a)\s+Throne.*$/i,
+    ''
+  );
+  // Also strip standalone "Patron of the/a Throne" if without duration prefix
+  name = name.replace(/\s*[-–—·|•]?\s*Patron\s+of\s+(?:the|a)\s+Throne.*$/i, '');
+
+  // Strip stray brackets or quotes around name
+  name = name.replace(/^\[+|\]+$/g, '').replace(/^["']+|["']+$/g, '').trim();
+  return name;
+}
+
+/**
  * Parses in-game Thronewake player profile clipboard or raw village list.
  * Extracts defender name, alliance, and all village names & coordinates.
  */
@@ -1346,14 +1377,14 @@ export function parseThronewakeProfileClipboard(rawText: string): PlannerState |
   let playerName = '';
   const playerMatch = text.match(/(?:Player:|Defender:)\s*\n?\s*([^\n\r]+)/i);
   if (playerMatch && playerMatch[1]) {
-    playerName = playerMatch[1].trim();
+    playerName = cleanPlayerName(playerMatch[1]);
   }
 
   // If no explicit Player: label, check if first line looks like a player name
   if (!playerName) {
     const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
     if (lines.length > 0 && !lines[0].toLowerCase().includes('village') && !lines[0].includes('(')) {
-      playerName = lines[0];
+      playerName = cleanPlayerName(lines[0]);
     }
   }
 
@@ -1375,7 +1406,11 @@ export function parseThronewakeProfileClipboard(rawText: string): PlannerState |
     // Match patterns like: "Byzantion (-8|-33)" or "Village Name (-8|-33)" or "Name\t(-8|-33)"
     const match = line.match(/^(?:Name\s+Population\s+Actions\s+)?(.*?)\s*\(\s*(-?\d+)\s*[|,\t]\s*(-?\d+)\s*\)/i);
     if (match) {
-      let vName = match[1].replace(/^(?:Name|Actions|Population)\s*/i, '').trim();
+      let vName = match[1]
+        .replace(/^(?:Name|Actions|Population)\s*/i, '')
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+        .replace(/^\[+|\]+$/g, '')
+        .trim();
       const x = parseInt(match[2], 10);
       const y = parseInt(match[3], 10);
 

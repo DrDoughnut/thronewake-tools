@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  cleanPlayerName,
   combineUtcDateAndTime,
   createRoomBackup,
   decodeCompactPlan,
@@ -1081,6 +1082,249 @@ Population
       x: -34,
       y: -32,
     });
+  });
+
+  it('cleans Patron of the Throne emblems and formatting from player names', () => {
+    expect(cleanPlayerName('small cat1 month Patron of the Throne')).toBe('small cat');
+    expect(cleanPlayerName('[small cat](https://www.thronewake.com/map/player/small%20cat)1 month Patron of the Throne')).toBe('small cat');
+    expect(cleanPlayerName('small cat 1 month Patron of the Throne')).toBe('small cat');
+    expect(cleanPlayerName('small cat 12 months Patron of the Throne')).toBe('small cat');
+    expect(cleanPlayerName('small cat Patron of the Throne')).toBe('small cat');
+    expect(cleanPlayerName('small cat1 month Patron of a Throne')).toBe('small cat');
+    expect(cleanPlayerName('small cat - 3 months Patron of the Throne')).toBe('small cat');
+    expect(cleanPlayerName('Player123 1 month Patron of the Throne')).toBe('Player123');
+    expect(cleanPlayerName('Player1231 month Patron of the Throne')).toBe('Player123');
+    expect(cleanPlayerName('Player123 12 months Patron of the Throne')).toBe('Player123');
+    expect(cleanPlayerName('regular player')).toBe('regular player');
+    expect(cleanPlayerName('Player123')).toBe('Player123');
+  });
+
+  it('correctly parses user profile with Patron of the Throne emblem and strips it from player name', () => {
+    const rawClipboard = `small cat1 month Patron of the Throne
+Player:
+small cat1 month Patron of the Throne
+Tribe:
+Embermark Dominion
+Alliance:
+Alliance Not Found
+[ANF]
+Combat score:
+Combat score518,880
+Population:
+Population
+12,779
+Villages:
+13
+Description
+hi everyone!
+
+Rewards
+
+Villages
+Name\tPopulation\tActions
+03 that squirrel (-33|-23)
+Capital
+City
+Wilder Site (-36|-22):
+Metal
++25%
+Population
+1,314
+04 looks familiar (-36|-25)
+City
+Ancient Monument Plan
+Wilder Site (-36|-24):
+Metal
++25%
+Food
++25%
+Wilder Site (-35|-23):
+Stone
++25%
+Wilder Site (-34|-23):
+Food
++25%
+Population
+1,201
+05 transmogulate (-37|-24)
+City
+Wilder Site (-39|-26):
+Food
++50%
+Wilder Site (-37|-25):
+Food
++25%
+Wilder Site (-34|-24):
+Metal
++50%
+Population
+1,135
+10 tremendo (-31|-24)
+City
+Small Trickster's Mirror
+Wilder Site (-31|-25):
+Lumber
++25%
+Wilder Site (-31|-22):
+Stone
++25%
+Population
+1,128
+01 that tasted purple (-27|-14)
+City
+Wilder Site (-29|-12):
+Lumber
++25%
+Population
+1,111
+08 i recommend skipping (-40|-13)
+City
+Wilder Site (-42|-11):
+Metal
++25%
+Wilder Site (-41|-15):
+Food
++25%
+Population
+1,106
+06 dust em pix (-33|-28)
+City
+Wilder Site (-31|-29):
+Lumber
++25%
+Food
++25%
+Wilder Site (-30|-27):
+Metal
++25%
+Food
++25%
+Population
+1,086
+07 dance you (-30|-29)
+City
+Wilder Site (-27|-27):
+Food
++25%
+Population
+1,032
+02 whoa dizzy (-35|-22)
+Small Great Storage Plan
+Wilder Site (-38|-21):
+Lumber
++25%
+Food
++25%
+Wilder Site (-35|-20):
+Stone
++25%
+Food
++25%
+Wilder Site (-35|-19):
+Metal
++50%
+Population
+950
+09 up we go (-32|-27)
+City
+Wilder Site (-34|-29):
+Food
++25%
+Wilder Site (-29|-28):
+Lumber
++25%
+Food
++25%
+Population
+803
+FULL PANIC (-29|-19)
+Population
+767
+I- (-31|-26)
+Population
+749
+New village (-2|2)
+City
+Wilder Site (-2|1):
+Food
++50%
+Wilder Site (-1|-1):
+Food
++50%
+Population
+397`;
+
+    const parsed = parseThronewakeProfileClipboard(rawClipboard);
+    expect(parsed).toBeTruthy();
+    expect(parsed?.players).toHaveLength(1);
+    expect(parsed?.players[0].name).toBe('small cat');
+
+    expect(parsed?.targets).toHaveLength(13);
+    expect(parsed?.targets[0]).toMatchObject({
+      name: '03 that squirrel',
+      x: -33,
+      y: -23,
+      isCapital: true,
+      isCity: true,
+    });
+    expect(parsed?.targets[1]).toMatchObject({
+      name: '04 looks familiar',
+      x: -36,
+      y: -25,
+      isCapital: false,
+      isCity: true,
+      artifactName: 'Ancient Monument Plan',
+    });
+    expect(parsed?.targets[3]).toMatchObject({
+      name: '10 tremendo',
+      x: -31,
+      y: -24,
+      isCity: true,
+      artifactName: "Small Trickster's Mirror",
+    });
+    expect(parsed?.targets[12]).toMatchObject({
+      name: 'New village',
+      x: -2,
+      y: 2,
+      isCity: true,
+    });
+  });
+
+  it('correctly parses user profile with markdown links and Patron of the Throne emblem', () => {
+    const rawClipboard = `small cat1 month Patron of the Throne
+Player:
+[small cat](https://www.thronewake.com/map/player/small%20cat)1 month Patron of the Throne
+Tribe:
+Embermark Dominion
+Alliance:
+[Alliance Not Found\\[ANF\\]](https://www.thronewake.com/map/alliance/ANF)
+Combat score:
+Combat score518,880
+Population:
+Population12,779
+Villages:
+13
+Description
+hi everyone!
+Rewards
+Villages
+Name
+Population
+Actions
+[03 that squirrel (-33|-23)](https://www.thronewake.com/map/tile/-33/-23?center=true)
+CapitalCity[Wilder Site (-36|-22):Metal+25%](https://www.thronewake.com/map?x=-36&y=-22&center=true)
+Population1,314
+[04 looks familiar (-36|-25)](https://www.thronewake.com/map/tile/-36/-25?center=true)
+CityAncient Monument Plan[Wilder Site (-36|-24):Metal+25%Food+25%](https://www.thronewake.com/map?x=-36&y=-24&center=true)
+Population1,201`;
+
+    const parsed = parseThronewakeProfileClipboard(rawClipboard);
+    expect(parsed).toBeTruthy();
+    expect(parsed?.players[0].name).toBe('small cat');
+    expect(parsed?.targets[0].name).toBe('03 that squirrel');
+    expect(parsed?.targets[0].x).toBe(-33);
+    expect(parsed?.targets[0].y).toBe(-23);
+    expect(parsed?.targets[1].name).toBe('04 looks familiar');
   });
 
   describe('room backup export & parsing', () => {
