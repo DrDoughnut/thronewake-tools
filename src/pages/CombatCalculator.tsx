@@ -274,10 +274,14 @@ export function CombatCalculator() {
       setState((p) => {
         const lastArmy = p[kind][p[kind].length - 1];
         const newArmy = makeArmy(lastArmy?.faction ?? 'embermark_dominion');
-        if (kind === 'attackers' && lastArmy?.targets && lastArmy.targets.some((t) => t.gid === 40)) {
-          newArmy.targets = lastArmy.targets.map((t) =>
-            t.gid === 40 ? { gid: 40, level: 100, isCustomOverride: false } : { ...t }
-          );
+        if (kind === 'attackers' && lastArmy?.targets) {
+          if (lastArmy.targets.some((t) => t.gid === 40)) {
+            newArmy.targets = lastArmy.targets.map((t) =>
+              t.gid === 40 ? { gid: 40, level: 100, isCustomOverride: false } : { ...t }
+            );
+          } else {
+            newArmy.targets = lastArmy.targets.map((t) => ({ ...t }));
+          }
           newArmy.targetCount = lastArmy.targetCount ?? 1;
         }
         return {
@@ -1985,7 +1989,7 @@ function ArmyRow({
               <span>Catapult targets:</span>
             </div>
             <div className="cc-target-count-pills">
-              {[1, 2].map((n) => (
+              {[1, 2, 3, 4].map((n) => (
                 <button
                   key={n}
                   type="button"

@@ -229,6 +229,25 @@ describe('Combat Engine', () => {
       expect(three.targets).toHaveLength(3);
     });
 
+    it('splits catapults 4 ways adjusting damage proportionally (e.g. 4000 split 4 ways is 1000 on each)', () => {
+      const fourCataArmy = [
+        unit({ off: 100_000, count: 1, key: 'hammer' }),
+        unit({ key: 'cat', count: 4000, off: 0, siege: 'catapult', upgrade: 0 }),
+      ];
+      const oneCataArmy = [
+        unit({ off: 100_000, count: 1, key: 'hammer' }),
+        unit({ key: 'cat', count: 1000, off: 0, siege: 'catapult', upgrade: 0 }),
+      ];
+      const four = resolveWave(village(), [], wave(fourCataArmy, { targets: [20, 20, 20, 20] }));
+      const one = resolveWave(village(), [], wave(oneCataArmy, { targets: [20] }));
+
+      expect(four.targets).toHaveLength(4);
+      expect(four.targets[0]).toBe(one.targets[0]);
+      expect(four.targets[1]).toBe(one.targets[0]);
+      expect(four.targets[2]).toBe(one.targets[0]);
+      expect(four.targets[3]).toBe(one.targets[0]);
+    });
+
     it('takes longer to break a wall the tougher it is', () => {
       const soft = demolishWall(1, 20, 500);
       const hard = demolishWall(3, 20, 500);

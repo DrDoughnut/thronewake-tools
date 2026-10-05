@@ -348,6 +348,40 @@ describe('CombatCalculator', () => {
     expect(targetLvlInput.max).toBe('20');
   });
 
+  it('allows targeting up to 4 buildings with catapults and splits outcomes across all 4 targets', async () => {
+    await renderComponent();
+
+    // Add catapults to reveal catapult targets row
+    const cataInput = container.querySelector('input[aria-label="Dominion Catapult, row 1"]') as HTMLInputElement;
+    changeInput(cataInput, '4000');
+
+    // Verify 4 target count pills exist (1 target, 2 targets, 3 targets, 4 targets)
+    const pills = container.querySelectorAll('.cc-target-count-pills button');
+    expect(pills.length).toBe(4);
+    expect(pills[0].textContent).toContain('1 target');
+    expect(pills[1].textContent).toContain('2 targets');
+    expect(pills[2].textContent).toContain('3 targets');
+    expect(pills[3].textContent).toContain('4 targets');
+
+    // Click '4 targets'
+    await act(async () => {
+      pills[3].dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    // Should now have 4 target cards
+    const targetCards = container.querySelectorAll('.cc-target-card-compact');
+    expect(targetCards.length).toBe(4);
+
+    // Verify outcomes in report list mention all 4 targets
+    const outcomeItems = Array.from(container.querySelectorAll('.cc-report-outcome-item')).map(
+      (el) => el.textContent || ''
+    );
+    expect(outcomeItems.some((text) => text.includes('Target #1'))).toBe(true);
+    expect(outcomeItems.some((text) => text.includes('Target #2'))).toBe(true);
+    expect(outcomeItems.some((text) => text.includes('Target #3'))).toBe(true);
+    expect(outcomeItems.some((text) => text.includes('Target #4'))).toBe(true);
+  });
+
   it('renders all defenders in Battle Details from the start and when defenders are added', async () => {
     await renderComponent();
 
