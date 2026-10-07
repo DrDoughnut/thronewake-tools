@@ -66,6 +66,19 @@ export function UnitAttributes() {
           <ResultsTable ranking={ranking} heading={heading} mods={mods} resolve={resolve} />
         </section>
       </main>
+      <div className="units-stats-break">
+        <div className="cc-inputs-separator" role="separator">
+          <div className="cc-inputs-separator__line" />
+          <div className="cc-inputs-separator__badge">
+            <span className="cc-inputs-separator__icon">📋</span>
+            <span className="cc-inputs-separator__text">Unit Stat Table</span>
+          </div>
+          <div className="cc-inputs-separator__line" />
+        </div>
+        <p className="units-stats-break__note">
+          The raw stats behind the ranking above. Edit any number, or pick a preset, to see how the ranking would change.
+        </p>
+      </div>
       <StatTable edits={state.edits} onChange={(edits) => patch({ edits })} />
     </>
   );

@@ -2,7 +2,7 @@
  * Player release notes. Bump `APP_VERSION` and add an entry here
  * whenever a change is worth telling returning players about.
  */
-export const APP_VERSION = '1.14.1';
+export const APP_VERSION = '1.14.2';
 
 export interface ChangelogEntry {
   version: string;
@@ -11,6 +11,13 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '1.14.2',
+    date: '2026-10-07',
+    changes: [
+      'Clearer Unit Stat Table: a labelled section break now separates the unit ranking from the stat table, with a short note on what the table does.',
+    ],
+  },
   {
     version: '1.14.1',
     date: '2026-10-07',

@@ -80,6 +80,11 @@ describe('stat edits', () => {
     expect(total('embermark_dominion/emberblade')).toBe(350);
     expect(total('embermark_dominion/sun_rider')).toBe(1350);
     expect(total('embermark_dominion/crimson_lancer')).toBe(2000);
+    // The proposal never touched training times or speeds.
+    for (const edit of Object.values(sxs.edits)) {
+      expect(edit.t).toBeUndefined();
+      expect(edit.sp).toBeUndefined();
+    }
   });
 
   it('changes the ranking', () => {

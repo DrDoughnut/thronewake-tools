@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.14.2] - 2026-10-07
+
+### Changed
+- **Section break above the Unit Attributes stat table**, using the Combat Calculator's labelled separator ("Unit Stat Table") with a one-line explanation, so the editable table reads as its own section rather than part of the ranking.
+
 ## [1.14.1] - 2026-10-07
 
 ### Added
