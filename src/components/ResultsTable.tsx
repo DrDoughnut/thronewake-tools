@@ -1,4 +1,5 @@
 import { lookup } from '../data/factions';
+import type { Resolver } from '../data/statEdits';
 import type { Ranking } from '../engine/value';
 import type { Modifiers } from '../engine/stats';
 import { UnitIcon } from './UnitIcon';
@@ -9,9 +10,11 @@ interface Props {
   heading: React.ReactNode;
   /** Current smithy/building levels, so a unit's hover card matches the table. */
   mods: Modifiers;
+  /** Unit stats as ranked, so the hover cards show edited stats too. */
+  resolve?: Resolver;
 }
 
-export function ResultsTable({ ranking, heading, mods }: Props) {
+export function ResultsTable({ ranking, heading, mods, resolve = lookup }: Props) {
   if (ranking.error) {
     return (
       <div className="results results--empty">
@@ -49,7 +52,7 @@ export function ResultsTable({ ranking, heading, mods }: Props) {
                   <div className="unit-cell">
                     <div className="unit-cell__icons">
                       {row.set.map((ref) => (
-                        <UnitIcon key={ref} unitRef={ref} size={30} mods={mods} />
+                        <UnitIcon key={ref} unitRef={ref} size={30} mods={mods} resolve={resolve} />
                       ))}
                     </div>
                     <div className="unit-cell__text">

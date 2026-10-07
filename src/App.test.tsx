@@ -31,7 +31,7 @@ afterEach(() => {
   container.remove();
 });
 
-const rows = () => [...container.querySelectorAll('tbody tr')];
+const rows = () => [...container.querySelectorAll('.results__table tbody tr')];
 const values = () =>
   rows().map((r) => Number(r.querySelector('.value-cell__number')!.textContent));
 const click = (el: Element) =>
@@ -68,10 +68,30 @@ describe('the app', () => {
     expect(container.textContent).toContain('Emberblade');
   });
 
+  it('ranks edited unit stats, carries them in the link, and resets to live', () => {
+    const topUnit = () => rows()[0].querySelector('.unit-cell__names')!.textContent;
+    const liveTop = topUnit();
+    expect(container.querySelector('.stats-notice')).toBeNull();
+
+    // Default rating is attack per cost: a huge attack value puts Emberblade on top.
+    const attack = container.querySelector('input[aria-label="Emberblade Attack"]') as HTMLInputElement;
+    expect(attack.value).toBe('40');
+    setInputValue(attack, '900');
+    expect(topUnit()).toBe('Emberblade');
+    expect(attack.classList.contains('is-edited')).toBe(true);
+    expect(container.querySelector('.stats-notice')?.textContent).toContain('1 change');
+    expect(window.location.hash).toContain('x=emberblade.o900');
+
+    click([...container.querySelectorAll('.stats-notice button')].find((b) => b.textContent === 'Back to live')!);
+    expect(topUnit()).toBe(liveTop);
+    expect(container.querySelector('.stats-notice')).toBeNull();
+    expect(window.location.hash).not.toContain('x=');
+  });
+
   it('shows real unit artwork rather than the emoji fallback', () => {
-    const imgs = container.querySelectorAll('img.unit-icon');
+    const imgs = container.querySelectorAll('.results__table img.unit-icon');
     expect(imgs).toHaveLength(21);
-    expect(container.querySelectorAll('.unit-icon--glyph')).toHaveLength(0);
+    expect(container.querySelectorAll('.results__table .unit-icon--glyph')).toHaveLength(0);
   });
 
   it('shows a stat card when a unit icon in the table is tapped, and hides it again', () => {

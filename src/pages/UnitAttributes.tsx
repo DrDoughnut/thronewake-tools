@@ -2,6 +2,8 @@ import { useMemo } from 'react';
 import { Controls } from '../components/Controls';
 import { FormulaDisplay } from '../components/FormulaDisplay';
 import { ResultsTable } from '../components/ResultsTable';
+import { StatTable } from '../components/StatTable';
+import { editCount, makeResolver, matchingPreset } from '../data/statEdits';
 import { groupByKey } from '../data/unitSets';
 import { rank, type PresetQuery, type Query } from '../engine/value';
 import { useAppState } from '../state';
@@ -28,7 +30,13 @@ export function UnitAttributes() {
     [state.smithy, state.buildings],
   );
 
-  const ranking = useMemo(() => rank(group.sets, query, mods), [group, query, mods]);
+  const resolve = useMemo(() => makeResolver(state.edits), [state.edits]);
+  const ranking = useMemo(
+    () => rank(group.sets, query, mods, resolve),
+    [group, query, mods, resolve],
+  );
+  const changes = editCount(state.edits);
+  const preset = matchingPreset(state.edits);
 
   const heading =
     state.mode === 'formula' ? (
@@ -38,13 +46,27 @@ export function UnitAttributes() {
     );
 
   return (
-    <main className="app__body">
-      <aside className="app__controls">
-        <Controls state={state} patch={patch} formulaError={ranking.error} />
-      </aside>
-      <section className="app__results">
-        <ResultsTable ranking={ranking} heading={heading} mods={mods} />
-      </section>
-    </main>
+    <>
+      <main className="app__body">
+        <aside className="app__controls">
+          <Controls state={state} patch={patch} formulaError={ranking.error} />
+        </aside>
+        <section className="app__results">
+          {changes > 0 && (
+            <div className="stats-notice" role="status">
+              <span>
+                Ranked with <strong>{preset ? preset.label : 'custom'}</strong> stats
+                {' · '}{changes} {changes === 1 ? 'change' : 'changes'} from the live game
+              </span>
+              <button type="button" className="pill pill--tiny" onClick={() => patch({ edits: {} })}>
+                Back to live
+              </button>
+            </div>
+          )}
+          <ResultsTable ranking={ranking} heading={heading} mods={mods} resolve={resolve} />
+        </section>
+      </main>
+      <StatTable edits={state.edits} onChange={(edits) => patch({ edits })} />
+    </>
   );
 }

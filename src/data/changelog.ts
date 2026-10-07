@@ -2,7 +2,7 @@
  * Player release notes. Bump `APP_VERSION` and add an entry here
  * whenever a change is worth telling returning players about.
  */
-export const APP_VERSION = '1.13.2';
+export const APP_VERSION = '1.14.0';
 
 export interface ChangelogEntry {
   version: string;
@@ -11,6 +11,14 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '1.14.0',
+    date: '2026-10-07',
+    changes: [
+      'Editable Unit Stats: the Unit Attributes page now shows the full unit stat table the ranking uses. Change any attack, defense, speed, carry, upkeep, training time or cost and the ranking updates right away.',
+      'Share Your Balance Ideas: edited stats are saved in the page link, so Copy link shares exactly the numbers you tried. Back to live (or the Live game preset) restores the real stats.',
+    ],
+  },
   {
     version: '1.13.2',
     date: '2026-10-02',
