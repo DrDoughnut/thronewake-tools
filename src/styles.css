@@ -10902,7 +10902,17 @@ select:focus, .select:focus, .text-input:focus {
   border-radius: var(--radius);
 }
 
-.stat-table { margin-top: 16px; }
+.stat-table { margin-top: 40px; }
+
+.stat-table__total {
+  text-align: right;
+  padding-right: 10px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--text-muted, inherit);
+  white-space: nowrap;
+}
+.stat-table__total.is-edited { color: var(--accent); }
 
 .stat-table__head {
   display: flex;

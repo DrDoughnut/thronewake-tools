@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { factions, unitRef } from '../data/factions';
+import { playableFactions as factions, unitRef } from '../data/factions';
 import {
   EDIT_FIELDS,
   STAT_PRESETS,
+  applyEdit,
   editCount,
   fieldValue,
   matchingPreset,
@@ -91,6 +92,7 @@ export function StatTable({ edits, onChange }: Props) {
               {EDIT_FIELDS.map((f) => (
                 <th key={f.code} scope="col" title={f.label}>{f.short}</th>
               ))}
+              <th scope="col" title="Total resource cost (wood + clay + iron + grain)">Total</th>
               <th scope="col"><span className="sr-only">Reset</span></th>
             </tr>
           </thead>
@@ -98,12 +100,14 @@ export function StatTable({ edits, onChange }: Props) {
             <tbody key={faction.key} style={{ '--faction-color': faction.color } as React.CSSProperties}>
               {factionKey === 'all' && (
                 <tr className="stat-table__faction">
-                  <th scope="rowgroup" colSpan={EDIT_FIELDS.length + 2}>{faction.name}</th>
+                  <th scope="rowgroup" colSpan={EDIT_FIELDS.length + 3}>{faction.name}</th>
                 </tr>
               )}
               {faction.units.map((unit) => {
                 const ref = unitRef(faction.key, unit.key);
                 const edit = edits[ref];
+                const liveTotal = unit.cost.reduce((a, b) => a + b, 0);
+                const total = applyEdit(unit, edit).cost.reduce((a, b) => a + b, 0);
                 return (
                   <tr key={ref} className={edit ? 'is-edited' : undefined}>
                     <th scope="row" className="stat-table__unit-col">
@@ -122,6 +126,12 @@ export function StatTable({ edits, onChange }: Props) {
                         />
                       </td>
                     ))}
+                    <td
+                      className={`stat-table__total ${total !== liveTotal ? 'is-edited' : ''}`}
+                      title={total !== liveTotal ? `Live: ${liveTotal}` : undefined}
+                    >
+                      {total}
+                    </td>
                     <td>
                       {edit && (
                         <button

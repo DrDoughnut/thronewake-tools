@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.14.1] - 2026-10-07
+
+### Added
+- **Total cost column** in the Unit Attributes stat table: read-only sum of the four resource costs, highlighted (with the live total on hover) when edits change it.
+
+### Changed
+- More spacing between the ranking and the stat table.
+- The stat table lists playable factions only; the Ancients are removed.
+- The preset is now labelled **SxS Suggestions™️**.
+
 ## [1.14.0] - 2026-10-07
 
 ### Added

@@ -195,7 +195,7 @@ export const STAT_PRESETS: StatPreset[] = [
     // as totals; each is split across the four resources in the unit's live
     // proportions, rounded to 5 (the ranking only reads the total).
     key: 'sxs',
-    label: 'SxS suggestions',
+    label: 'SxS Suggestions™️',
     hint: 'Balance ideas from SxS and Wynfir. Only ideas, not announced changes.',
     edits: {
       // Stormfang Clans
