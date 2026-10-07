@@ -16,6 +16,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-10-07',
     changes: [
       'Editable Unit Stats: the Unit Attributes page now shows the full unit stat table the ranking uses. Change any attack, defense, speed, carry, upkeep, training time or cost and the ranking updates right away.',
+      'SxS Suggestions Preset: one click loads the balance ideas SxS and Wynfir shared (Raider, War Brute, Fang Rider, Blood Charger, Briar Guard, Woodblade, Oak Cavalier, Emberblade, Iron Spear, Sun Rider and Crimson Lancer), so you can see how the rankings would shift. Just ideas, not announced changes.',
       'Share Your Balance Ideas: edited stats are saved in the page link, so Copy link shares exactly the numbers you tried. Back to live (or the Live game preset) restores the real stats.',
     ],
   },

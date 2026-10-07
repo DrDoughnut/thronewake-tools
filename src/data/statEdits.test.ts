@@ -9,6 +9,7 @@ import {
   matchingPreset,
   sanitizeEdits,
   setField,
+  STAT_PRESETS,
 } from './statEdits';
 import { rank } from '../engine/value';
 import { defaultModifiers } from '../engine/stats';
@@ -58,6 +59,27 @@ describe('stat edits', () => {
   it('recognises the live preset', () => {
     expect(matchingPreset({})?.key).toBe('live');
     expect(matchingPreset({ [BLADE]: { o: 55 } })).toBeUndefined();
+  });
+
+  it('keeps presets free of no-op or unknown entries', () => {
+    for (const p of STAT_PRESETS) {
+      expect(sanitizeEdits(p.edits)).toEqual(p.edits);
+      expect(decodeEdits(encodeEdits(p.edits))).toEqual(p.edits);
+    }
+  });
+
+  it('applies the SxS cost totals', () => {
+    const sxs = STAT_PRESETS.find((p) => p.key === 'sxs')!;
+    expect(matchingPreset(sxs.edits)?.key).toBe('sxs');
+    const resolve = makeResolver(sxs.edits);
+    const total = (ref: string) => resolve(ref).unit.cost.reduce((a, b) => a + b, 0);
+    expect(total('stormfang_clans/raider')).toBe(275);
+    expect(total('stormfang_clans/blood_charger')).toBe(1500);
+    expect(total('stormfang_clans/fang_rider')).toBe(1000);
+    expect(total('verdant_wardens/oak_cavalier')).toBe(1850);
+    expect(total('embermark_dominion/emberblade')).toBe(350);
+    expect(total('embermark_dominion/sun_rider')).toBe(1350);
+    expect(total('embermark_dominion/crimson_lancer')).toBe(2000);
   });
 
   it('changes the ranking', () => {

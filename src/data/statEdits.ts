@@ -190,6 +190,30 @@ export const STAT_PRESETS: StatPreset[] = [
     hint: 'The stats currently in the game.',
     edits: {},
   },
+  {
+    // Community balance ideas from SxS and Wynfir. Cost changes were given
+    // as totals; each is split across the four resources in the unit's live
+    // proportions, rounded to 5 (the ranking only reads the total).
+    key: 'sxs',
+    label: 'SxS suggestions',
+    hint: 'Balance ideas from SxS and Wynfir. Only ideas, not announced changes.',
+    edits: {
+      // Stormfang Clans
+      'stormfang_clans/raider': { di: 10, w: 105, c: 80, i: 45, g: 45 }, // cost 250 → 275
+      'stormfang_clans/war_brute': { o: 65, dc: 20 },
+      'stormfang_clans/fang_rider': { w: 365 }, // cost 1005 → 1000
+      'stormfang_clans/blood_charger': { w: 445, c: 505, i: 470 }, // cost 1525 → 1500
+      // Verdant Wardens
+      'verdant_wardens/briar_guard': { ca: 40 },
+      'verdant_wardens/woodblade': { o: 70 },
+      'verdant_wardens/oak_cavalier': { o: 145, w: 470, c: 585, i: 635, g: 160 }, // cost 1965 → 1850
+      // Embermark Dominion
+      'embermark_dominion/emberblade': { ca: 55, w: 105, c: 90, i: 130, g: 25 }, // cost 400 → 350
+      'embermark_dominion/iron_spear': { o: 75, dc: 20 },
+      'embermark_dominion/sun_rider': { w: 525, c: 420, i: 305 }, // cost 1410 → 1350
+      'embermark_dominion/crimson_lancer': { w: 505, c: 590, i: 740, g: 165 }, // cost 2170 → 2000
+    },
+  },
 ];
 
 /** The preset these edits match exactly, if any. */

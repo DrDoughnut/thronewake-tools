@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Editable unit stat table on Unit Attributes.** The raw stats behind the ranking (attack, defense vs infantry and cavalry, speed, carry, upkeep, training time, and the four resource costs) are shown below the results for every faction, with a faction filter. Any cell can be edited; the ranking and the unit hover cards use the edited numbers, changed cells are highlighted with the live value on hover, and each edited unit has a reset button.
 - **Stat presets and shareable edits.** A preset row (starting with *Live game*) shows which stat set is active, or *Custom · N changes*. Only the differences from the live game are stored, in the `x` link parameter (e.g. `x=emberblade.o55di40-iron_spear.sp6.5`), so a copied link reproduces the edits; unknown units or fields in old links are skipped. A notice above the results says when the ranking is using edited stats, with a *Back to live* button.
+- **SxS suggestions preset.** Community balance ideas from SxS and Wynfir across Stormfang, Verdant and Embermark units. Proposed total-cost changes are split across the four resources in each unit's live proportions, rounded to 5; the ranking reads only the total.
 
 ## [1.13.2] - 2026-10-02
 
