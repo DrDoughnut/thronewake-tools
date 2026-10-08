@@ -8,6 +8,18 @@ import { decodeState } from './pages/OperationPlanner';
 import { encodeCompactPlan } from './engine/operations';
 import { presets } from './state';
 
+// The public (v1) planner tab only shows a "temporarily down" notice. The
+// planner tests below still drive the planner itself, so while
+// `plannerV1.on` is set the notice is swapped for the real thing.
+const plannerV1 = vi.hoisted(() => ({ on: false }));
+vi.mock('./pages/PlannerOffline', async (importOriginal) => {
+  const real = await importOriginal<typeof import('./pages/PlannerOffline')>();
+  const { OperationPlanner } = await import('./pages/OperationPlanner');
+  return {
+    PlannerOffline: () => (plannerV1.on ? <OperationPlanner isV2Unlocked={false} /> : <real.PlannerOffline />),
+  };
+});
+
 /**
  * A smoke test: mount the whole app, drive the controls the way a person
  * would, and check the table keeps up. Cheap insurance against the kind of
@@ -368,10 +380,36 @@ describe('the army calculator', () => {
   });
 });
 
+describe('the switched-off v1 operation planner', () => {
+  it('shows only a temporarily down notice', () => {
+    const opTab = [...container.querySelectorAll('.pill--tool')].find(
+      (b) => b.getAttribute('aria-label') === 'Operation Planner',
+    )!;
+    click(opTab);
+    expect(container.querySelector('.planner-offline')?.textContent).toContain('Temporarily down');
+    expect(container.textContent).not.toContain('Attacking Armies');
+    expect(container.textContent).not.toContain('Route Plan');
+  });
+
+  it('stays down when opened from a shared plan link', () => {
+    act(() => {
+      window.location.hash = '#tool=operations&p=v1_2026-08-16T19:00_3~a:DrDoughnut,17,-25,stormfang_clans/skullthrower,1,9,1,01:00-07:00';
+      window.dispatchEvent(new Event('hashchange'));
+    });
+    expect(container.querySelector('.planner-offline')).toBeTruthy();
+    expect(container.textContent).not.toContain('DrDoughnut');
+  });
+});
+
 describe('the operation planner', () => {
   const realFetch = globalThis.fetch;
 
+  afterEach(() => {
+    plannerV1.on = false;
+  });
+
   beforeEach(() => {
+    plannerV1.on = true;
     // An in-memory room server. Without it the team-room tests reached for the
     // real one: in a sandbox that failed and only "worked" because a failed
     // read used to masquerade as an empty room; online, they wrote to it.

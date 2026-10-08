@@ -8,6 +8,7 @@ import { CombatCalculator } from './pages/CombatCalculator';
 import { CpOptimizer } from './pages/CpOptimizer';
 import { DefenseSimulator } from './pages/DefenseSimulator';
 import { OperationPlanner } from './pages/OperationPlanner';
+import { PlannerOffline } from './pages/PlannerOffline';
 import { UnitAttributes } from './pages/UnitAttributes';
 import { loadStoredJson, saveStoredJson, StorageKeys } from './storage';
 
@@ -79,7 +80,8 @@ const TOOLS: Tool[] = [
     blurb:
       'Coordinate launch times across alliance members to land attacks simultaneously, respecting each player’s safe hours.',
     footer: '',
-    render: (v2) => <OperationPlanner isV2Unlocked={v2} />,
+    // Offline for now: the public tab shows a notice instead of the planner.
+    render: (v2) => (v2 ? <OperationPlanner isV2Unlocked /> : <PlannerOffline />),
   },
   {
     key: 'defense',

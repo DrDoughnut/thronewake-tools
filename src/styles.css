@@ -11017,3 +11017,14 @@ select:focus, .select:focus, .text-input:focus {
   padding: 0 4px;
 }
 .stat-table__reset:hover { color: var(--accent); }
+
+/* ── Operation Planner switched off ─────────────────────────────────── */
+.planner-offline { display: block; }
+.planner-offline__panel {
+  max-width: 480px;
+  margin: 48px auto;
+  text-align: center;
+  padding: 32px 24px;
+}
+.planner-offline__title { margin: 0 0 8px; font-size: 18px; }
+.planner-offline__text { margin: 0; color: var(--text-dim); }
