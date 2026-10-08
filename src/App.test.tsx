@@ -1357,6 +1357,59 @@ describe('the operation planner', () => {
     expect(container.querySelector('.op-route-exclude-btn')).toBeNull();
   });
 
+  it('lets one route land at its own time, and resets it', async () => {
+    const opTab = [...container.querySelectorAll('.pill--tool')].find(
+      (b) => b.getAttribute('aria-label') === 'Operation Planner',
+    )!;
+    for (let i = 0; i < 10; i++) {
+      click(opTab);
+    }
+    const modalInput = container.querySelector('.secret-modal-input') as HTMLInputElement;
+    if (modalInput) {
+      setInputValue(modalInput, 'password123');
+      click(container.querySelector('.secret-modal-btn-connect') as HTMLButtonElement);
+    }
+    const roomConnectBtn = container.querySelector('.op-team-room-form button') as HTMLButtonElement;
+    if (roomConnectBtn) click(roomConnectBtn);
+    const start = Date.now();
+    while (!container.querySelector('.op-plan-tab')) {
+      if (Date.now() - start > 2000) break;
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 20));
+      });
+    }
+    click(container.querySelector('.op-plan-tab') as HTMLElement);
+    click([...container.querySelectorAll('.op-workspace-nav button')].find(
+      (button) => button.textContent?.includes('Routes'),
+    ) as HTMLButtonElement);
+
+    const landInput = () => container.querySelector('.op-route-land__input') as HTMLInputElement;
+    const sendText = () => container.querySelector('.op-timestamp--send')?.textContent;
+    expect(landInput().value).toBe('19:00:00');
+    expect(container.querySelector('.op-route-land.is-overridden')).toBeNull();
+    const sendBefore = sendText();
+    expect(sendBefore).toContain('17:49');
+
+    // Land this route 10 minutes later: the send time moves with it.
+    act(() => {
+      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!;
+      setter.call(landInput(), '19:10:00');
+      landInput().dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    act(() => {
+      landInput().dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+    });
+    expect(landInput().value).toBe('19:10:00');
+    expect(container.querySelector('.op-route-land.is-overridden')).toBeTruthy();
+    expect(sendText()).toContain('17:59');
+
+    // Reset brings back the operation landing and the original send time.
+    click(container.querySelector('.op-route-land__reset') as HTMLButtonElement);
+    expect(landInput().value).toBe('19:00:00');
+    expect(container.querySelector('.op-route-land.is-overridden')).toBeNull();
+    expect(sendText()).toBe(sendBefore);
+  });
+
   it('properly rechecks safetimes with new send times when siege mode is toggled', async () => {
     const opTab = [...container.querySelectorAll('.pill--tool')].find(
       (b) => b.getAttribute('aria-label') === 'Operation Planner',

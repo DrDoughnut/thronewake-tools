@@ -447,6 +447,11 @@ export interface OperationPlan {
   routeUnitOverrides?: Record<string, string>;
   /** Route-level siege mode override (routeKey -> boolean) for final edits on the routes page. */
   routeSiegeOverrides?: Record<string, boolean>;
+  /**
+   * Route-level landing time override (routeKey -> UTC "YYYY-MM-DDTHH:mm:ss"),
+   * for routes that must land at a different time than the operation landing.
+   */
+  routeLandingOverrides?: Record<string, string>;
   createdAt?: number;
   updatedAt?: number;
 }
@@ -470,6 +475,32 @@ export interface TeamRoomData {
   roster: MasterRoster;
   operations: OperationPlan[];
   updatedAt: number;
+}
+
+/** Keeps only route landing overrides that parse as UTC datetimes. */
+export function sanitizeRouteLandingOverrides(raw: unknown): Record<string, string> | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const clean: Record<string, string> = {};
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (typeof value === 'string' && parseUtcDatetime(value)) clean[key] = value;
+  }
+  return Object.keys(clean).length > 0 ? clean : undefined;
+}
+
+/**
+ * The landing moment for a route clock time typed on the routes page: the
+ * given UTC time of day on whichever date lands closest to the operation
+ * landing, so a fix just past midnight lands on the right day.
+ */
+export function nearestLandingForClock(opLanding: Date, time: string): Date | null {
+  const day = opLanding.toISOString().slice(0, 10);
+  const candidate = combineUtcDateAndTime(day, time);
+  if (!candidate) return null;
+  const halfDay = 12 * 3_600_000;
+  const diff = candidate.getTime() - opLanding.getTime();
+  if (diff > halfDay) return new Date(candidate.getTime() - 2 * halfDay);
+  if (diff < -halfDay) return new Date(candidate.getTime() + 2 * halfDay);
+  return candidate;
 }
 
 /**
@@ -657,6 +688,7 @@ export function migrateToMasterRoster(raw: any, fallbackState?: CompactPlannerSt
         routeSiegeOverrides: op.routeSiegeOverrides && typeof op.routeSiegeOverrides === 'object'
           ? op.routeSiegeOverrides
           : undefined,
+        routeLandingOverrides: sanitizeRouteLandingOverrides(op.routeLandingOverrides),
         createdAt: op.createdAt || Date.now(),
         updatedAt: op.updatedAt || Date.now(),
       })),
