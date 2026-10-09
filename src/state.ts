@@ -3,6 +3,7 @@ import type { Divisor, NumeratorStat } from './engine/value';
 import type { Modifiers } from './engine/stats';
 import { factionBuildingList, rules, type FactionBuildingKey } from './data/rules';
 import { groupByKey } from './data/unitSets';
+import { decodeEdits, encodeEdits, sanitizeEdits, type StatEdits } from './data/statEdits';
 import { loadStoredJson, saveStoredJson, StorageKeys } from './storage';
 
 export interface AppState extends Modifiers {
@@ -13,6 +14,8 @@ export interface AppState extends Modifiers {
   bySpeed: boolean;
   divisors: Divisor[];
   expression: string;
+  /** Hypothetical unit stats the ranking uses instead of the live ones. */
+  edits: StatEdits;
 }
 
 const noBuildings = () =>
@@ -36,6 +39,7 @@ export const initialState: AppState = {
   expression: 'a/tc',
   smithy: 0,
   buildings: noBuildings(),
+  edits: {},
 };
 
 /**
@@ -116,6 +120,8 @@ function encode(state: AppState): string {
     const level = state.buildings[b.key as FactionBuildingKey];
     if (level) p.set(b.key, String(level));
   }
+  const edits = encodeEdits(state.edits);
+  if (edits) p.set('x', edits);
   return p.toString();
 }
 
@@ -142,6 +148,7 @@ function decode(hash: string): AppState {
     buildings: Object.fromEntries(
       factionBuildingList.map((b) => [b.key, num(b.key, b.maxLevel)]),
     ) as Record<FactionBuildingKey, number>,
+    edits: decodeEdits(p.get('x')),
   };
 }
 
@@ -174,6 +181,7 @@ export function sanitizeUnitsState(saved: Partial<AppState> | null | undefined):
         num(saved.buildings?.[b.key as FactionBuildingKey], b.maxLevel),
       ]),
     ) as Record<FactionBuildingKey, number>,
+    edits: sanitizeEdits(saved.edits),
   };
 }
 

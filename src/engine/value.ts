@@ -1,4 +1,5 @@
 import { lookup, type UnitRef } from '../data/factions';
+import type { Resolver } from '../data/statEdits';
 import {
   computeStats,
   effectiveTime,
@@ -56,7 +57,7 @@ export interface Ranking {
  * For a multi-unit row the numerator is summed and the denominator is
  * weighted, so the row rates a *mix* rather than an average unit.
  */
-function presetValue(set: UnitRef[], q: PresetQuery, mods: Modifiers): number {
+function presetValue(set: UnitRef[], q: PresetQuery, mods: Modifiers, resolve: Resolver): number {
   const byTime = q.divisors.includes('t');
   const byUpkeep = q.divisors.includes('cu');
   const byCost = q.divisors.includes('tc');
@@ -65,7 +66,7 @@ function presetValue(set: UnitRef[], q: PresetQuery, mods: Modifiers): number {
   let denominator = 0;
 
   set.forEach((ref, i) => {
-    const { faction, unit } = lookup(ref);
+    const { faction, unit } = resolve(ref);
 
     let value = 0;
     if (q.stats.includes('a')) {
@@ -96,7 +97,7 @@ function presetValue(set: UnitRef[], q: PresetQuery, mods: Modifiers): number {
   });
 
   if (q.bySpeed) {
-    const slowest = set.reduce((min, ref) => Math.min(min, lookup(ref).unit.speed), Infinity);
+    const slowest = set.reduce((min, ref) => Math.min(min, resolve(ref).unit.speed), Infinity);
     numerator *= slowest / set.length;
   }
 
@@ -108,9 +109,10 @@ function formulaValue(
   set: UnitRef[],
   evaluate: (stats: UnitStats) => number,
   mods: Modifiers,
+  resolve: Resolver,
 ): number {
   return set.reduce((sum, ref) => {
-    const { faction, unit } = lookup(ref);
+    const { faction, unit } = resolve(ref);
     return sum + evaluate(computeStats(faction, unit, mods));
   }, 0);
 }
@@ -135,14 +137,20 @@ function choosePrecision(values: number[]): number {
   return precision;
 }
 
-export function rank(sets: UnitRef[][], query: Query, mods: Modifiers): Ranking {
+/** `resolve` supplies each unit's stats; pass one from `makeResolver` to rank edited stats. */
+export function rank(
+  sets: UnitRef[][],
+  query: Query,
+  mods: Modifiers,
+  resolve: Resolver = lookup,
+): Ranking {
   let values: number[];
 
   if (query.mode === 'formula') {
     try {
       const formula = parseFormula(query.expression, STAT_VARIABLES);
       values = sets.map((set) =>
-        formulaValue(set, (stats) => formula.evaluate(stats as unknown as Record<string, number>), mods),
+        formulaValue(set, (stats) => formula.evaluate(stats as unknown as Record<string, number>), mods, resolve),
       );
     } catch (err) {
       return {
@@ -152,7 +160,7 @@ export function rank(sets: UnitRef[][], query: Query, mods: Modifiers): Ranking 
       };
     }
   } else {
-    values = sets.map((set) => presetValue(set, query, mods));
+    values = sets.map((set) => presetValue(set, query, mods, resolve));
   }
 
   const rows = sets

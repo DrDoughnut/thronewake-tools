@@ -8,6 +8,18 @@ import { decodeState } from './pages/OperationPlanner';
 import { encodeCompactPlan } from './engine/operations';
 import { presets } from './state';
 
+// The public (v1) planner tab only shows a "temporarily down" notice. The
+// planner tests below still drive the planner itself, so while
+// `plannerV1.on` is set the notice is swapped for the real thing.
+const plannerV1 = vi.hoisted(() => ({ on: false }));
+vi.mock('./pages/PlannerOffline', async (importOriginal) => {
+  const real = await importOriginal<typeof import('./pages/PlannerOffline')>();
+  const { OperationPlanner } = await import('./pages/OperationPlanner');
+  return {
+    PlannerOffline: () => (plannerV1.on ? <OperationPlanner isV2Unlocked={false} /> : <real.PlannerOffline />),
+  };
+});
+
 /**
  * A smoke test: mount the whole app, drive the controls the way a person
  * would, and check the table keeps up. Cheap insurance against the kind of
@@ -31,7 +43,7 @@ afterEach(() => {
   container.remove();
 });
 
-const rows = () => [...container.querySelectorAll('tbody tr')];
+const rows = () => [...container.querySelectorAll('.results__table tbody tr')];
 const values = () =>
   rows().map((r) => Number(r.querySelector('.value-cell__number')!.textContent));
 const click = (el: Element) =>
@@ -68,10 +80,30 @@ describe('the app', () => {
     expect(container.textContent).toContain('Emberblade');
   });
 
+  it('ranks edited unit stats, carries them in the link, and resets to live', () => {
+    const topUnit = () => rows()[0].querySelector('.unit-cell__names')!.textContent;
+    const liveTop = topUnit();
+    expect(container.querySelector('.stats-notice')).toBeNull();
+
+    // Default rating is attack per cost: a huge attack value puts Emberblade on top.
+    const attack = container.querySelector('input[aria-label="Emberblade Attack"]') as HTMLInputElement;
+    expect(attack.value).toBe('40');
+    setInputValue(attack, '900');
+    expect(topUnit()).toBe('Emberblade');
+    expect(attack.classList.contains('is-edited')).toBe(true);
+    expect(container.querySelector('.stats-notice')?.textContent).toContain('1 change');
+    expect(window.location.hash).toContain('x=emberblade.o900');
+
+    click([...container.querySelectorAll('.stats-notice button')].find((b) => b.textContent === 'Back to live')!);
+    expect(topUnit()).toBe(liveTop);
+    expect(container.querySelector('.stats-notice')).toBeNull();
+    expect(window.location.hash).not.toContain('x=');
+  });
+
   it('shows real unit artwork rather than the emoji fallback', () => {
-    const imgs = container.querySelectorAll('img.unit-icon');
+    const imgs = container.querySelectorAll('.results__table img.unit-icon');
     expect(imgs).toHaveLength(21);
-    expect(container.querySelectorAll('.unit-icon--glyph')).toHaveLength(0);
+    expect(container.querySelectorAll('.results__table .unit-icon--glyph')).toHaveLength(0);
   });
 
   it('shows a stat card when a unit icon in the table is tapped, and hides it again', () => {
@@ -348,10 +380,36 @@ describe('the army calculator', () => {
   });
 });
 
+describe('the switched-off v1 operation planner', () => {
+  it('shows only a temporarily down notice', () => {
+    const opTab = [...container.querySelectorAll('.pill--tool')].find(
+      (b) => b.getAttribute('aria-label') === 'Operation Planner',
+    )!;
+    click(opTab);
+    expect(container.querySelector('.planner-offline')?.textContent).toContain('Temporarily down');
+    expect(container.textContent).not.toContain('Attacking Armies');
+    expect(container.textContent).not.toContain('Route Plan');
+  });
+
+  it('stays down when opened from a shared plan link', () => {
+    act(() => {
+      window.location.hash = '#tool=operations&p=v1_2026-08-16T19:00_3~a:DrDoughnut,17,-25,stormfang_clans/skullthrower,1,9,1,01:00-07:00';
+      window.dispatchEvent(new Event('hashchange'));
+    });
+    expect(container.querySelector('.planner-offline')).toBeTruthy();
+    expect(container.textContent).not.toContain('DrDoughnut');
+  });
+});
+
 describe('the operation planner', () => {
   const realFetch = globalThis.fetch;
 
+  afterEach(() => {
+    plannerV1.on = false;
+  });
+
   beforeEach(() => {
+    plannerV1.on = true;
     // An in-memory room server. Without it the team-room tests reached for the
     // real one: in a sandbox that failed and only "worked" because a failed
     // read used to masquerade as an empty room; online, they wrote to it.
@@ -858,6 +916,40 @@ describe('the operation planner', () => {
 
     // Verify Exclude button '✕' has been removed to condense the routes table
     expect(container.querySelector('.op-route-exclude-btn')).toBeNull();
+  });
+
+  it('lets one route land at its own time, and resets it', async () => {
+    await unlockV2('password123');
+    click(container.querySelector('.op-plan-tab') as HTMLElement);
+    click([...container.querySelectorAll('.op-workspace-nav button')].find(
+      (button) => button.textContent?.includes('Routes'),
+    ) as HTMLButtonElement);
+
+    const landInput = () => container.querySelector('.op-route-land__input') as HTMLInputElement;
+    const sendText = () => container.querySelector('.op-timestamp--send')?.textContent;
+    expect(landInput().value).toBe('19:00:00');
+    expect(container.querySelector('.op-route-land.is-overridden')).toBeNull();
+    const sendBefore = sendText();
+    expect(sendBefore).toContain('17:49');
+
+    // Land this route 10 minutes later: the send time moves with it.
+    act(() => {
+      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!;
+      setter.call(landInput(), '19:10:00');
+      landInput().dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    act(() => {
+      landInput().dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+    });
+    expect(landInput().value).toBe('19:10:00');
+    expect(container.querySelector('.op-route-land.is-overridden')).toBeTruthy();
+    expect(sendText()).toContain('17:59');
+
+    // Reset brings back the operation landing and the original send time.
+    click(container.querySelector('.op-route-land__reset') as HTMLButtonElement);
+    expect(landInput().value).toBe('19:00:00');
+    expect(container.querySelector('.op-route-land.is-overridden')).toBeNull();
+    expect(sendText()).toBe(sendBefore);
   });
 
   it('properly rechecks safetimes with new send times when siege mode is toggled', async () => {

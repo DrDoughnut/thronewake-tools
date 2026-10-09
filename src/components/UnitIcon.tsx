@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { lookup, type UnitRef } from '../data/factions';
+import type { Resolver } from '../data/statEdits';
 import type { Faction, Unit } from '../data/types';
 import { unitIcon } from '../icons';
 import type { Modifiers } from '../engine/stats';
@@ -15,6 +16,8 @@ interface Props {
    * modifiers, in place of the plain name tooltip.
    */
   mods?: Modifiers;
+  /** Where the stat card reads the unit from, when stats have been edited. */
+  resolve?: Resolver;
 }
 
 const CARD_WIDTH = 210;
@@ -41,8 +44,8 @@ function placeCard(anchor: DOMRect) {
  * A unit's artwork, or its glyph on the faction colour when no image has
  * been added yet. See `src/icons.ts` for how to supply art.
  */
-export function UnitIcon({ unitRef, size = 34, mods }: Props) {
-  const { faction, unit } = lookup(unitRef);
+export function UnitIcon({ unitRef, size = 34, mods, resolve = lookup }: Props) {
+  const { faction, unit } = resolve(unitRef);
   const src = unitIcon(unit.key);
   const style = {
     width: size,

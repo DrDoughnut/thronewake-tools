@@ -14,6 +14,7 @@ import {
   importPlanIntoMasterRoster,
   mergeTeamRoomData,
   migrateToMasterRoster,
+  nearestLandingForClock,
   parseRoomBackup,
   parseThronewakeProfileClipboard,
   resolveSafeTime,
@@ -21,6 +22,7 @@ import {
   safeChecks,
   safeSegments,
   safeWindowDurationMinutes,
+  sanitizeRouteLandingOverrides,
   splitUtcDateAndTime,
   travelHours,
 } from './operations';
@@ -1729,3 +1731,36 @@ Population1,201`;
   });
 });
 
+
+describe('route landing overrides', () => {
+  const room = (op: Record<string, unknown>) => ({
+    version: 2,
+    roomName: 'test-room',
+    activeOpId: 'op1',
+    roster: { attackers: [], players: [], targets: [] },
+    operations: [{ id: 'op1', name: 'Wave 1', landing: '2026-08-20T12:00', serverSpeed: 3, assignedAttackerIds: [], assignedTargetIds: [], ...op }],
+    updatedAt: 100,
+  });
+
+  it('leaves rooms without overrides untouched', () => {
+    const migrated = migrateToMasterRoster(room({}));
+    expect(migrated.operations[0].routeLandingOverrides).toBeUndefined();
+  });
+
+  it('keeps valid overrides across loads and drops broken ones', () => {
+    const migrated = migrateToMasterRoster(room({
+      routeLandingOverrides: { 'a1:t1': '2026-08-20T12:00:07', 'a2:t1': 'garbage', 'a3:t1': 5 },
+    }));
+    expect(migrated.operations[0].routeLandingOverrides).toEqual({ 'a1:t1': '2026-08-20T12:00:07' });
+    expect(sanitizeRouteLandingOverrides({ x: 'nope' })).toBeUndefined();
+    expect(sanitizeRouteLandingOverrides(null)).toBeUndefined();
+  });
+
+  it('puts a typed clock time on the day closest to the operation landing', () => {
+    const iso = (d: Date | null) => d?.toISOString().slice(0, 19);
+    expect(iso(nearestLandingForClock(new Date('2026-08-20T12:00:00Z'), '12:00:07'))).toBe('2026-08-20T12:00:07');
+    expect(iso(nearestLandingForClock(new Date('2026-08-20T23:59:00Z'), '00:00:30'))).toBe('2026-08-21T00:00:30');
+    expect(iso(nearestLandingForClock(new Date('2026-08-21T00:00:10Z'), '23:59:50'))).toBe('2026-08-20T23:59:50');
+    expect(nearestLandingForClock(new Date('2026-08-20T12:00:00Z'), 'bad')).toBeNull();
+  });
+});

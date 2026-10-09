@@ -1,0 +1,13 @@
+7:06:44 PM [vite] warning: `esbuild` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `oxc` instead.
+`optimizeDeps.rollupOptions` / `ssr.optimizeDeps.rollupOptions` is deprecated. Use `optimizeDeps.rolldownOptions` instead. Note that this option may be set by a plugin. Set VITE_DEPRECATION_TRACE=1 to see where it is called.
+[vite:react-babel] We recommend switching to `@vitejs/plugin-react-oxc` for improved performance. More information at https://vite.dev/rolldown
+
+  VITE v8.2.1  ready in 332 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+7:07:05 PM [vite] (client) hmr update /src/App.tsx, /src/components/Changelog.tsx
+7:20:15 PM [vite] (client) hmr update /src/components/StatTable.tsx
+7:20:15 PM [vite] (client) hmr update /src/pages/UnitAttributes.tsx, /src/components/StatTable.tsx, /src/components/Controls.tsx
+7:20:15 PM [vite] (client) hmr update /src/styles.css
+7:21:12 PM [vite] (client) hmr update /src/App.tsx, /src/components/Changelog.tsx

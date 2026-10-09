@@ -2,7 +2,7 @@
  * Player release notes. Bump `APP_VERSION` and add an entry here
  * whenever a change is worth telling returning players about.
  */
-export const APP_VERSION = '1.13.2';
+export const APP_VERSION = '1.14.2';
 
 export interface ChangelogEntry {
   version: string;
@@ -11,6 +11,30 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '1.14.2',
+    date: '2026-10-07',
+    changes: [
+      'Clearer Unit Stat Table: a labelled section break now separates the unit ranking from the stat table, with a short note on what the table does.',
+    ],
+  },
+  {
+    version: '1.14.1',
+    date: '2026-10-07',
+    changes: [
+      'Unit Stats Total Cost: the stat table now shows each unit\'s total resource cost, highlighted when edits change it.',
+      'Tidier Unit Stats: more room between the ranking and the stat table, and the non-playable Ancients are no longer listed.',
+    ],
+  },
+  {
+    version: '1.14.0',
+    date: '2026-10-07',
+    changes: [
+      'Editable Unit Stats: the Unit Attributes page now shows the full unit stat table the ranking uses. Change any attack, defense, speed, carry, upkeep, training time or cost and the ranking updates right away.',
+      'SxS Suggestions™️ Preset: one click loads the balance ideas SxS and Wynfir shared (Raider, War Brute, Fang Rider, Blood Charger, Briar Guard, Woodblade, Oak Cavalier, Emberblade, Iron Spear, Sun Rider and Crimson Lancer), so you can see how the rankings would shift. Just ideas, not announced changes.',
+      'Share Your Balance Ideas: edited stats are saved in the page link, so Copy link shares exactly the numbers you tried. Back to live (or the Live game preset) restores the real stats.',
+    ],
+  },
   {
     version: '1.13.2',
     date: '2026-10-02',

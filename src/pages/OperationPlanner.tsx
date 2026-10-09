@@ -16,6 +16,7 @@ import {
   localZoneLabel,
   minuteOfDay,
   parseClock,
+  nearestLandingForClock,
   parseUtcDatetime,
   resolveSafeTime,
   routeIsPossible,
@@ -115,6 +116,8 @@ interface PlannedRoute {
   travel: number;
   send: Date;
   land: Date;
+  /** Whether this route lands at its own time instead of the operation landing. */
+  landOverridden?: boolean;
   checks: SafeChecks;
   possible: boolean;
 }
@@ -1386,6 +1389,83 @@ const ScheduleTimeline = memo(function ScheduleTimeline({
   );
 });
 
+/**
+ * A route's landing time, editable in place. The typed time is kept as a
+ * draft and applied on blur or Enter, so the table does not re-sort while
+ * someone is still typing.
+ */
+function RouteLandingCell({
+  land,
+  overridden,
+  locked,
+  onChange,
+}: {
+  land: Date;
+  overridden: boolean;
+  locked: boolean;
+  onChange: (time: string | null) => void;
+}) {
+  const current = splitUtcDateAndTime(land, true).time;
+  const [draft, setDraft] = useState(current);
+  useEffect(() => setDraft(current), [current]);
+
+  const commit = () => {
+    // Strict 24-hour "HH:mm" or "HH:mm:ss"; anything else snaps back unchanged.
+    const match = /^([01]?\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?$/.exec(draft.trim());
+    if (!match) {
+      setDraft(current);
+      return;
+    }
+    const time = `${match[1].padStart(2, '0')}:${match[2]}:${match[3] ?? '00'}`;
+    setDraft(time);
+    if (time !== current) onChange(time);
+  };
+
+  return (
+    <div className={`op-route-land ${overridden ? 'is-overridden' : ''}`}>
+      <input
+        type="text"
+        inputMode="numeric"
+        placeholder="19:00:00"
+        maxLength={8}
+        className="op-route-land__input"
+        value={draft}
+        disabled={locked}
+        aria-label="Landing time for this route (UTC)"
+        title={
+          locked
+            ? 'Operation is locked'
+            : overridden
+              ? `Custom landing: ${formatDateTime(land, true)}. Differs from the operation landing.`
+              : 'Lands at the operation landing time. Change it to land this route at its own time.'
+        }
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            commit();
+          } else if (e.key === 'Escape') {
+            setDraft(current);
+          }
+        }}
+      />
+      {overridden && (
+        <button
+          type="button"
+          className="op-route-land__reset"
+          disabled={locked}
+          onClick={() => onChange(null)}
+          title="Reset to the operation landing time"
+          aria-label="Reset route landing to the operation landing time"
+        >
+          ↺
+        </button>
+      )}
+    </div>
+  );
+}
+
 function routeBlockerText(route: PlannedRoute) {
   return [
     route.checks.sendAttacker && 'attacker is in safe time at send',
@@ -2007,6 +2087,26 @@ function OperationPlannerV2({
   };
 
 
+  /** Sets one route's landing clock time (UTC "HH:mm:ss"), or clears it with null. */
+  const handleSetRouteLanding = (routeKey: string, time: string | null) => {
+    const currentOpId = activeOpId || activeOp.id;
+    setOperations((prev) =>
+      prev.map((o) => {
+        if (o.id !== currentOpId) return o;
+        const next = { ...(o.routeLandingOverrides || {}) };
+        const opLanding = parseUtcDatetime(o.landing);
+        const land = time && opLanding ? nearestLandingForClock(opLanding, time) : null;
+        if (time && !land) return o;
+        if (!land || land.getTime() === opLanding?.getTime()) delete next[routeKey];
+        else next[routeKey] = toUtcDatetimeInput(land, true);
+        return {
+          ...o,
+          routeLandingOverrides: Object.keys(next).length > 0 ? next : undefined,
+          updatedAt: Date.now(),
+        };
+      }),
+    );
+  };
 
   // Master Roster CRUD: Attackers & Alliance Members
   const handleAddAttacker = (playerIdOrEvent?: string | unknown) => {
@@ -2293,12 +2393,14 @@ function OperationPlannerV2({
           artifactMultiplier: attacker.artifactMultiplier,
           bannerfieldLevel: attacker.bannerfieldLevel,
         });
-        const send = new Date(land.getTime() - travel * 3_600_000);
+        const overrideLand = parseUtcDatetime(activeOp.routeLandingOverrides?.[routeKey] ?? '');
+        const routeLand = overrideLand ?? land;
+        const send = new Date(routeLand.getTime() - travel * 3_600_000);
         const attackerSafe = resolveSafeTime(attacker, (roster.attackerPlayers && roster.attackerPlayers.length > 0) ? roster.attackerPlayers : roster.players);
         const attackerWindow = ownerWindow(attackerSafe);
         const targetSafe = resolveSafeTime(target, roster.players);
         const targetWindow = ownerWindow(targetSafe);
-        const checks = safeChecks(send, land, attackerWindow, targetWindow);
+        const checks = safeChecks(send, routeLand, attackerWindow, targetWindow);
 
         computed.push({
           key: routeKey,
@@ -2313,7 +2415,8 @@ function OperationPlannerV2({
           distance,
           travel,
           send,
-          land,
+          land: routeLand,
+          landOverridden: overrideLand !== null,
           checks,
           possible: routeIsPossible(checks),
         });
@@ -2332,6 +2435,7 @@ function OperationPlannerV2({
     activeOp.attackerUnitOverrides,
     activeOp.routeUnitOverrides,
     activeOp.routeSiegeOverrides,
+    activeOp.routeLandingOverrides,
     parsedLanding,
   ]);
 
@@ -2971,6 +3075,7 @@ function OperationPlannerV2({
                     <th>Map Pin</th>
                     <th>Launch In</th>
                     <th>Travel</th>
+                    <th title="When this route lands. Change it to land one route at a different time than the operation.">Land (UTC)</th>
                     <th>Send Time (UTC)</th>
                     <th>
                       <SafetimeHeaderTooltip />
@@ -2980,7 +3085,7 @@ function OperationPlannerV2({
                 <tbody>
                   {visibleRoutes.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="op-routes-empty">
+                      <td colSpan={9} className="op-routes-empty">
                         No routes match the selected participants or filters.
                       </td>
                     </tr>
@@ -3107,6 +3212,14 @@ function OperationPlannerV2({
                               <span className="travel-stat">{formatDuration(route.travel)}</span>
                               <span className="op-dist-sub">{route.distance.toFixed(1)} fields</span>
                             </div>
+                          </td>
+                          <td data-label="Land (UTC)" onClick={(e) => e.stopPropagation()}>
+                            <RouteLandingCell
+                              land={route.land}
+                              overridden={!!route.landOverridden}
+                              locked={isOpLocked}
+                              onChange={(time) => handleSetRouteLanding(route.key, time)}
+                            />
                           </td>
                           <td data-label="Send Time (UTC)">
                             <Stamp date={route.send} showLocal={showLocal} seconds className="op-timestamp op-timestamp--send" />
