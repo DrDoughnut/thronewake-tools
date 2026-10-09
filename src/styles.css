@@ -1080,6 +1080,59 @@ select:focus, .select:focus, .text-input:focus {
 /* ── Operation planner ───────────────────────────────────────────────── */
 .operations { display: flex; flex-direction: column; gap: 16px; }
 
+/* Deprecated / Offline Notice */
+.operations--deprecated {
+  max-width: 640px;
+  margin: 48px auto;
+  width: 100%;
+}
+
+.op-offline-panel {
+  padding: 48px 32px;
+  text-align: center;
+  border: 1px solid hsl(220, 14%, 22%);
+  background: linear-gradient(180deg, hsl(220, 18%, 13%) 0%, hsl(220, 18%, 10%) 100%);
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+}
+
+.op-offline-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.op-offline-icon {
+  font-size: 42px;
+  margin-bottom: 4px;
+  filter: grayscale(0.25) opacity(0.85);
+  line-height: 1;
+}
+
+.op-offline-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-normal, #e2e8f0);
+  letter-spacing: -0.01em;
+}
+
+.op-offline-lead {
+  margin: 0;
+  font-size: 15px;
+  color: var(--text-dim, #94a3b8);
+  font-weight: 500;
+}
+
+.op-offline-detail {
+  margin: 4px 0 0 0;
+  font-size: 12.5px;
+  color: var(--text-faint, #64748b);
+  max-width: 440px;
+  line-height: 1.5;
+}
+
 /* Command hero panel */
 .op-command { padding: 14px 18px; border-radius: var(--radius-lg, 10px); }
 .op-command__main { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 16px 24px; }

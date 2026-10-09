@@ -45,8 +45,6 @@ import { ImportPlanModal } from '../components/ImportPlanModal';
 import {
   AllianceArmiesModal,
   TargetDatabaseModal,
-  AttackerCard,
-  PlayerGroupCard,
   Time24Input,
 } from '../components/RosterModals';
 import { OperationParticipantPicker } from '../components/OperationParticipantPicker';
@@ -353,7 +351,7 @@ const nextId = (prefix: string) => prefix + Math.random().toString(36).slice(2, 
 
 
 
-const plannerHash = (state: PlannerState) => `tool=operations&p=${encodeCompactPlan(state)}`;
+export const plannerHash = (state: PlannerState) => `tool=operations&p=${encodeCompactPlan(state)}`;
 
 function Stamp({
   date,
@@ -1470,23 +1468,35 @@ function RouteAlerts({
   );
 }
 
-// ── Main OperationPlanner Component ─────────────────────────────────────────
+// ── Deprecated Offline Notice ───────────────────────────────────────────────
 
-export function OperationPlanner({
-  isV2Unlocked,
+function OperationPlannerDeprecated() {
+  return (
+    <div className="operations operations--deprecated">
+      <section className="panel op-offline-panel">
+        <div className="op-offline-body">
+          <span className="op-offline-icon" aria-hidden="true">🛠️</span>
+          <h2 className="op-offline-title">Tool Deprecated</h2>
+          <p className="op-offline-lead">
+            This tool has been deprecated and taken offline.
+          </p>
+          <p className="op-offline-detail">
+            Calculations, route planning, and legacy share links are no longer supported.
+          </p>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+// ── V2 OperationPlanner Component (Top-Secret Team Room Mode) ───────────────
+
+function OperationPlannerV2({
   onExitV2,
 }: {
-  isV2Unlocked?: boolean;
   onExitV2?: () => void;
-} = {}) {
-  const isV2Active = isV2Unlocked ?? (() => {
-    try {
-      return localStorage.getItem('thronewake.v2.unlocked') === '1';
-    } catch {
-      return false;
-    }
-  })();
-
+}) {
+  const isV2Active = true;
   const initialDecoded = useMemo(() => decodeState(), []);
 
   // Master Roster (Alliance Armies + Defender Database)
@@ -1520,8 +1530,7 @@ export function OperationPlanner({
       const op = hashParams.get('op');
       if (op) return op;
     } catch {}
-    if (isV2Unlocked) return null;
-    return 'op1';
+    return null;
   });
 
   // Modals state
@@ -1582,47 +1591,8 @@ export function OperationPlanner({
     return () => clearInterval(interval);
   }, []);
 
-  // Sync state on hashchange
-  useEffect(() => {
-    const handleHashChange = () => {
-      if (!roomSession) {
-        const decoded = decodeState();
-        setRoster((prev) => ({
-          attackers: decoded.attackers,
-          players: decoded.players,
-          targets: decoded.targets,
-          attackerPlayers: prev.attackerPlayers || decoded.attackerPlayers,
-        }));
-        setOperations((prev) =>
-          prev.map((o) =>
-            o.id === activeOpId
-              ? {
-                  ...o,
-                  landing: decoded.landing,
-                  serverSpeed: decoded.serverSpeed,
-                  assignedAttackerIds: decoded.attackers.map((a) => a.id),
-                  assignedTargetIds: decoded.targets.map((t) => t.id),
-                  fakeTargetIds: decoded.targets.filter((t) => t.fake).map((t) => t.id),
-                  routeSiegeOverrides: decoded.routeSiegeOverrides ?? o.routeSiegeOverrides,
-                }
-              : o,
-          ),
-        );
-      }
-    };
-    window.addEventListener('hashchange', handleHashChange);
-    window.addEventListener('popstate', handleHashChange);
-    return () => {
-      window.removeEventListener('hashchange', handleHashChange);
-      window.removeEventListener('popstate', handleHashChange);
-    };
-  }, [roomSession, activeOpId]);
-
-  const [copied, setCopied] = useState(false);
-
   // Active marching armies & target villages for current operation
   const marchingAttackers = useMemo(() => {
-    if (!isV2Active) return roster.attackers;
     const assigned = activeOp.assignedAttackerIds || [];
     const overrides = activeOp.attackerUnitOverrides || {};
     return roster.attackers
@@ -1631,7 +1601,7 @@ export function OperationPlanner({
         ...a,
         unitRef: overrides[a.id] ? (overrides[a.id] as UnitRef) : a.unitRef,
       }));
-  }, [isV2Active, roster.attackers, activeOp.assignedAttackerIds, activeOp.attackerUnitOverrides]);
+  }, [roster.attackers, activeOp.assignedAttackerIds, activeOp.attackerUnitOverrides]);
 
   const marchingAttackerPlayers = useMemo(() => {
     const map = new Map<string, { id: string; name: string }>();
@@ -1647,73 +1617,21 @@ export function OperationPlanner({
   }, [marchingAttackers, roster.attackerPlayers]);
 
   const activeTargets = useMemo(() => {
-    if (!isV2Active) return roster.targets;
     const assigned = activeOp.assignedTargetIds || [];
     const fakeTargetIds = activeOp.fakeTargetIds || [];
     return roster.targets
       .filter((target) => assigned.includes(target.id))
       .map((target) => ({ ...target, fake: fakeTargetIds.includes(target.id) }));
-  }, [isV2Active, roster.targets, activeOp.assignedTargetIds, activeOp.fakeTargetIds]);
+  }, [roster.targets, activeOp.assignedTargetIds, activeOp.fakeTargetIds]);
 
   const [routeLinkCopied, setRouteLinkCopied] = useState(false);
 
-  const copyShareLink = async () => {
-    let fullUrl = '';
-    let hash = '';
-
-    if (isV2Active && roomSession) {
-      const opPart = activeOpId
-        ? `&op=${encodeURIComponent(activeOpId)}&view=${encodeURIComponent(workspaceView)}`
-        : '';
-      hash = `room=${encodeURIComponent(roomSession.roomName)}${opPart}`;
-      fullUrl = `${window.location.origin}${window.location.pathname}#${hash}`;
-    } else {
-      const currentPlannerState: PlannerState = {
-        landing: activeOp.landing,
-        serverSpeed: activeOp.serverSpeed,
-        attackers: marchingAttackers,
-        targets: activeTargets,
-        players: roster.players,
-        routeSiegeOverrides: activeOp.routeSiegeOverrides,
-        attackerPlayers: roster.attackerPlayers,
-      };
-      hash = plannerHash(currentPlannerState);
-      fullUrl = `${window.location.origin}${window.location.pathname}#${hash}`;
-    }
-
-    try {
-      await navigator.clipboard.writeText(fullUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      window.location.hash = hash;
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
   const copyRouteLink = async () => {
-    let fullUrl = '';
-    let hash = '';
-
-    if (isV2Active && roomSession) {
-      const targetOp = activeOpId || (operations.length > 0 ? operations[0].id : '');
-      const opPart = targetOp ? `&op=${encodeURIComponent(targetOp)}&view=routes` : '';
-      hash = `room=${encodeURIComponent(roomSession.roomName)}${opPart}`;
-      fullUrl = `${window.location.origin}${window.location.pathname}#${hash}`;
-    } else {
-      const currentPlannerState: PlannerState = {
-        landing: activeOp.landing,
-        serverSpeed: activeOp.serverSpeed,
-        attackers: marchingAttackers,
-        targets: activeTargets,
-        players: roster.players,
-        routeSiegeOverrides: activeOp.routeSiegeOverrides,
-        attackerPlayers: roster.attackerPlayers,
-      };
-      hash = plannerHash(currentPlannerState);
-      fullUrl = `${window.location.origin}${window.location.pathname}#${hash}`;
-    }
+    if (!roomSession) return;
+    const targetOp = activeOpId || (operations.length > 0 ? operations[0].id : '');
+    const opPart = targetOp ? `&op=${encodeURIComponent(targetOp)}&view=routes` : '';
+    const hash = `room=${encodeURIComponent(roomSession.roomName)}${opPart}`;
+    const fullUrl = `${window.location.origin}${window.location.pathname}#${hash}`;
 
     try {
       await navigator.clipboard.writeText(fullUrl);
@@ -1727,7 +1645,7 @@ export function OperationPlanner({
   };
 
   useEffect(() => {
-    if (isV2Active && roomSession) {
+    if (roomSession) {
       const opPart = activeOpId
         ? `&op=${encodeURIComponent(activeOpId)}&view=${encodeURIComponent(workspaceView)}`
         : '';
@@ -1735,38 +1653,11 @@ export function OperationPlanner({
       if (window.location.hash !== newHash) {
         window.history.replaceState(null, '', `${window.location.pathname}${newHash}`);
       }
-    } else if (!isV2Active) {
-      const timer = setTimeout(() => {
-        const currentPlannerState: PlannerState = {
-          landing: activeOp.landing,
-          serverSpeed: activeOp.serverSpeed,
-          attackers: marchingAttackers,
-          targets: activeTargets,
-          players: roster.players,
-          routeSiegeOverrides: activeOp.routeSiegeOverrides,
-          attackerPlayers: roster.attackerPlayers,
-        };
-        window.history.replaceState(null, '', `${window.location.pathname}#${plannerHash(currentPlannerState)}`);
-      }, 350);
-      return () => clearTimeout(timer);
     }
-  }, [
-    isV2Active,
-    roomSession,
-    activeOpId,
-    workspaceView,
-    activeOp.landing,
-    activeOp.serverSpeed,
-    activeOp.routeSiegeOverrides,
-    marchingAttackers,
-    activeTargets,
-    roster.players,
-    roster.attackerPlayers,
-  ]);
+  }, [roomSession, activeOpId, workspaceView]);
 
   // Respond to hash navigation while connected
   useEffect(() => {
-    if (!isV2Active) return;
     const handleHashChange = () => {
       try {
         const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
@@ -1784,7 +1675,7 @@ export function OperationPlanner({
     };
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
-  }, [isV2Active, operations]);
+  }, [operations]);
 
   const [lastSavedSnapshot, setLastSavedSnapshot] = useState<string>('');
 
@@ -2377,12 +2268,6 @@ export function OperationPlanner({
     }
   };
 
-  const updateServerSpeed = (speed: number) => {
-    const currentOpId = activeOpId || activeOp.id;
-    setOperations((prev) =>
-      prev.map((o) => (o.id === currentOpId ? { ...o, serverSpeed: speed, updatedAt: Date.now() } : o)),
-    );
-  };
 
   // Route Calculations for Active Marching Armies & Targets
   const routes = useMemo<PlannedRoute[]>(() => {
@@ -2590,66 +2475,62 @@ export function OperationPlanner({
     );
   };
 
-  const isOperationOpen = !isV2Active || Boolean(roomSession && activeOpId);
+  const isOperationOpen = Boolean(roomSession && activeOpId);
 
   return (
-    <div className={`operations ${isV2Active ? 'operations--v2-classified' : ''}`}>
+    <div className="operations operations--v2-classified">
       {/* Top-Secret v2 Mode: Unified Team Room Card with Zero-Knowledge Cloud Sync & Global Server Speed */}
-      {isV2Active && (
+      <TeamRoomBar
+        hasUnsavedChanges={hasUnsavedChanges}
+        serverSpeed={activeOp.serverSpeed}
+        onServerSpeedChange={handleRoomServerSpeedChange}
+        onRoomDataLoaded={handleRoomDataLoaded}
+        onRoomDisconnected={handleRoomDisconnected}
+        onSaveRequested={handleSaveRequested}
+      />
+
+      {roomSession && (
         <>
-          <TeamRoomBar
-            hasUnsavedChanges={hasUnsavedChanges}
-            serverSpeed={activeOp.serverSpeed}
-            onServerSpeedChange={handleRoomServerSpeedChange}
-            onRoomDataLoaded={handleRoomDataLoaded}
-            onRoomDisconnected={handleRoomDisconnected}
-            onSaveRequested={handleSaveRequested}
+          <section className="panel op-v2-roster" aria-label="Master Directory (Alliance Roster and Targets)">
+            <div className="op-v2-roster__head">
+              <h2 className="op-section-title">📚 Master Directory</h2>
+              <button type="button" className="pill pill--tiny pill--import-btn" onClick={() => setIsImportModalOpen(true)}>📥 Import</button>
+            </div>
+            <div className="op-v2-roster__cards">
+              <button type="button" className="op-v2-roster-card op-v2-roster-card--hammers" onClick={() => setIsArmiesModalOpen(true)}>
+                <span className="op-v2-roster-card__icon" aria-hidden="true">⚔️</span>
+                <span className="op-v2-roster-card__copy">
+                  <strong>Alliance Hammer Directory</strong>
+                  <span>{roster.attackers.length} registered hammers · {marchingAttackers.length} deployed in active wave</span>
+                </span>
+                <span className="op-v2-roster-card__action">Manage <span aria-hidden="true">→</span></span>
+              </button>
+              <button type="button" className="op-v2-roster-card op-v2-roster-card--targets" onClick={() => setIsTargetsModalOpen(true)}>
+                <span className="op-v2-roster-card__icon" aria-hidden="true">🎯</span>
+                <span className="op-v2-roster-card__copy">
+                  <strong>Enemy Target Directory</strong>
+                  <span>{roster.targets.length} registered villages across {roster.players.length} defender accounts</span>
+                </span>
+                <span className="op-v2-roster-card__action">Manage <span aria-hidden="true">→</span></span>
+              </button>
+            </div>
+          </section>
+
+          {/* Multi-Operation Tabs */}
+          <OperationTabs
+            operations={operations}
+            activeOpId={activeOpId}
+            onSelectOp={handleSelectOp}
+            onCreateOp={handleCreateOp}
+            onDuplicateOp={handleDuplicateOp}
+            onRenameOp={handleRenameOp}
+            onDeleteOp={handleDeleteOp}
           />
-
-          {roomSession && (
-            <>
-              <section className="panel op-v2-roster" aria-label="Master Directory (Alliance Roster and Targets)">
-                <div className="op-v2-roster__head">
-                  <h2 className="op-section-title">📚 Master Directory</h2>
-                  <button type="button" className="pill pill--tiny pill--import-btn" onClick={() => setIsImportModalOpen(true)}>📥 Import</button>
-                </div>
-                <div className="op-v2-roster__cards">
-                  <button type="button" className="op-v2-roster-card op-v2-roster-card--hammers" onClick={() => setIsArmiesModalOpen(true)}>
-                    <span className="op-v2-roster-card__icon" aria-hidden="true">⚔️</span>
-                    <span className="op-v2-roster-card__copy">
-                      <strong>Alliance Hammer Directory</strong>
-                      <span>{roster.attackers.length} registered hammers · {marchingAttackers.length} deployed in active wave</span>
-                    </span>
-                    <span className="op-v2-roster-card__action">Manage <span aria-hidden="true">→</span></span>
-                  </button>
-                  <button type="button" className="op-v2-roster-card op-v2-roster-card--targets" onClick={() => setIsTargetsModalOpen(true)}>
-                    <span className="op-v2-roster-card__icon" aria-hidden="true">🎯</span>
-                    <span className="op-v2-roster-card__copy">
-                      <strong>Enemy Target Directory</strong>
-                      <span>{roster.targets.length} registered villages across {roster.players.length} defender accounts</span>
-                    </span>
-                    <span className="op-v2-roster-card__action">Manage <span aria-hidden="true">→</span></span>
-                  </button>
-                </div>
-              </section>
-
-              {/* Multi-Operation Tabs */}
-              <OperationTabs
-                operations={operations}
-                activeOpId={activeOpId}
-                onSelectOp={handleSelectOp}
-                onCreateOp={handleCreateOp}
-                onDuplicateOp={handleDuplicateOp}
-                onRenameOp={handleRenameOp}
-                onDeleteOp={handleDeleteOp}
-              />
-            </>
-          )}
         </>
       )}
 
       {/* Standby panel when in v2 mode and no operation wave is currently open */}
-      {isV2Active && roomSession && !activeOpId && (
+      {roomSession && !activeOpId && (
         <section className="panel op-standby-panel">
           <div className="op-standby-panel__body">
             <span className="op-standby-panel__icon">🗺️</span>
@@ -2682,239 +2563,95 @@ export function OperationPlanner({
         </section>
       )}
 
-      {/* Operation Wave Content: Rendered when an operation is open or in standard v1 mode */}
+      {/* Operation Wave Content: Rendered when an operation is open */}
       {isOperationOpen && (
         <>
-          {isV2Active && roomSession && activeOpId && (
-            <>
-              <div className="op-workspace-bar">
-                <div className="op-workspace-bar__operation">
-                  <span className="op-workspace-bar__eyebrow">Viewing Workspace</span>
-                  <div className="op-workspace-bar__title-group">
-                    <strong className="op-workspace-bar__title">
-                      {activeOp.name}
-                    </strong>
-                    <span
-                      className={`op-status-badge ${isOpLocked ? 'op-status-badge--ready' : 'op-status-badge--draft'}`}
-                      title={isOpLocked ? 'Confirmed / Ready: Protected against accidental edits' : 'Draft: Editable'}
-                    >
-                      {isOpLocked ? '✅ Ready' : '📝 Draft'}
-                    </span>
-                    <button
-                      type="button"
-                      className={`pill pill--tiny ${isOpLocked ? 'op-lock-toggle--unlock' : 'op-lock-toggle--lock'}`}
-                      onClick={() => handleToggleOpStatus(activeOp.id)}
-                      title={isOpLocked ? 'Unlock operation to allow edits' : 'Lock operation as Ready to prevent accidental edits'}
-                      aria-label={isOpLocked ? 'Unlock operation' : 'Lock operation as Ready'}
-                    >
-                      {isOpLocked ? '🔓 Unlock' : '🔒 Mark as Ready'}
-                    </button>
-                    <button
-                      type="button"
-                      className={`pill pill--tiny pill--share ${routeLinkCopied ? 'is-copied' : ''}`}
-                      onClick={copyRouteLink}
-                      title="Copy direct route link to this operation wave to share in Discord"
-                    >
-                      {routeLinkCopied ? '✓ Copied' : '🔗 Share Routes'}
-                    </button>
-                  </div>
-                </div>
-                <nav className="op-workspace-nav" aria-label="Planner workspace">
-                  <button
-                    type="button"
-                    className={workspaceView === 'scheduling' ? 'is-active' : ''}
-                    onClick={() => setWorkspaceView('scheduling')}
-                  >
-                    🕒 1. Scheduling
-                  </button>
-                  <button
-                    type="button"
-                    className={workspaceView === 'targets' ? 'is-active' : ''}
-                    onClick={() => setWorkspaceView('targets')}
-                  >
-                    🎯 2. Targets & Setup
-                  </button>
-                  <button
-                    type="button"
-                    className={workspaceView === 'routes' ? 'is-active' : ''}
-                    onClick={() => setWorkspaceView('routes')}
-                  >
-                    🗺️ 3. Routes ({routes.length})
-                  </button>
-                </nav>
+          <div className="op-workspace-bar">
+            <div className="op-workspace-bar__operation">
+              <span className="op-workspace-bar__eyebrow">Viewing Workspace</span>
+              <div className="op-workspace-bar__title-group">
+                <strong className="op-workspace-bar__title">
+                  {activeOp.name}
+                </strong>
+                <span
+                  className={`op-status-badge ${isOpLocked ? 'op-status-badge--ready' : 'op-status-badge--draft'}`}
+                  title={isOpLocked ? 'Confirmed / Ready: Protected against accidental edits' : 'Draft: Editable'}
+                >
+                  {isOpLocked ? '✅ Ready' : '📝 Draft'}
+                </span>
                 <button
                   type="button"
-                  className="pill pill--tiny pill--secondary op-workspace-close"
-                  onClick={() => setActiveOpId(null)}
-                  title="Close operation workspace"
+                  className={`pill pill--tiny ${isOpLocked ? 'op-lock-toggle--unlock' : 'op-lock-toggle--lock'}`}
+                  onClick={() => handleToggleOpStatus(activeOp.id)}
+                  title={isOpLocked ? 'Unlock operation to allow edits' : 'Lock operation as Ready to prevent accidental edits'}
+                  aria-label={isOpLocked ? 'Unlock operation' : 'Lock operation as Ready'}
                 >
-                  ✕
+                  {isOpLocked ? '🔓 Unlock' : '🔒 Mark as Ready'}
+                </button>
+                <button
+                  type="button"
+                  className={`pill pill--tiny pill--share ${routeLinkCopied ? 'is-copied' : ''}`}
+                  onClick={copyRouteLink}
+                  title="Copy direct route link to this operation wave to share in Discord"
+                >
+                  {routeLinkCopied ? '✓ Copied' : '🔗 Share Routes'}
                 </button>
               </div>
+            </div>
+            <nav className="op-workspace-nav" aria-label="Planner workspace">
+              <button
+                type="button"
+                className={workspaceView === 'scheduling' ? 'is-active' : ''}
+                onClick={() => setWorkspaceView('scheduling')}
+              >
+                🕒 1. Scheduling
+              </button>
+              <button
+                type="button"
+                className={workspaceView === 'targets' ? 'is-active' : ''}
+                onClick={() => setWorkspaceView('targets')}
+              >
+                🎯 2. Targets & Setup
+              </button>
+              <button
+                type="button"
+                className={workspaceView === 'routes' ? 'is-active' : ''}
+                onClick={() => setWorkspaceView('routes')}
+              >
+                🗺️ 3. Routes ({routes.length})
+              </button>
+            </nav>
+            <button
+              type="button"
+              className="pill pill--tiny pill--secondary op-workspace-close"
+              onClick={() => setActiveOpId(null)}
+              title="Close operation workspace"
+            >
+              ✕
+            </button>
+          </div>
 
-              {isOpLocked && (
-                <div className="op-lock-banner" role="alert">
-                  <div className="op-lock-banner__info">
-                    <span className="op-lock-banner__icon">🔒</span>
-                    <div className="op-lock-banner__text">
-                      <strong>Locked: {activeOp.name}</strong>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    className="pill pill--tiny pill--primary op-lock-banner__btn"
-                    onClick={() => handleToggleOpStatus(activeOp.id)}
-                    title="Unlock operation to allow edits"
-                  >
-                    🔓 Unlock
-                  </button>
+          {isOpLocked && (
+            <div className="op-lock-banner" role="alert">
+              <div className="op-lock-banner__info">
+                <span className="op-lock-banner__icon">🔒</span>
+                <div className="op-lock-banner__text">
+                  <strong>Locked: {activeOp.name}</strong>
                 </div>
-              )}
-            </>
-          )}
-
-          {/* In Standalone v1 mode, render everything inline on a single page */}
-          {!isV2Active && (
-            <>
-              {/* Command Center */}
-              <section className="panel op-command">
-                <div className="op-command__main">
-                  <div className="op-landing-control">
-                    <div className="op-landing-control__label-row">
-                      <span className="op-command__label">Coordinated Landing Time</span>
-                      <span className="op-utc-badge">24h UTC</span>
-                    </div>
-                    <div className="op-landing-control__inputs">
-                      <input
-                        className="text-input text-input--date"
-                        type="date"
-                        value={landingDate}
-                        onChange={(event) => updateLanding(event.target.value, landingTime)}
-                      />
-                      <Time24Input
-                        value={landingTime}
-                        onChange={(newTime) => updateLanding(landingDate, newTime)}
-                        placeholder="14:00:00"
-                        withSeconds
-                      />
-                    </div>
-                    <div className="op-time-slider-wrap">
-                      <span className="op-time-slider-label">00:00</span>
-                      <input
-                        type="range"
-                        className="op-time-slider"
-                        min={0}
-                        max={1435}
-                        step={5}
-                        value={sliderMinutes}
-                        onChange={(e) => {
-                          const totalMins = Number(e.target.value);
-                          const h = Math.floor(totalMins / 60).toString().padStart(2, '0');
-                          const m = (totalMins % 60).toString().padStart(2, '0');
-                          const s = '00';
-                          updateLanding(landingDate, `${h}:${m}:${s}`);
-                        }}
-                        aria-label="Coordinated Landing Time 24h Slider"
-                      />
-                      <span className="op-time-slider-label">23:59</span>
-                    </div>
-                    <div className="op-landing-control__local">
-                      Local: <strong>{formatLocalDateTime(parsedLanding)}</strong> ({zoneLabel})
-                    </div>
-                  </div>
-
-                  <div className="op-speed-control">
-                    <label className="op-command__label" htmlFor="server-speed-select">
-                      Server Speed
-                    </label>
-                    <div className="op-speed-pills" id="server-speed-select" role="group" aria-label="Server Speed">
-                      {([1, 2, 3, 5] as const).map((spd) => (
-                        <button
-                          key={spd}
-                          type="button"
-                          className={`pill pill--small ${activeOp.serverSpeed === spd ? 'pill--primary' : 'pill--secondary'}`}
-                          onClick={() => updateServerSpeed(spd)}
-                        >
-                          {spd}×
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="op-share-control">
-                    <span className="op-command__label">Share Plan</span>
-                    <button
-                      type="button"
-                      className={`pill pill--share ${copied ? 'is-copied' : ''}`}
-                      onClick={copyShareLink}
-                      title="Copy short shareable link with current plan settings"
-                    >
-                      {copied ? '✓ Link Copied!' : '🔗 Copy Share Link'}
-                    </button>
-                  </div>
-                </div>
-              </section>
-
-              {/* Standard v1: Direct Inline Attacking Armies and Target Defenders Panels */}
-              <section className="panel op-section">
-                <div className="op-section-head">
-                  <div className="op-section-head__title-group">
-                    <span className="op-section-tag op-section-tag--attacker">Attackers</span>
-                    <h2 className="panel__title">Attacking Armies ({roster.attackers.length})</h2>
-                  </div>
-                  <button type="button" className="pill pill--tiny pill--primary" onClick={handleAddAttacker}>
-                    + Add Attacker
-                  </button>
-                </div>
-
-                <div className="op-strip-list">
-                  {roster.attackers.map((attacker, index) => (
-                    <AttackerCard
-                      key={attacker.id}
-                      attacker={attacker}
-                      index={index}
-                      showUnitPicker={true}
-                      onPatch={(patch) => handlePatchAttacker(attacker.id, patch)}
-                      onRemove={() => handleRemoveAttacker(attacker.id)}
-                    />
-                  ))}
-                </div>
-              </section>
-
-              <section className="panel op-section">
-                <div className="op-section-head">
-                  <div className="op-section-head__title-group">
-                    <span className="op-section-tag op-section-tag--target">Defenders</span>
-                    <h2 className="panel__title">
-                      Target Defenders ({roster.players.length} {roster.players.length === 1 ? 'account' : 'accounts'} · {roster.targets.length} {roster.targets.length === 1 ? 'village' : 'villages'})
-                    </h2>
-                  </div>
-                  <button type="button" className="pill pill--tiny pill--primary" onClick={handleAddPlayer}>
-                    + Add Defender
-                  </button>
-                </div>
-
-                <div className="op-defenders-list">
-                  {roster.players.map((player, pIdx) => (
-                    <PlayerGroupCard
-                      key={player.id}
-                      player={player}
-                      pIdx={pIdx}
-                      targets={roster.targets}
-                      onPatchPlayer={(patch) => handlePatchPlayer(player.id, patch)}
-                      onRemovePlayer={() => handleRemovePlayer(player.id)}
-                      onAddVillage={() => handleAddVillage(player.id)}
-                      onPatchTarget={handlePatchTarget}
-                      onRemoveTarget={handleRemoveTarget}
-                    />
-                  ))}
-                </div>
-              </section>
-            </>
+              </div>
+              <button
+                type="button"
+                className="pill pill--tiny pill--primary op-lock-banner__btn"
+                onClick={() => handleToggleOpStatus(activeOp.id)}
+                title="Unlock operation to allow edits"
+              >
+                🔓 Unlock
+              </button>
+            </div>
           )}
 
           {/* ── STEP 1: SCHEDULING (V2) ───────────────────────────── */}
-          {isV2Active && workspaceView === 'scheduling' && (
+          {workspaceView === 'scheduling' && (
             <>
               {/* Active Operation Wave Command Center */}
               <section className="panel op-command">
@@ -3071,12 +2808,12 @@ export function OperationPlanner({
             </>
           )}
 
-          {(!isV2Active || workspaceView === 'routes') && (
+          {workspaceView === 'routes' && (
             <>
           <RouteAlerts
             routes={routes}
             clashCount={routeClashes.size}
-            onBackToScheduling={isV2Active ? () => setWorkspaceView('scheduling') : undefined}
+            onBackToScheduling={() => setWorkspaceView('scheduling')}
           />
           {/* Results Section */}
           <section className="panel op-results">
@@ -3085,7 +2822,7 @@ export function OperationPlanner({
 
               {/* Alarm Control Button Toolbar */}
               <div className="op-alarm-toolbar">
-                {isV2Active && roomSession && (
+                {roomSession && (
                   <button
                     type="button"
                     className={`pill pill--share ${routeLinkCopied ? 'is-copied' : ''}`}
@@ -3386,25 +3123,6 @@ export function OperationPlanner({
             </div>
           </section>
 
-          {/* Schedule Timeline: Rendered directly below the Route Table on the same view */}
-          {!isV2Active && (
-            <ScheduleTimeline
-              routes={routes}
-              route={selectedRoute}
-              onSelectRoute={setSelectedKey}
-              showLocal={showLocal}
-              allAttackers={roster.attackers}
-              allAttackerPlayers={roster.attackerPlayers}
-              allPlayers={roster.players}
-              allTargets={roster.targets}
-              landingDate={landingDate}
-              landingTime={landingTime}
-              parsedLanding={parsedLanding}
-              onToggleTargetFake={handleToggleTargetFake}
-              mode="inspector"
-            />
-          )}
-
           <div className="op-step-nav-bar">
             <button
               type="button"
@@ -3463,4 +3181,28 @@ export function OperationPlanner({
       />
     </div>
   );
+}
+
+// ── Main OperationPlanner Component (Public Deprecation vs Secret V2) ───────
+
+export function OperationPlanner({
+  isV2Unlocked,
+  onExitV2,
+}: {
+  isV2Unlocked?: boolean;
+  onExitV2?: () => void;
+} = {}) {
+  const isV2Active = isV2Unlocked ?? (() => {
+    try {
+      return localStorage.getItem('thronewake.v2.unlocked') === '1';
+    } catch {
+      return false;
+    }
+  })();
+
+  if (!isV2Active) {
+    return <OperationPlannerDeprecated />;
+  }
+
+  return <OperationPlannerV2 onExitV2={onExitV2} />;
 }

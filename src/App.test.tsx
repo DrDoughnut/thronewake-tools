@@ -373,177 +373,61 @@ describe('the operation planner', () => {
     globalThis.fetch = realFetch;
   });
 
-  it('renders attackers, targets, and the route plan table', () => {
-    expect(window.location.hash).toContain('tool=operations');
-    expect(container.textContent).toContain('Attacking Armies');
-    expect(container.textContent).toContain('Target Defenders');
-    expect(container.textContent).toContain('Route Plan');
-    expect(container.textContent).toContain('24h UTC');
-    expect(container.querySelector('.op-roster-summary-bar')).toBeNull();
-    expect(container.querySelector('.op-participant-picker')).toBeNull();
-  });
-
-  it('places Name and Coordinate X/Y inputs inline in card headers', () => {
-    const cardIdentity = container.querySelector('.op-strip-card__identity');
-    expect(cardIdentity).toBeTruthy();
-    const nameInput = cardIdentity?.querySelector('.op-card__name');
-    const coordFields = cardIdentity?.querySelectorAll('.coord-field');
-    expect(nameInput).toBeTruthy();
-    expect(coordFields).toHaveLength(2); // X and Y
-  });
-
-  it('places safe time controls at the bottom of the card', () => {
-    const cardBottom = container.querySelector('.op-strip-card__bottom .op-safetime');
-    expect(cardBottom).toBeTruthy();
-    expect(cardBottom?.textContent).toContain('Safe Hours');
-  });
-
-  it('opens 3-faction unit grid picker and allows selecting a unit', () => {
-    const trigger = container.querySelector('.unit-grid-picker__trigger') as HTMLElement;
-    expect(trigger).toBeTruthy();
-    click(trigger);
-
-    const popover = document.querySelector('.unit-grid-popover');
-    expect(popover).toBeTruthy();
-    expect(popover?.textContent).toContain('Embermark Dominion');
-    expect(popover?.textContent).toContain('Stormfang Clans');
-    expect(popover?.textContent).toContain('Verdant Wardens');
-
-    // Click another unit item in the popover
-    const unitButtons = popover?.querySelectorAll('.unit-grid-item');
-    expect(unitButtons && unitButtons.length).toBeGreaterThan(5);
-    const shieldbearer = [...(unitButtons || [])].find((btn) => btn.textContent?.includes('Shieldbearer'));
-    expect(shieldbearer).toBeTruthy();
-    click(shieldbearer!);
-
-    // Popover should close and trigger should update
-    expect(document.querySelector('.unit-grid-popover')).toBeNull();
-    expect(trigger.textContent).toContain('Shieldbearer');
-  });
-
-  it('adds villages under a defender player and shows the target coordinates and hit type in the route plan', () => {
-    const addDefender = [...container.querySelectorAll('.op-section-head .pill--primary')].find(
-      (b) => b.textContent?.includes('Add Defender'),
-    ) as HTMLElement;
-    expect(addDefender).toBeTruthy();
-    click(addDefender);
-
-    const groups = container.querySelectorAll('.op-target-group.is-player');
-    expect(groups).toHaveLength(2); // Initial Defender 1 + Defender 2
-
-    const group2 = groups[1] as HTMLElement;
-    expect(group2.textContent).toContain('0 villages');
-    const addVillage = [...group2.querySelectorAll('.pill--tiny')].find(
-      (b) => b.textContent?.includes('Village'),
-    ) as HTMLElement;
-    expect(addVillage).toBeTruthy();
-    click(addVillage);
-    expect(group2.textContent).toContain('1 village');
-
-    // Total 2 routes against single attacker (1 on Defender 1 + 1 on Defender 2)
-    const rows = [...container.querySelectorAll('.op-routes tbody tr')];
-    expect(rows).toHaveLength(2);
-    expect(container.textContent).toContain('Real (1)');
-    expect(container.textContent).toContain('Fake (1)');
-  });
-
-  it('sorts routes chronologically by Send time and includes seconds in send timestamps', () => {
-    const addVillageBtn = [...container.querySelectorAll('.op-target-group__actions .pill--tiny')].find(
-      (b) => b.textContent?.includes('Village'),
-    ) as HTMLElement;
-    expect(addVillageBtn).toBeTruthy();
-    click(addVillageBtn);
-
-    const rows = [...container.querySelectorAll('.op-routes tbody tr')];
-    expect(rows.length).toBe(2);
-    const sendTimestamps = rows.map((r) => r.querySelector('.op-timestamp--send')?.textContent || '');
-    expect(sendTimestamps.every((t) => /\d{2}:\d{2}:\d{2} UTC/.test(t))).toBe(true);
-
-    expect(container.querySelector('.op-timestamp--land')).toBeNull();
-  });
-
-  it('selects a route when clicking anywhere on a row and highlights relevant schedule lanes', () => {
-    const addAttackerBtn = [...container.querySelectorAll('.op-section-head .pill--primary')].find(
-      (b) => b.textContent?.includes('Add Attacker'),
-    ) as HTMLElement;
-    expect(addAttackerBtn).toBeTruthy();
-    click(addAttackerBtn);
-
-    const rows = [...container.querySelectorAll('.op-routes tbody tr')];
-    expect(rows.length).toBe(2);
-
-    // Click the 2nd row anywhere
-    click(rows[1]);
-
-    expect(rows[1].classList.contains('is-selected')).toBe(true);
-    expect(container.querySelector('.schedule__row.is-selected-lane')).toBeTruthy();
-  });
-
-  it('imports saved plan settings from URL hash correctly', () => {
-    const rawPlan = JSON.stringify({
-      landing: '2026-08-16T19:00',
-      serverSpeed: 3,
-      attackers: [
-        {
-          id: 'a1',
-          name: 'DrDoughnut',
-          x: 17,
-          y: -25,
-          unitRef: 'stormfang_clans/skullthrower',
-          artifactMultiplier: 1,
-          bannerfieldLevel: 9,
-          safeEnabled: true,
-          safeStart: '01:00',
-          safeEnd: '07:00',
-        },
-        {
-          id: 'ayhdwke',
-          name: 'Jezu',
-          x: 4,
-          y: 34,
-          unitRef: 'stormfang_clans/skullthrower',
-          artifactMultiplier: 1,
-          bannerfieldLevel: 0,
-          safeEnabled: false,
-          safeStart: '22:00',
-          safeEnd: '04:00',
-        },
-      ],
-      targets: [
-        {
-          id: 't1',
-          name: 'Froggy G',
-          x: -34,
-          y: -31,
-          safeEnabled: true,
-          safeStart: '04:30',
-          safeEnd: '10:30',
-        },
-        {
-          id: 't7enqa8',
-          name: 'Small cat',
-          x: -35,
-          y: -22,
-          safeEnabled: true,
-          safeStart: '04:30',
-          safeEnd: '10:30',
-        },
-      ],
-    });
-
+  const unlockV2 = async (roomCode = 'password123') => {
     act(() => {
-      window.location.hash = `#tool=operations&plan=${encodeURIComponent(rawPlan)}`;
+      window.location.hash = `#room=${encodeURIComponent(roomCode)}`;
+      window.dispatchEvent(new Event('hashchange'));
+    });
+    const roomConnectBtn = container.querySelector('.op-team-room-form button') as HTMLButtonElement;
+    if (roomConnectBtn) click(roomConnectBtn);
+
+    const start = Date.now();
+    while (!container.querySelector('.op-plan-tab') && !container.querySelector('.op-standby-panel')) {
+      if (Date.now() - start > 2000) break;
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 20));
+      });
+    }
+  };
+
+  it('renders the deprecated maintenance notice in public mode', () => {
+    expect(window.location.hash).toContain('tool=operations');
+    expect(container.textContent).toContain('Tool Deprecated');
+    expect(container.textContent).toContain('This tool has been deprecated and taken offline.');
+    expect(container.textContent).toContain('Calculations, route planning, and legacy share links are no longer supported.');
+    expect(container.querySelector('.op-team-room-bar')).toBeNull();
+    expect(container.querySelector('.secret-modal-card')).toBeNull();
+    expect(container.textContent).not.toContain('v2 Secret');
+    expect(container.querySelector('.op-routes')).toBeNull();
+  });
+
+  it('does not decrypt or calculate routes when opening legacy v1 links', () => {
+    const compact = 'v1_2026-08-16T19:00_3~a:DrDoughnut,17,-25,stormfang_clans/skullthrower,1,9,1,01:00-07:00~t:Froggy+G,-34,-31,1,04:30-10:30';
+    act(() => {
+      window.location.hash = `#tool=operations&p=${encodeURIComponent(compact)}`;
       window.dispatchEvent(new Event('hashchange'));
     });
 
-    expect(container.textContent).toContain('DrDoughnut');
-    expect(container.textContent).toContain('Jezu');
-    expect(container.textContent).toContain('Froggy G');
-    expect(container.textContent).toContain('Small cat');
-    expect(container.textContent.toLowerCase()).toContain('skullthrower');
+    expect(container.textContent).toContain('Tool Deprecated');
+    expect(container.textContent).not.toContain('DrDoughnut');
+    expect(container.textContent).not.toContain('Froggy G');
+    expect(container.querySelector('.op-routes')).toBeNull();
   });
 
-  it('decodes full custom user plan correctly from URL string', () => {
+  it('does not trigger Easter egg or modal upon repeated tab clicks', () => {
+    const opTab = [...container.querySelectorAll('.pill--tool')].find(
+      (b) => b.getAttribute('aria-label') === 'Operation Planner',
+    )!;
+    for (let i = 0; i < 15; i++) {
+      click(opTab);
+    }
+
+    expect(container.querySelector('.secret-modal-card')).toBeNull();
+    expect(container.textContent).not.toContain('v2 Secret');
+    expect(container.textContent).toContain('Tool Deprecated');
+  });
+
+  it('decodes full custom user plan correctly via decodeState utility', () => {
     const rawHash = '#tool=operations&plan=%7B%22landing%22%3A%222026-08-16T19%3A00%22%2C%22serverSpeed%22%3A3%2C%22attackers%22%3A%5B%7B%22id%22%3A%22a1%22%2C%22name%22%3A%22DrDoughnut%22%2C%22x%22%3A17%2C%22y%22%3A-25%2C%22unitRef%22%3A%22stormfang_clans%2Fskullthrower%22%2C%22artifactMultiplier%22%3A1%2C%22bannerfieldLevel%22%3A9%2C%22safeEnabled%22%3Atrue%2C%22safeStart%22%3A%2201%3A00%22%2C%22safeEnd%22%3A%2207%3A00%22%7D%2C%7B%22id%22%3A%22ayhdwke%22%2C%22name%22%3A%22Jezu%22%2C%22x%22%3A4%2C%22y%22%3A34%2C%22unitRef%22%3A%22stormfang_clans%2Fskullthrower%22%2C%22artifactMultiplier%22%3A1%2C%22bannerfieldLevel%22%3A0%2C%22safeEnabled%22%3Afalse%2C%22safeStart%22%3A%2222%3A00%22%2C%22safeEnd%22%3A%2204%3A00%22%7D%5D%2C%22targets%22%3A%5B%7B%22id%22%3A%22t1%22%2C%22name%22%3A%22Froggy+G%22%2C%22x%22%3A-34%2C%22y%22%3A-31%2C%22safeEnabled%22%3Atrue%2C%22safeStart%22%3A%2204%3A30%22%2C%22safeEnd%22%3A%2210%3A30%22%7D%2C%7B%22id%22%3A%22t7enqa8%22%2C%22name%22%3A%22Small+cat%22%2C%22x%22%3A-35%2C%22y%22%3A-22%2C%22safeEnabled%22%3Atrue%2C%22safeStart%22%3A%2204%3A30%22%2C%22safeEnd%22%3A%2210%3A30%22%7D%2C%7B%22id%22%3A%22tqp3lq9%22%2C%22name%22%3A%22Petrgon%22%2C%22x%22%3A-8%2C%22y%22%3A-46%2C%22safeEnabled%22%3Atrue%2C%22safeStart%22%3A%2222%3A45%22%2C%22safeEnd%22%3A%2204%3A00%22%7D%2C%7B%22id%22%3A%22t0ldztq%22%2C%22name%22%3A%22Dangerdoom%22%2C%22x%22%3A-42%2C%22y%22%3A-21%2C%22safeEnabled%22%3Atrue%2C%22safeStart%22%3A%2217%3A00%22%2C%22safeEnd%22%3A%2223%3A00%22%7D%5D%7D';
     const decoded = decodeState(rawHash);
     expect(decoded.landing).toBe('2026-08-16T19:00');
@@ -560,250 +444,30 @@ describe('the operation planner', () => {
     expect(decoded.targets[3].name).toBe('Dangerdoom');
   });
 
-  it('imports compact plan string via hashchange', () => {
-    const compact = 'v1_2026-08-16T19:00_3~a:DrDoughnut,17,-25,stormfang_clans/skullthrower,1,9,1,01:00-07:00~a:Jezu,4,34,stormfang_clans/skullthrower,1,0,0,22:00-04:00~t:Froggy+G,-34,-31,1,04:30-10:30~t:Dangerdoom,-42,-21,1,17:00-23:00';
-    act(() => {
-      window.location.hash = `#tool=operations&p=${encodeURIComponent(compact)}`;
-      window.dispatchEvent(new Event('hashchange'));
-    });
+  it('keeps public mode deprecated with no Easter egg, and unlocks v2 mode directly via room link', async () => {
+    // Public mode displays deprecated notice
+    expect(container.textContent).toContain('Tool Deprecated');
+    expect(container.querySelector('.op-team-room-bar')).toBeNull();
 
-    expect(container.textContent).toContain('DrDoughnut');
-    expect(container.textContent).toContain('Jezu');
-    expect(container.textContent).toContain('Froggy G');
-    expect(container.textContent).toContain('Dangerdoom');
-  });
-
-  it('selects route when clicking on attacker or defender timeline lane in daily schedule', () => {
-    const compact = 'v1_2026-08-16T19:00_3~a:DrDoughnut,17,-25,stormfang_clans/skullthrower,1,9,1,01:00-07:00~a:Jezu,4,34,stormfang_clans/skullthrower,1,0,0,22:00-04:00~t:Froggy+G,-34,-31,1,04:30-10:30~t:Dangerdoom,-42,-21,1,17:00-23:00';
-    act(() => {
-      window.location.hash = `#tool=operations&p=${encodeURIComponent(compact)}`;
-      window.dispatchEvent(new Event('hashchange'));
-    });
-
-    // Find the schedule section and verify initial selected route
-    const schedule = container.querySelector('.op-schedule')!;
-    expect(schedule).toBeTruthy();
-    expect(schedule.textContent).toContain('Daily safe-time schedule · UTC');
-
-    // Click on Dangerdoom (Defender 2) lane inside the schedule
-    const defenderLanes = Array.from(schedule.querySelectorAll('.schedule__row--defender.schedule__row--interactive'));
-    const dangerdoomLane = defenderLanes.find((el) => el.textContent?.includes('Dangerdoom')) as HTMLElement;
-    expect(dangerdoomLane).toBeTruthy();
-
-    act(() => {
-      dangerdoomLane.click();
-    });
-
-    expect(dangerdoomLane.classList.contains('is-selected-lane')).toBe(true);
-  });
-
-  it('filters route plans by Attacker, Target, Viability status, and Attack type', () => {
-    const compact = 'v1_2026-08-16T19:00_3~a:DrDoughnut,17,-25,stormfang_clans/skullthrower,1,9,1,01:00-07:00~a:Jezu,4,34,stormfang_clans/skullthrower,1,0,0,22:00-04:00~t:Froggy+G,-34,-31,1,04:30-10:30~t:Dangerdoom,-42,-21,1,17:00-23:00';
-    act(() => {
-      window.location.hash = `#tool=operations&p=${encodeURIComponent(compact)}`;
-      window.dispatchEvent(new Event('hashchange'));
-    });
-
-    expect(container.querySelectorAll('.op-routes tbody tr')).toHaveLength(4);
-
-    // Filter by Attacker: DrDoughnut
-    const attackerFilter = container.querySelectorAll('.op-select-filter')[0] as HTMLSelectElement;
-    expect(attackerFilter).toBeTruthy();
-    act(() => {
-      attackerFilter.value = 'a1';
-      attackerFilter.dispatchEvent(new Event('change', { bubbles: true }));
-    });
-    expect(container.querySelectorAll('.op-routes tbody tr')).toHaveLength(2);
-
-    // Reset filter
-    act(() => {
-      attackerFilter.value = 'all';
-      attackerFilter.dispatchEvent(new Event('change', { bubbles: true }));
-    });
-    expect(container.querySelectorAll('.op-routes tbody tr')).toHaveLength(4);
-
-    // Filter by Viability: Blocked only
-    const blockedBtn = container.querySelector('.pill--blocked-filter') as HTMLElement;
-    expect(blockedBtn).toBeTruthy();
-    click(blockedBtn);
-    const blockedRows = container.querySelectorAll('.op-routes tbody tr');
-    expect(blockedRows.length).toBeGreaterThan(0);
-    expect(Array.from(blockedRows).every((r) => r.classList.contains('is-blocked'))).toBe(true);
-  });
-
-  it('renders countdown ticker and alarm controls sharing route filters', () => {
-    expect(container.querySelector('.op-alarm-toolbar')).toBeTruthy();
-    const alarmBtn = container.querySelector('.pill--alarm') as HTMLElement;
-    expect(alarmBtn).toBeTruthy();
-    expect(alarmBtn.textContent).toContain('Alarm: ON');
-
-    // Designated alarm army dropdown selector
-    const alarmSelect = container.querySelector('.op-alarm-select') as HTMLSelectElement;
-    expect(alarmSelect).toBeNull();
-    expect(container.querySelector('[aria-label="Filter routes by attacker"]')).toBeTruthy();
-
-    // Toggle mute
-    click(alarmBtn);
-    expect(alarmBtn.textContent).toContain('Alarm: Muted');
-
-    // Launch In column in table header
-    const ths = Array.from(container.querySelectorAll('.op-routes th')).map((th) => th.textContent);
-    expect(ths).toContain('Launch In');
-    expect(container.querySelector('.op-countdown-tag')).toBeTruthy();
-  });
-
-  it('displays warning banner and Launch In warning tags when attacks by the same player are under 10 seconds apart', () => {
-    // Plan with 1 attacker village targeting two targets at virtually identical distances (e.g. (10, 0) and (-10, 0) from (0, 0))
-    // Travel times will be identical (0 seconds difference), triggering the <10s clash warning (future landing date)
-    const futureLanding = new Date(Date.now() + 86400000 * 5).toISOString().slice(0, 16);
-    const compact = `v1_${futureLanding}_3~a:AttackerA,0,0,stormfang_clans/skullthrower,1,0,0,22:00-04:00~t:Target1,10,0,0,04:30-10:30~t:Target2,-10,0,0,04:30-10:30`;
-    act(() => {
-      window.location.hash = `#tool=operations&p=${encodeURIComponent(compact)}`;
-      window.dispatchEvent(new Event('hashchange'));
-    });
-
-    // Top warning banner must be visible
-    const clashBanner = container.querySelector('.op-route-clash-banner');
-    expect(clashBanner).toBeTruthy();
-    expect(clashBanner?.textContent).toContain('2 sends less than 10s apart');
-
-    // Both clashing routes must display the <10s clash tag in the Launch In column
-    const clashTags = container.querySelectorAll('.op-launch-clash-tag');
-    expect(clashTags.length).toBe(2);
-    expect(clashTags[0].textContent).toContain('<10s');
-    expect(clashTags[1].textContent).toContain('<10s');
-  });
-
-  it('shows confirmation popup before deleting attacker army, defender account, or target village', () => {
-    // Add an attacker
-    const addAtkBtn = [...container.querySelectorAll('.op-section button')].find(
-      (b) => b.textContent?.includes('+ Add Attacker')
-    ) as HTMLElement;
-    expect(addAtkBtn).toBeTruthy();
-    click(addAtkBtn);
-
-    expect(container.querySelectorAll('.op-strip-card--attacker')).toHaveLength(2);
-
-    // Click delete on the second attacker
-    const deleteAtkBtns = container.querySelectorAll('.op-strip-card--attacker .op-remove-danger');
-    expect(deleteAtkBtns.length).toBe(2);
-    click(deleteAtkBtns[1] as HTMLElement);
-
-    // Confirm modal should appear
-    const atkConfirmModal = container.querySelector('.op-modal.op-modal--compact');
-    expect(atkConfirmModal).toBeTruthy();
-    expect(atkConfirmModal?.textContent).toContain('Delete Attacker Army');
-
-    // Cancel deletion
-    const cancelBtn = [...container.querySelectorAll('.op-modal--compact button')].find(
-      (b) => b.textContent?.includes('Cancel')
-    ) as HTMLElement;
-    expect(cancelBtn).toBeTruthy();
-    click(cancelBtn);
-    expect(container.querySelector('.op-modal.op-modal--compact')).toBeNull();
-    expect(container.querySelectorAll('.op-strip-card--attacker')).toHaveLength(2);
-
-    // Delete and confirm
-    const deleteAtkBtnsAgain = container.querySelectorAll('.op-strip-card--attacker .op-remove-danger');
-    click(deleteAtkBtnsAgain[1] as HTMLElement);
-    const confirmDeleteAtkBtn = [...container.querySelectorAll('.op-modal--compact button')].find(
-      (b) => b.textContent?.includes('Delete Army')
-    ) as HTMLElement;
-    expect(confirmDeleteAtkBtn).toBeTruthy();
-    click(confirmDeleteAtkBtn);
-
-    // Now second attacker is removed
-    expect(container.querySelectorAll('.op-strip-card--attacker')).toHaveLength(1);
-
-    // Add defender account
-    const addDefBtn = [...container.querySelectorAll('.op-section button')].find(
-      (b) => b.textContent?.includes('+ Add Defender')
-    ) as HTMLElement;
-    expect(addDefBtn).toBeTruthy();
-    click(addDefBtn);
-    expect(container.querySelectorAll('.op-target-group.is-player')).toHaveLength(2);
-
-    // Click Delete Account on the second defender
-    const groups = container.querySelectorAll('.op-target-group.is-player');
-    const deleteAccountBtn2 = groups[1].querySelector('.op-remove-danger') as HTMLElement;
-    expect(deleteAccountBtn2).toBeTruthy();
-    click(deleteAccountBtn2);
-
-    // Account confirm modal appears
-    const defConfirmModal = container.querySelector('.op-modal.op-modal--compact');
-    expect(defConfirmModal).toBeTruthy();
-    expect(defConfirmModal?.textContent).toContain('Delete Defender Account');
-
-    // Confirm deletion
-    const confirmDeleteAccBtn = [...container.querySelectorAll('.op-modal--compact button')].find(
-      (b) => b.textContent?.includes('Delete Account')
-    ) as HTMLElement;
-    expect(confirmDeleteAccBtn).toBeTruthy();
-    click(confirmDeleteAccBtn);
-    expect(container.querySelectorAll('.op-target-group.is-player')).toHaveLength(1);
-  });
-
-  it('keeps Team Room bar hidden in v1, and unlocks Top Secret v2 mode after clicking Operation Planner tab 10 times', () => {
+    // Clicking 10 times does not pop up any modal or Easter egg
     const opTab = [...container.querySelectorAll('.pill--tool')].find(
       (b) => b.getAttribute('aria-label') === 'Operation Planner',
     )!;
-    expect(opTab).toBeTruthy();
-
-    // Initially hidden in v1
-    expect(container.querySelector('.op-team-room-bar')).toBeNull();
-
-    // Click 10 times on the Operation Planner tab
     for (let i = 0; i < 10; i++) {
       click(opTab);
     }
+    expect(container.querySelector('.secret-modal-card')).toBeNull();
 
-    // Modal pops up with classified animation & title
-    const secretModal = container.querySelector('.secret-modal-card');
-    expect(secretModal).toBeTruthy();
-    expect(secretModal?.textContent).toContain('Top Secret Planner v2 Unlocked');
-    expect(secretModal?.textContent).toContain('CLASSIFIED PROTOCOL');
+    // Entering via room hash unlocks v2
+    await unlockV2('password123');
 
-    // Enter room passcode in the modal and submit
-    const modalInput = container.querySelector('.secret-modal-input') as HTMLInputElement;
-    expect(modalInput).toBeTruthy();
-    setInputValue(modalInput, 'password123');
-    const connectBtn = container.querySelector('.secret-modal-btn-connect') as HTMLButtonElement;
-    click(connectBtn);
-
-    // Now unlocked on page!
     const roomBar = container.querySelector('.op-team-room-bar');
     expect(roomBar).toBeTruthy();
     expect(roomBar?.textContent).toContain('Team Room');
-
-    const input = container.querySelector('.op-team-room-input') as HTMLInputElement;
-    expect(input).toBeTruthy();
-    expect(container.textContent).toContain('v2 Secret');
   });
 
   it('toggles attackers and targets between active and benched states, updating route count in v2 mode', async () => {
-    const opTab = [...container.querySelectorAll('.pill--tool')].find(
-      (b) => b.getAttribute('aria-label') === 'Operation Planner',
-    )!;
-    for (let i = 0; i < 10; i++) {
-      click(opTab);
-    }
-    const modalInput = container.querySelector('.secret-modal-input') as HTMLInputElement;
-    if (modalInput) {
-      setInputValue(modalInput, 'password123');
-      const connectBtn = container.querySelector('.secret-modal-btn-connect') as HTMLButtonElement;
-      click(connectBtn);
-    }
-
-    const roomConnectBtn = container.querySelector('.op-team-room-form button') as HTMLButtonElement;
-    if (roomConnectBtn) click(roomConnectBtn);
-
-    const start = Date.now();
-    while (!container.querySelector('.op-plan-tab')) {
-      if (Date.now() - start > 2000) break;
-      await act(async () => {
-        await new Promise((r) => setTimeout(r, 20));
-      });
-    }
+    await unlockV2('password123');
 
     // When first entering secret mode, no operation is open by default.
     expect(container.querySelector('.op-standby-panel')).toBeTruthy();
@@ -861,29 +525,7 @@ describe('the operation planner', () => {
   });
 
   it('keeps routes clean and shows selected send times when returning to scheduling', async () => {
-    const opTab = [...container.querySelectorAll('.pill--tool')].find(
-      (b) => b.getAttribute('aria-label') === 'Operation Planner',
-    )!;
-    for (let i = 0; i < 10; i++) {
-      click(opTab);
-    }
-    const modalInput = container.querySelector('.secret-modal-input') as HTMLInputElement;
-    if (modalInput) {
-      setInputValue(modalInput, 'password123');
-      const connectBtn = container.querySelector('.secret-modal-btn-connect') as HTMLButtonElement;
-      click(connectBtn);
-    }
-
-    const roomConnectBtn = container.querySelector('.op-team-room-form button') as HTMLButtonElement;
-    if (roomConnectBtn) click(roomConnectBtn);
-
-    const start = Date.now();
-    while (!container.querySelector('.op-plan-tab')) {
-      if (Date.now() - start > 2000) break;
-      await act(async () => {
-        await new Promise((r) => setTimeout(r, 20));
-      });
-    }
+    await unlockV2('password123');
 
     // Open first operation wave
     const firstOpTab = container.querySelector('.op-plan-tab') as HTMLElement;
@@ -931,30 +573,7 @@ describe('the operation planner', () => {
   });
 
   it('enforces 5-minute slider steps and highlights safetime blocked defenders in scheduling and targets steps', async () => {
-    const opTab = [...container.querySelectorAll('.pill--tool')].find(
-      (b) => b.getAttribute('aria-label') === 'Operation Planner',
-    )!;
-    for (let i = 0; i < 10; i++) {
-      click(opTab);
-    }
-
-    const modalInput = container.querySelector('.secret-modal-input') as HTMLInputElement;
-    if (modalInput) {
-      setInputValue(modalInput, 'password123');
-      const connectBtn = container.querySelector('.secret-modal-btn-connect') as HTMLButtonElement;
-      click(connectBtn);
-    }
-
-    const roomConnectBtn = container.querySelector('.op-team-room-form button') as HTMLButtonElement;
-    if (roomConnectBtn) click(roomConnectBtn);
-
-    const start = Date.now();
-    while (!container.querySelector('.op-plan-tab')) {
-      if (Date.now() - start > 2000) break;
-      await act(async () => {
-        await new Promise((r) => setTimeout(r, 20));
-      });
-    }
+    await unlockV2('password123');
 
     const firstOpTab = container.querySelector('.op-plan-tab') as HTMLElement;
     expect(firstOpTab).toBeTruthy();
@@ -998,30 +617,7 @@ describe('the operation planner', () => {
         json: async () => ({ result: null }),
       });
 
-      const opTab = [...container.querySelectorAll('.pill--tool')].find(
-        (b) => b.getAttribute('aria-label') === 'Operation Planner',
-      )!;
-      for (let i = 0; i < 10; i++) {
-        click(opTab);
-      }
-
-      const modalInput = container.querySelector('.secret-modal-input') as HTMLInputElement;
-      if (modalInput) {
-        setInputValue(modalInput, 'password123');
-        const connectBtn = container.querySelector('.secret-modal-btn-connect') as HTMLButtonElement;
-        click(connectBtn);
-      }
-
-      const roomConnectBtn = container.querySelector('.op-team-room-form button') as HTMLButtonElement;
-      if (roomConnectBtn) click(roomConnectBtn);
-
-      const start = Date.now();
-      while (!container.querySelector('.op-plan-tab')) {
-        if (Date.now() - start > 2000) break;
-        await act(async () => {
-          await new Promise((r) => setTimeout(r, 20));
-        });
-      }
+      await unlockV2('password123');
 
       // Verify connected room tag is visible
       const connectedTag = container.querySelector('.op-team-room-connected-tag');
@@ -1043,8 +639,19 @@ describe('the operation planner', () => {
     }
   });
 
-  it('supports toggling Capital, City, and Artifact on villages in Target Directory', () => {
-    // In v1 Operation Planner, Defender accounts and villages are rendered in .op-defenders-list
+  it('supports toggling Capital, City, and Artifact on villages in Target Directory', async () => {
+    await unlockV2('password123');
+
+    // Open Enemy Target Directory modal
+    const targetsBtn = container.querySelector('.op-v2-roster-card--targets') as HTMLButtonElement;
+    expect(targetsBtn).toBeTruthy();
+    click(targetsBtn);
+
+    // Expand defender villages
+    const expandBtn = container.querySelector('.op-group-dropdown-btn') as HTMLButtonElement;
+    if (expandBtn) click(expandBtn);
+
+    // Defender accounts and villages are rendered in .op-defenders-list inside modal
     const capBtn = container.querySelector('.op-village-tag-btn--cap') as HTMLButtonElement;
     expect(capBtn).toBeTruthy();
     expect(capBtn.classList.contains('is-active')).toBe(false);
@@ -1087,30 +694,7 @@ describe('the operation planner', () => {
     });
 
     try {
-      const opTab = [...container.querySelectorAll('.pill--tool')].find(
-        (b) => b.getAttribute('aria-label') === 'Operation Planner',
-      )!;
-      for (let i = 0; i < 10; i++) {
-        click(opTab);
-      }
-
-      const modalInput = container.querySelector('.secret-modal-input') as HTMLInputElement;
-      if (modalInput) {
-        setInputValue(modalInput, 'import_test_room');
-        const connectBtn = container.querySelector('.secret-modal-btn-connect') as HTMLButtonElement;
-        click(connectBtn);
-      }
-
-      const roomConnectBtn = container.querySelector('.op-team-room-form button') as HTMLButtonElement;
-      if (roomConnectBtn) click(roomConnectBtn);
-
-      const start = Date.now();
-      while (!container.querySelector('.pill--import-btn')) {
-        if (Date.now() - start > 2000) break;
-        await act(async () => {
-          await new Promise((r) => setTimeout(r, 20));
-        });
-      }
+      await unlockV2('import_test_room');
 
       // Open Import Plan modal
       const importBtn = container.querySelector('.pill--import-btn') as HTMLButtonElement;
@@ -1234,30 +818,7 @@ describe('the operation planner', () => {
   });
 
   it('supports normal vs siege speed toggle on individual routes and renders compact participant badges', async () => {
-    const opTab = [...container.querySelectorAll('.pill--tool')].find(
-      (b) => b.getAttribute('aria-label') === 'Operation Planner',
-    )!;
-    for (let i = 0; i < 10; i++) {
-      click(opTab);
-    }
-
-    const modalInput = container.querySelector('.secret-modal-input') as HTMLInputElement;
-    if (modalInput) {
-      setInputValue(modalInput, 'password123');
-      const connectBtn = container.querySelector('.secret-modal-btn-connect') as HTMLButtonElement;
-      click(connectBtn);
-    }
-
-    const roomConnectBtn = container.querySelector('.op-team-room-form button') as HTMLButtonElement;
-    if (roomConnectBtn) click(roomConnectBtn);
-
-    const start = Date.now();
-    while (!container.querySelector('.op-plan-tab')) {
-      if (Date.now() - start > 2000) break;
-      await act(async () => {
-        await new Promise((r) => setTimeout(r, 20));
-      });
-    }
+    await unlockV2('password123');
 
     const firstOpTab = container.querySelector('.op-plan-tab') as HTMLElement;
     expect(firstOpTab).toBeTruthy();
@@ -1300,30 +861,7 @@ describe('the operation planner', () => {
   });
 
   it('properly rechecks safetimes with new send times when siege mode is toggled', async () => {
-    const opTab = [...container.querySelectorAll('.pill--tool')].find(
-      (b) => b.getAttribute('aria-label') === 'Operation Planner',
-    )!;
-    for (let i = 0; i < 10; i++) {
-      click(opTab);
-    }
-
-    const modalInput = container.querySelector('.secret-modal-input') as HTMLInputElement;
-    if (modalInput) {
-      setInputValue(modalInput, 'password123');
-      const connectBtn = container.querySelector('.secret-modal-btn-connect') as HTMLButtonElement;
-      click(connectBtn);
-    }
-
-    const roomConnectBtn = container.querySelector('.op-team-room-form button') as HTMLButtonElement;
-    if (roomConnectBtn) click(roomConnectBtn);
-
-    const start = Date.now();
-    while (!container.querySelector('.op-plan-tab')) {
-      if (Date.now() - start > 2000) break;
-      await act(async () => {
-        await new Promise((r) => setTimeout(r, 20));
-      });
-    }
+    await unlockV2('password123');
 
     // Open Alliance Hammer Directory to set safe hours on the member
     const armiesBtn = [...container.querySelectorAll('button')].find(
@@ -1422,30 +960,7 @@ describe('the operation planner', () => {
 
   it('supports draft vs ready operations with divider, edit locking, and emergency unlock', async () => {
     // Unlock v2 mode
-    const navBtn = [...container.querySelectorAll('.pill--tool')].find(
-      (b) => b.getAttribute('aria-label') === 'Operation Planner',
-    ) as HTMLButtonElement;
-    for (let i = 0; i < 10; i++) {
-      click(navBtn);
-    }
-
-    const modalInput = container.querySelector('.secret-modal-input') as HTMLInputElement;
-    if (modalInput) {
-      setInputValue(modalInput, 'password123');
-      const connectBtn = container.querySelector('.secret-modal-btn-connect') as HTMLButtonElement;
-      click(connectBtn);
-    }
-
-    const roomConnectBtn = container.querySelector('.op-team-room-form button') as HTMLButtonElement;
-    if (roomConnectBtn) click(roomConnectBtn);
-
-    const start = Date.now();
-    while (!container.querySelector('.op-plan-tab')) {
-      if (Date.now() - start > 2000) break;
-      await act(async () => {
-        await new Promise((r) => setTimeout(r, 20));
-      });
-    }
+    await unlockV2('password123');
 
     // Initial state: Operation 1 is Draft (listed in Drafts group, with no draft tag cluttering the tab name)
     const opTabs = container.querySelectorAll('.op-plan-tab');
@@ -1521,30 +1036,7 @@ describe('the operation planner', () => {
 
   it('supports player race filter in the Alliance Hammer Directory and filters unit picker to race', async () => {
     // Unlock v2 mode
-    const navBtn = [...container.querySelectorAll('.pill--tool')].find(
-      (b) => b.getAttribute('aria-label') === 'Operation Planner',
-    ) as HTMLButtonElement;
-    for (let i = 0; i < 10; i++) {
-      click(navBtn);
-    }
-
-    const modalInput = container.querySelector('.secret-modal-input') as HTMLInputElement;
-    if (modalInput) {
-      setInputValue(modalInput, 'password123');
-      const connectBtn = container.querySelector('.secret-modal-btn-connect') as HTMLButtonElement;
-      click(connectBtn);
-    }
-
-    const roomConnectBtn = container.querySelector('.op-team-room-form button') as HTMLButtonElement;
-    if (roomConnectBtn) click(roomConnectBtn);
-
-    const start = Date.now();
-    while (!container.querySelector('.op-plan-tab')) {
-      if (Date.now() - start > 2000) break;
-      await act(async () => {
-        await new Promise((r) => setTimeout(r, 20));
-      });
-    }
+    await unlockV2('password123');
 
     // Open Alliance Hammer Directory
     const armiesBtn = [...container.querySelectorAll('button')].find(

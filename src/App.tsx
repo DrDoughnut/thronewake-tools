@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { Changelog } from './components/Changelog';
-import { SecretUnlockModal } from './components/SecretUnlockModal';
 import { APP_VERSION } from './data/changelog';
 import { ArmyCalculator } from './pages/ArmyCalculator';
 import { BuildingStats } from './pages/BuildingStats';
@@ -17,28 +16,7 @@ interface Tool {
   icon: string;
   blurb: string;
   footer: string;
-  render: (v2Unlocked?: boolean) => JSX.Element;
-}
-
-function playTapBlip(count: number) {
-  try {
-    const AudioContextClass =
-      window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    if (!AudioContextClass) return;
-    const ctx = new AudioContextClass();
-    if (ctx.state === 'suspended') ctx.resume();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(380 + count * 70, ctx.currentTime);
-    gain.gain.setValueAtTime(0, ctx.currentTime);
-    gain.gain.linearRampToValueAtTime(0.60, ctx.currentTime + 0.01);
-    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.08);
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.09);
-  } catch {}
+  render: (v2Unlocked?: boolean, onExitV2?: () => void) => JSX.Element;
 }
 
 const TOOLS: Tool[] = [
@@ -79,7 +57,7 @@ const TOOLS: Tool[] = [
     blurb:
       'Coordinate launch times across alliance members to land attacks simultaneously, respecting each player’s safe hours.',
     footer: '',
-    render: (v2) => <OperationPlanner isV2Unlocked={v2} />,
+    render: (v2, onExitV2) => <OperationPlanner isV2Unlocked={v2} onExitV2={onExitV2} />,
   },
   {
     key: 'defense',
@@ -137,9 +115,6 @@ export default function App() {
       return false;
     }
   });
-  const [, setOpClickCount] = useState<number>(0);
-  const [secretToast, setSecretToast] = useState<string | null>(null);
-  const [isSecretModalOpen, setIsSecretModalOpen] = useState(false);
   const [roomInviteCode, setRoomInviteCode] = useState<string | null>(() => {
     try {
       const params = new URLSearchParams(window.location.hash.replace(/^#/, ''));
@@ -180,47 +155,7 @@ export default function App() {
   };
 
   const handleToolClick = (key: string) => {
-    if (key === 'operations') {
-      setOpClickCount((prev) => {
-        const nextCount = prev + 1;
-        if (nextCount >= 3 && nextCount < 10) {
-          playTapBlip(nextCount);
-          setSecretToast(`🔓 Decrypting Protocol... [${nextCount}/10 clicks]`);
-        }
-        if (nextCount >= 10) {
-          if (v2Unlocked) {
-            try {
-              localStorage.removeItem(StorageKeys.V2_UNLOCKED);
-              localStorage.removeItem('thronewake.teamroom.session');
-            } catch {}
-            setV2Unlocked(false);
-            setSecretToast('🔒 Operation Planner v2 Locked (Standard Mode Active)');
-            setTimeout(() => setSecretToast(null), 4000);
-          } else {
-            setIsSecretModalOpen(true);
-          }
-          return 0;
-        }
-        return nextCount;
-      });
-    } else {
-      setOpClickCount(0);
-      setSecretToast(null);
-    }
     select(key);
-  };
-
-  const handleConnectSecretRoom = (passcode: string) => {
-    try {
-      localStorage.setItem(StorageKeys.V2_UNLOCKED, '1');
-      localStorage.setItem('thronewake.teamroom.session', passcode);
-    } catch {}
-    setV2Unlocked(true);
-    setRoomInviteCode(null);
-    setSecretToast('🕵️ TOP SECRET V2 PROTOCOL ACTIVATED');
-    setTimeout(() => setSecretToast(null), 4000);
-    window.history.replaceState(null, '', `${window.location.pathname}#room=${encodeURIComponent(passcode)}`);
-    select('operations');
   };
 
   useEffect(() => {
@@ -240,16 +175,11 @@ export default function App() {
   const tool = TOOLS.find((t) => t.key === toolKey) ?? TOOLS[0];
 
   useEffect(() => {
-    document.title = `Thronewake Tools — ${tool.name}${tool.key === 'operations' && v2Unlocked ? ' (v2 Secret)' : ''}`;
-  }, [tool.name, tool.key, v2Unlocked]);
+    document.title = `Thronewake Tools — ${tool.name}`;
+  }, [tool.name]);
 
   return (
     <div className="app">
-      {secretToast && (
-        <div className="secret-toast" role="status" aria-live="polite">
-          {secretToast}
-        </div>
-      )}
 
       <header className="app__header">
         <div className="app__header-top">
@@ -269,20 +199,25 @@ export default function App() {
               </span>
               <span className="brand__tool">
                 {tool.name}
-                {tool.key === 'operations' && v2Unlocked && (
-                  <span className="secret-badge-tag" title="Top Secret Mode is Active. Click 10x on tab to re-lock.">
-                    🕵️ v2 Secret
-                  </span>
-                )}
               </span>
             </div>
           </div>
 
           <nav className="toolbar" aria-label="Tools">
             {TOOLS.map((t) => {
-              const href = t.key === 'operations' && roomInviteCode
-                ? `#room=${encodeURIComponent(roomInviteCode)}`
-                : `#tool=${t.key}`;
+              const savedRoom = v2Unlocked
+                ? (() => {
+                    try {
+                      return localStorage.getItem('thronewake.teamroom.session') || roomInviteCode;
+                    } catch {
+                      return null;
+                    }
+                  })()
+                : null;
+              const href =
+                t.key === 'operations' && savedRoom
+                  ? `#room=${encodeURIComponent(savedRoom)}`
+                  : `#tool=${t.key}`;
               return (
                 <a
                   key={t.key}
@@ -315,7 +250,7 @@ export default function App() {
 
       {/* Remounting on tool change keeps each tool's URL state hook isolated. */}
       <div key={`${tool.key}-${tool.key === 'operations' ? String(v2Unlocked) : 'static'}`}>
-        {tool.render(v2Unlocked)}
+        {tool.render(v2Unlocked, () => setV2Unlocked(false))}
       </div>
 
       {tool.footer && (
@@ -328,13 +263,6 @@ export default function App() {
       )}
 
       {showChangelog && <Changelog onClose={() => setShowChangelog(false)} />}
-
-      <SecretUnlockModal
-        isOpen={isSecretModalOpen}
-        initialPasscode={roomInviteCode || ''}
-        onClose={() => setIsSecretModalOpen(false)}
-        onConnectRoom={handleConnectSecretRoom}
-      />
     </div>
   );
 }
