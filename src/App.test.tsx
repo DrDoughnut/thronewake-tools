@@ -472,17 +472,18 @@ describe('the operation planner', () => {
     expect(container.querySelector('.op-routes')).toBeNull();
   });
 
-  it('does not trigger Easter egg or modal upon repeated tab clicks', () => {
+  it('triggers Easter egg decrypting sequence and opens modal upon 10 clicks', () => {
     const opTab = [...container.querySelectorAll('.pill--tool')].find(
       (b) => b.getAttribute('aria-label') === 'Operation Planner',
     )!;
-    for (let i = 0; i < 15; i++) {
+    // 1 click occurred in beforeEach. Click 8 more times (9 total): modal is still closed
+    for (let i = 0; i < 8; i++) {
       click(opTab);
     }
-
     expect(container.querySelector('.secret-modal-card')).toBeNull();
-    expect(container.textContent).not.toContain('v2 Secret');
-    expect(container.textContent).toContain('Tool Deprecated');
+
+    click(opTab); // 10th total click opens modal
+    expect(container.querySelector('.secret-modal-card')).toBeTruthy();
   });
 
   it('decodes full custom user plan correctly via decodeState utility', () => {
@@ -502,26 +503,30 @@ describe('the operation planner', () => {
     expect(decoded.targets[3].name).toBe('Dangerdoom');
   });
 
-  it('keeps public mode deprecated with no Easter egg, and unlocks v2 mode directly via room link', async () => {
-    // Public mode displays deprecated notice
-    expect(container.textContent).toContain('Tool Deprecated');
-    expect(container.querySelector('.op-team-room-bar')).toBeNull();
-
-    // Clicking 10 times does not pop up any modal or Easter egg
+  it('unlocks v2 mode via secret modal passcode and locks back after 10 clicks', async () => {
     const opTab = [...container.querySelectorAll('.pill--tool')].find(
       (b) => b.getAttribute('aria-label') === 'Operation Planner',
     )!;
     for (let i = 0; i < 10; i++) {
       click(opTab);
     }
+    expect(container.querySelector('.secret-modal-card')).toBeTruthy();
+
+    const input = container.querySelector('.secret-modal-input') as HTMLInputElement;
+    setInputValue(input, 'secret-pass-123');
+
+    const connectBtn = container.querySelector('.secret-modal-btn-connect') as HTMLButtonElement;
+    click(connectBtn);
+
+    // Modal closes and room bar indicates secret mode
     expect(container.querySelector('.secret-modal-card')).toBeNull();
+    expect(container.textContent).toContain('v2 Secret');
 
-    // Entering via room hash unlocks v2
-    await unlockV2('password123');
-
-    const roomBar = container.querySelector('.op-team-room-bar');
-    expect(roomBar).toBeTruthy();
-    expect(roomBar?.textContent).toContain('Team Room');
+    // Clicking 10 times re-locks
+    for (let i = 0; i < 10; i++) {
+      click(opTab);
+    }
+    expect(container.textContent).not.toContain('v2 Secret');
   });
 
   it('toggles attackers and targets between active and benched states, updating route count in v2 mode', async () => {
