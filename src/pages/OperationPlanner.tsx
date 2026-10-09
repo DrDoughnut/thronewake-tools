@@ -89,6 +89,7 @@ interface Target extends SafeTimeOwner {
   isCapital?: boolean;
   isCity?: boolean;
   artifactName?: string;
+  isMonument?: boolean;
 }
 
 interface PlannerState {
@@ -238,6 +239,7 @@ export function decodeState(rawHash?: string): PlannerState {
         safeEnd: tgt.safeEnd || '04:00',
         isCapital: Boolean(tgt.isCapital),
         isCity: Boolean(tgt.isCity),
+        isMonument: Boolean(tgt.isMonument),
         artifactName: tgt.artifactName || '',
       }));
 
@@ -328,6 +330,7 @@ export function decodeState(rawHash?: string): PlannerState {
             safeEnd: safe.safeEnd,
             isCapital: legacyMeta.isCapital,
             isCity: legacyMeta.isCity,
+            isMonument: legacyMeta.isMonument,
             artifactName: legacyMeta.artifactName,
           };
         });
@@ -603,7 +606,9 @@ function SafetimeCheckCell({
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
   const triggerRef = useRef<HTMLDivElement>(null);
 
-  const defenderWindowText = route.targetSafe.safeEnabled
+  const defenderWindowText = route.target.isMonument
+    ? `${route.target.name} is an Ancient Monument (safe hours bypassed)`
+    : route.targetSafe.safeEnabled
     ? `${route.targetSafe.sourceName ?? route.target.name} safe time: ${route.targetSafe.safeStart}–${route.targetSafe.safeEnd} UTC`
     : `${route.targetSafe.sourceName ?? route.target.name} has no safe time`;
 
@@ -1083,6 +1088,11 @@ const ScheduleTimeline = memo(function ScheduleTimeline({
                     <>
                       {meta.isCapital && <span className="op-badge-tag op-badge-tag--cap">👑 Cap</span>}
                       {meta.isCity && <span className="op-badge-tag op-badge-tag--city">🏛️ City</span>}
+                      {meta.isMonument && (
+                        <span className="op-badge-tag op-badge-tag--monument" title="Ancient Monument (Safe hours bypassed)">
+                          🗿 Monument
+                        </span>
+                      )}
                       {meta.artifactName && (
                         <span className="op-badge-tag op-badge-tag--art" title={`Artifact: ${meta.artifactName}`}>
                           🏺 {meta.artifactName}
@@ -3140,6 +3150,11 @@ function OperationPlannerV2({
                                 )}
                                 {tgtMeta.isCapital && <span className="op-badge-tag op-badge-tag--cap">👑 Cap</span>}
                                 {tgtMeta.isCity && <span className="op-badge-tag op-badge-tag--city">🏛️ City</span>}
+                                {tgtMeta.isMonument && (
+                                  <span className="op-badge-tag op-badge-tag--monument" title="Ancient Monument (Safe hours bypassed)">
+                                    🗿 Monument
+                                  </span>
+                                )}
                                 {tgtMeta.artifactName && (
                                   <span className="op-badge-tag op-badge-tag--art" title={`Artifact: ${tgtMeta.artifactName}`}>
                                     🏺 {tgtMeta.artifactName}

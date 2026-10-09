@@ -873,6 +873,19 @@ export function PlayerGroupCard({
     onPatchTarget(target.id, { isCapital: nextIsCap });
   };
 
+  const handleToggleMonument = (target: Target) => {
+    const nextIsMonument = !target.isMonument;
+    if (nextIsMonument) {
+      // Clear monument on any other village across the roster
+      targets.forEach((v) => {
+        if (v.id !== target.id && v.isMonument) {
+          onPatchTarget(v.id, { isMonument: false });
+        }
+      });
+    }
+    onPatchTarget(target.id, { isMonument: nextIsMonument });
+  };
+
   return (
     <>
       <div className="op-target-group is-player op-roster-target-group" key={player.id}>
@@ -985,6 +998,14 @@ export function PlayerGroupCard({
                           title={target.isCity ? 'City village (Click to remove)' : 'Mark as City'}
                         >
                           🏛️ City
+                        </button>
+                        <button
+                          type="button"
+                          className={`op-village-tag-btn op-village-tag-btn--monument ${target.isMonument ? 'is-active' : ''}`}
+                          onClick={() => handleToggleMonument(target)}
+                          title={target.isMonument ? 'Ancient Monument building (Bypasses defender safe hours - click to remove)' : 'Mark as Ancient Monument (No safe hours)'}
+                        >
+                          🗿 Monument
                         </button>
                         <div className="op-village-artifact-wrap">
                           {target.artifactName ? (

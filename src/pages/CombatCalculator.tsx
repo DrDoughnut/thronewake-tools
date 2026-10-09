@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { forwardRef, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { UnitIcon } from '../components/UnitIcon';
 import { FactionSelect } from '../components/FactionSelect';
@@ -169,6 +169,206 @@ export const lossPctColor = (ratio: number): string => {
   return `hsl(${hue}, 85%, 55%)`;
 };
 
+interface PointerDragState {
+  fromIndex: number;
+  targetIndex: number;
+  startY: number;
+  currentY: number;
+  rowHeight: number;
+  rowBounds: { top: number; bottom: number; height: number }[];
+}
+
+interface UsePointerReorderOptions {
+  onReorder?: (fromIndex: number, toIndex: number) => void;
+  bodyClass?: string;
+}
+
+function usePointerReorder({
+  onReorder,
+  bodyClass = 'is-reordering-wave',
+}: UsePointerReorderOptions) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const [dragState, setDragState] = useState<PointerDragState | null>(null);
+  const dragRef = useRef<PointerDragState | null>(null);
+  dragRef.current = dragState;
+
+  const [isCommitting, setIsCommitting] = useState(false);
+  const isDragging = !!dragState;
+
+  useEffect(() => {
+    if (!isDragging) return;
+
+    document.body.classList.add(bodyClass);
+
+    const handlePointerMove = (e: MouseEvent | PointerEvent) => {
+      const current = dragRef.current;
+      if (!current) return;
+
+      const currentY = e.clientY;
+      const { fromIndex, rowBounds } = current;
+
+      let targetIndex = fromIndex;
+      if (currentY > current.startY) {
+        for (let i = fromIndex + 1; i < rowBounds.length; i++) {
+          const bound = rowBounds[i];
+          if (bound && currentY > bound.top + bound.height * 0.35) {
+            targetIndex = i;
+          }
+        }
+      } else if (currentY < current.startY) {
+        for (let i = fromIndex - 1; i >= 0; i--) {
+          const bound = rowBounds[i];
+          if (bound && currentY < bound.bottom - bound.height * 0.35) {
+            targetIndex = i;
+          }
+        }
+      }
+
+      const nextState: PointerDragState = {
+        ...current,
+        currentY,
+        targetIndex,
+      };
+
+      dragRef.current = nextState;
+      setDragState(nextState);
+    };
+
+    const handlePointerUp = (e?: MouseEvent | PointerEvent) => {
+      if (e) {
+        try {
+          e.preventDefault();
+        } catch {}
+      }
+      const current = dragRef.current;
+      if (!current) return;
+      const { fromIndex, targetIndex } = current;
+
+      dragRef.current = null;
+      setDragState(null);
+
+      if (fromIndex !== targetIndex) {
+        const containerTopBefore = containerRef.current?.getBoundingClientRect().top;
+        setIsCommitting(true);
+        onReorder?.(fromIndex, targetIndex);
+        requestAnimationFrame(() => {
+          if (containerTopBefore !== undefined && containerRef.current) {
+            const containerTopAfter = containerRef.current.getBoundingClientRect().top;
+            const diff = containerTopAfter - containerTopBefore;
+            if (Math.abs(diff) >= 0.5) {
+              window.scrollBy(0, diff);
+            }
+          }
+          setIsCommitting(false);
+        });
+      }
+    };
+
+    const handlePointerCancel = () => {
+      dragRef.current = null;
+      setDragState(null);
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        dragRef.current = null;
+        setDragState(null);
+      }
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('mousemove', handlePointerMove as any);
+    window.addEventListener('pointerup', handlePointerUp);
+    window.addEventListener('mouseup', handlePointerUp);
+    window.addEventListener('pointercancel', handlePointerCancel);
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.classList.remove(bodyClass);
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('mousemove', handlePointerMove as any);
+      window.removeEventListener('pointerup', handlePointerUp);
+      window.removeEventListener('mouseup', handlePointerUp);
+      window.removeEventListener('pointercancel', handlePointerCancel);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isDragging, onReorder, bodyClass]);
+
+  const handleDragHandlePointerDown = (index: number, e: React.PointerEvent | React.MouseEvent) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+
+    const rects = itemRefs.current.map((el) => (el ? el.getBoundingClientRect() : null));
+    const fromRect = rects[index];
+    if (!fromRect) return;
+
+    const gap = rects.length > 1 && rects[0] && rects[1]
+      ? Math.max(0, rects[1].top - rects[0].bottom)
+      : 6;
+    const rowHeight = fromRect.height + gap;
+    const rowBounds = rects.map((r) =>
+      r ? { top: r.top, bottom: r.bottom, height: r.height } : { top: 0, bottom: 0, height: 0 }
+    );
+
+    try {
+      (e.currentTarget as any)?.setPointerCapture?.((e as any).pointerId);
+    } catch {
+      // ignore
+    }
+
+    const initialState: PointerDragState = {
+      fromIndex: index,
+      targetIndex: index,
+      startY: e.clientY,
+      currentY: e.clientY,
+      rowHeight,
+      rowBounds,
+    };
+
+    dragRef.current = initialState;
+    setDragState(initialState);
+  };
+
+  const getTransform = (index: number): React.CSSProperties | undefined => {
+    if (!dragState) return undefined;
+    const { fromIndex, targetIndex, startY, currentY, rowHeight } = dragState;
+    if (index === fromIndex) {
+      const deltaY = currentY - startY;
+      return { transform: `translateY(${deltaY}px)` };
+    }
+    if (fromIndex < targetIndex) {
+      if (index > fromIndex && index <= targetIndex) {
+        return { transform: `translateY(-${rowHeight}px)` };
+      }
+    } else if (fromIndex > targetIndex) {
+      if (index >= targetIndex && index < fromIndex) {
+        return { transform: `translateY(${rowHeight}px)` };
+      }
+    }
+    return undefined;
+  };
+
+  const isItemDragging = (index: number): boolean => {
+    return dragState?.fromIndex === index;
+  };
+
+  return {
+    containerRef,
+    itemRefs,
+    dragState,
+    isCommitting,
+    isDragging,
+    getTransform,
+    isItemDragging,
+    handleDragHandlePointerDown,
+  };
+}
+
 export function CombatCalculator() {
   const [state, setState] = useState<CombatState>(loadInitialState);
   const [copied, setCopied] = useState(false);
@@ -302,7 +502,34 @@ export function CombatCalculator() {
         const temp = next[idx];
         next[idx] = next[targetIdx];
         next[targetIdx] = temp;
+        if (kind === 'attackers') {
+          setSelectedWave((curr) => {
+            if (typeof curr !== 'number') return curr;
+            if (curr === idx) return targetIdx;
+            if (curr === targetIdx) return idx;
+            return curr;
+          });
+        }
         return { ...p, [kind]: next };
+      }),
+    reorder: (fromIndex: number, toIndex: number) =>
+      setState((p) => {
+        const list = [...p[kind]];
+        if (fromIndex < 0 || fromIndex >= list.length || toIndex < 0 || toIndex >= list.length || fromIndex === toIndex) {
+          return p;
+        }
+        const [moved] = list.splice(fromIndex, 1);
+        list.splice(toIndex, 0, moved);
+        if (kind === 'attackers') {
+          setSelectedWave((curr) => {
+            if (typeof curr !== 'number') return curr;
+            if (curr === fromIndex) return toIndex;
+            if (fromIndex < curr && toIndex >= curr) return curr - 1;
+            if (fromIndex > curr && toIndex <= curr) return curr + 1;
+            return curr;
+          });
+        }
+        return { ...p, [kind]: list };
       }),
     patch: (id: string, patch: Partial<Army>) =>
       setState((p) => ({
@@ -361,6 +588,10 @@ export function CombatCalculator() {
 
   const attackers = side('attackers');
   const defenders = side('defenders');
+
+  const reportReorder = usePointerReorder({
+    onReorder: attackers.reorder,
+  });
 
   // Regiment lists per defender army to track losses per defender
   const defenderArmiesRegs = useMemo(
@@ -445,7 +676,8 @@ export function CombatCalculator() {
         const bldg = BUILDINGS.find((b) => b.gid === target.gid);
         const bldgName = bldg?.name || 'Building';
         const destroyed = finalLevel === 0;
-        const prefix = state.attackers.length > 1 ? `Wave ${wIdx + 1}: ` : '';
+        const waveLabel = attArmy.name?.trim() ? `${attArmy.name.trim()} (W${wIdx + 1})` : `Wave ${wIdx + 1}`;
+        const prefix = state.attackers.length > 1 ? `${waveLabel}: ` : '';
         if (finalLevel < startLevel) {
           items.push({
             gid: target.gid,
@@ -735,14 +967,14 @@ export function CombatCalculator() {
                   >
                     Overall
                   </button>
-                  {state.attackers.map((_, i) => (
+                  {state.attackers.map((army, i) => (
                     <button
                       key={i}
                       type="button"
                       className={`pill pill--tiny ${activeWaveIdx === i ? 'pill--active' : ''}`}
                       onClick={() => setSelectedWave(i)}
                     >
-                      Wave {i + 1}
+                      {army.name?.trim() ? `W${i + 1}: ${army.name.trim()}` : `Wave ${i + 1}`}
                     </button>
                   ))}
                 </div>
@@ -769,7 +1001,10 @@ export function CombatCalculator() {
             </div>
 
             {/* Classic Travian 2.0 Style Combat Report */}
-            <div className="cc-report-tables">
+            <div
+              ref={reportReorder.containerRef}
+              className={`cc-report-tables ${reportReorder.isCommitting ? 'is-committing' : ''}`}
+            >
               {/* Offense Tables (All waves if overall, or selected wave) */}
               {attackerWavesToShow.map(({ army: attArmy, idx: aIdx }) => {
                 const attFaction = safeFaction(attArmy?.faction || 'embermark_dominion');
@@ -794,15 +1029,69 @@ export function CombatCalculator() {
                   return sum + rem * (u.capacity ?? 0);
                 }, 0);
 
+                const isDraggingThis = isOverall && state.attackers.length > 1 && reportReorder.isItemDragging(aIdx);
+                const tableTransform = isOverall && state.attackers.length > 1 ? reportReorder.getTransform(aIdx) : undefined;
+
                 return (
-                  <div key={attArmy.id || aIdx} className="cc-report-table-wrap">
+                  <div
+                    key={attArmy.id || aIdx}
+                    ref={(el) => {
+                      if (isOverall) {
+                        reportReorder.itemRefs.current[aIdx] = el;
+                      }
+                    }}
+                    style={tableTransform}
+                    className={`cc-report-table-wrap ${isDraggingThis ? 'is-pointer-dragging' : ''}`}
+                  >
                     <div className="cc-report-table cc-report-table--off">
                       {/* Attacker Banner Bar (matching in-game report) */}
                       <div className="cc-report-banner cc-report-banner--off">
                         <div className="cc-report-banner__title">
+                          {isOverall && state.attackers.length > 1 && (
+                            <div className="cc-report-reorder-group">
+                              <div
+                                className={`cc-row__drag-handle ${isDraggingThis ? 'is-active' : ''}`}
+                                onPointerDown={(e) => reportReorder.handleDragHandlePointerDown(aIdx, e)}
+                                onMouseDown={(e) => reportReorder.handleDragHandlePointerDown(aIdx, e)}
+                                title="Drag up or down to reorder waves"
+                                aria-label={`Drag to reorder wave ${aIdx + 1}`}
+                              >
+                                <svg width="8" height="14" viewBox="0 0 8 14" fill="currentColor" aria-hidden="true">
+                                  <circle cx="2" cy="2" r="1.3" />
+                                  <circle cx="6" cy="2" r="1.3" />
+                                  <circle cx="2" cy="7" r="1.3" />
+                                  <circle cx="6" cy="7" r="1.3" />
+                                  <circle cx="2" cy="12" r="1.3" />
+                                  <circle cx="6" cy="12" r="1.3" />
+                                </svg>
+                              </div>
+                              <div className="cc-row__reorder-btns">
+                                <button
+                                  type="button"
+                                  className="cc-row__order-btn"
+                                  disabled={aIdx === 0}
+                                  title={`Move Wave ${aIdx + 1} earlier`}
+                                  aria-label={`Move Wave ${aIdx + 1} earlier`}
+                                  onClick={() => attackers.move?.(attArmy.id, -1)}
+                                >
+                                  ▲
+                                </button>
+                                <button
+                                  type="button"
+                                  className="cc-row__order-btn"
+                                  disabled={aIdx === state.attackers.length - 1}
+                                  title={`Move Wave ${aIdx + 1} later`}
+                                  aria-label={`Move Wave ${aIdx + 1} later`}
+                                  onClick={() => attackers.move?.(attArmy.id, 1)}
+                                >
+                                  ▼
+                                </button>
+                              </div>
+                            </div>
+                          )}
                           <span className="cc-report-banner__icon">⚔️</span>
                           <span className="cc-report-table__side-label">
-                            Offense{state.attackers.length > 1 ? ` · W${aIdx + 1}` : ''}
+                            Offense{state.attackers.length > 1 ? ` · ${attArmy?.name?.trim() ? `${attArmy.name.trim()} (W${aIdx + 1})` : `W${aIdx + 1}`}` : (attArmy?.name?.trim() ? ` · ${attArmy.name.trim()}` : '')}
                             {attArmy?.type === 'siege' ? ' (Siege)' : attArmy?.type === 'raid' ? ' (Raid)' : ''}
                           </span>
                         </div>
@@ -896,7 +1185,7 @@ export function CombatCalculator() {
               {/* In-game Combat Report Details (between Offense and Defense) */}
               <div className="cc-report-outcomes">
                 <div className="cc-report-outcomes__title">
-                  Details {isOverall ? '(All Waves)' : `(Wave ${(activeWaveIdx ?? 0) + 1})`}
+                  Details {isOverall ? '(All Waves)' : `(${state.attackers[activeWaveIdx ?? 0]?.name?.trim() ? `${state.attackers[activeWaveIdx ?? 0].name!.trim()} · Wave ${(activeWaveIdx ?? 0) + 1}` : `Wave ${(activeWaveIdx ?? 0) + 1}`})`}
                 </div>
                 <ul className="cc-report-outcomes__list">
                   {battle ? (
@@ -1547,7 +1836,7 @@ export function CombatCalculator() {
         <div className="cc-col-details">
           <section className="panel cc-summary-panel">
             <h2 className="panel__title">
-              Battle Summary {isOverall ? '(Overall)' : `(Wave ${(activeWaveIdx ?? 0) + 1})`}
+              Battle Summary {isOverall ? '(Overall)' : `(${state.attackers[activeWaveIdx ?? 0]?.name?.trim() ? `${state.attackers[activeWaveIdx ?? 0].name!.trim()} · Wave ${(activeWaveIdx ?? 0) + 1}` : `Wave ${(activeWaveIdx ?? 0) + 1}`})`}
             </h2>
 
             {/* Side-by-side Summary Card Table */}
@@ -1730,6 +2019,7 @@ interface SideControls {
   add: () => void;
   remove: (id: string) => void;
   move?: (id: string, direction: -1 | 1) => void;
+  reorder?: (fromIndex: number, toIndex: number) => void;
   patch: (id: string, patch: Partial<Army>) => void;
   count: (id: string, unitKey: string, value: number) => void;
   level: (id: string, unitKey: string, value: number) => void;
@@ -1754,6 +2044,13 @@ function ArmyCard({
   controls,
   battleResult,
 }: ArmyCardProps) {
+  const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
+
+  const reorder = usePointerReorder({
+    onReorder: controls.reorder,
+  });
+
   return (
     <section className={`panel cc-army cc-army--${kind}`}>
       <div className="cc-army__head">
@@ -1769,20 +2066,36 @@ function ArmyCard({
         </button>
       </div>
 
-      <div className="cc-rows">
-        {armies.map((army, index) => (
-          <ArmyRow
-            key={army.id}
-            army={army}
-            allArmies={armies}
-            index={index}
-            totalArmies={armies.length}
-            kind={kind}
-            removable={armies.length > 1}
-            controls={controls}
-            waveResult={battleResult?.waves?.[index]}
-          />
-        ))}
+      <div ref={reorder.containerRef} className={`cc-rows ${reorder.isCommitting ? 'is-committing' : ''}`}>
+        {armies.map((army, index) => {
+          return (
+            <ArmyRow
+              key={army.id}
+              ref={(el) => {
+                reorder.itemRefs.current[index] = el;
+              }}
+              army={army}
+              allArmies={armies}
+              index={index}
+              totalArmies={armies.length}
+              kind={kind}
+              removable={armies.length > 1}
+              controls={controls}
+              waveResult={battleResult?.waves?.[index]}
+              pointerTransform={reorder.getTransform(index)?.transform}
+              isPointerDragging={reorder.isItemDragging(index)}
+              onDragHandlePointerDown={(e) => reorder.handleDragHandlePointerDown(index, e)}
+              draggedIdx={draggedIdx}
+              dragOverIdx={dragOverIdx}
+              onDragStart={setDraggedIdx}
+              onDragOver={setDragOverIdx}
+              onDragEnd={() => {
+                setDraggedIdx(null);
+                setDragOverIdx(null);
+              }}
+            />
+          );
+        })}
       </div>
 
       {caption && <p className="hint hint--tight">{caption}</p>}
@@ -1799,18 +2112,37 @@ interface ArmyRowProps {
   removable: boolean;
   controls: SideControls;
   waveResult?: WaveResult;
+  pointerTransform?: string;
+  isPointerDragging?: boolean;
+  onDragHandlePointerDown?: (e: React.PointerEvent<HTMLDivElement> | React.MouseEvent<HTMLDivElement>) => void;
+  draggedIdx?: number | null;
+  dragOverIdx?: number | null;
+  onDragStart?: (index: number) => void;
+  onDragOver?: (index: number) => void;
+  onDragEnd?: () => void;
 }
 
-function ArmyRow({
-  army,
-  allArmies,
-  index,
-  totalArmies,
-  kind,
-  removable,
-  controls,
-  waveResult,
-}: ArmyRowProps) {
+const ArmyRow = forwardRef<HTMLDivElement, ArmyRowProps>(function ArmyRow(
+  {
+    army,
+    allArmies,
+    index,
+    totalArmies,
+    kind,
+    removable,
+    controls,
+    waveResult,
+    pointerTransform,
+    isPointerDragging,
+    onDragHandlePointerDown,
+    draggedIdx,
+    dragOverIdx,
+    onDragStart: _onDragStart,
+    onDragOver,
+    onDragEnd,
+  },
+  ref,
+) {
   const faction = safeFaction(army.faction);
   const units = fightable(faction);
   const total = units.reduce((n, u) => n + (army.counts[u.key] ?? 0), 0);
@@ -1818,11 +2150,50 @@ function ArmyRow({
   const cataCount = cataUnit ? (army.counts[cataUnit.key] ?? 0) : 0;
   const hasCatapults = cataCount > 0;
 
+  const isDragging = draggedIdx === index;
+  const isDragOver = dragOverIdx === index && draggedIdx !== index;
+
   return (
-    <div className="cc-row">
+    <div
+      ref={ref}
+      style={pointerTransform ? { transform: pointerTransform } : undefined}
+      className={`cc-row ${isDragging ? 'is-dragging' : ''} ${isDragOver ? 'is-drag-over' : ''} ${isPointerDragging ? 'is-pointer-dragging' : ''}`}
+      onDragOver={(e) => {
+        if (draggedIdx !== null && draggedIdx !== undefined && draggedIdx !== index) {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          onDragOver?.(index);
+        }
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        if (draggedIdx !== null && draggedIdx !== undefined && draggedIdx !== index) {
+          controls.reorder?.(draggedIdx, index);
+        }
+        onDragEnd?.();
+      }}
+    >
       <div className="cc-row__bar">
         {kind === 'off' ? (
           <div className="cc-row__index-group">
+            {totalArmies > 1 && (
+              <div
+                className={`cc-row__drag-handle ${isPointerDragging ? 'is-active' : ''}`}
+                onPointerDown={onDragHandlePointerDown}
+                onMouseDown={onDragHandlePointerDown}
+                title="Drag up or down to reorder waves"
+                aria-label={`Drag to reorder wave ${index + 1}`}
+              >
+                <svg width="8" height="14" viewBox="0 0 8 14" fill="currentColor" aria-hidden="true">
+                  <circle cx="2" cy="2" r="1.3" />
+                  <circle cx="6" cy="2" r="1.3" />
+                  <circle cx="2" cy="7" r="1.3" />
+                  <circle cx="6" cy="7" r="1.3" />
+                  <circle cx="2" cy="12" r="1.3" />
+                  <circle cx="6" cy="12" r="1.3" />
+                </svg>
+              </div>
+            )}
             <span className="cc-row__index" title={`Wave #${index + 1}`}>W{index + 1}</span>
             {totalArmies > 1 && (
               <div className="cc-row__reorder-btns">
@@ -1851,6 +2222,19 @@ function ArmyRow({
           </div>
         ) : (
           <span className="cc-row__index" title={`Defender #${index + 1}`}>{index + 1}</span>
+        )}
+
+        {kind === 'off' && (
+          <input
+            type="text"
+            className="cc-row__name-input"
+            value={army.name || ''}
+            placeholder={`Wave ${index + 1} label...`}
+            title={`Custom name / label for Wave ${index + 1} (e.g. Main Hammer, Ram Wave, Cata 1)`}
+            aria-label={`Wave ${index + 1} label`}
+            onChange={(e) => controls.patch(army.id, { name: e.target.value })}
+            maxLength={40}
+          />
         )}
         <div className="cc-row__faction-wrap">
           <FactionSelect
@@ -1905,7 +2289,8 @@ function ArmyRow({
             title={`Remove row ${index + 1}`}
             aria-label={`Remove ${kind === 'off' ? 'wave' : 'defender'} ${index + 1}`}
             onClick={() => {
-              const label = kind === 'off' ? `Wave ${index + 1}` : `Defender #${index + 1}`;
+              const waveLabel = army.name?.trim() ? `Wave ${index + 1} (${army.name.trim()})` : `Wave ${index + 1}`;
+              const label = kind === 'off' ? waveLabel : `Defender #${index + 1}`;
               const confirmed =
                 typeof window !== 'undefined' && typeof window.confirm === 'function'
                   ? window.confirm(`Are you sure you want to remove ${label}?`)
@@ -2090,7 +2475,7 @@ function ArmyRow({
       )}
     </div>
   );
-}
+});
 
 interface NumberFieldProps {
   label: string;

@@ -326,6 +326,24 @@ export interface CompactTarget extends CompactSafeTimeOwner {
   isCity?: boolean;
   /** Optional artifact name harbored in this village (e.g. "Small Harvest Horn"). */
   artifactName?: string;
+  /** Whether this village hosts the Ancient Monument building (bypasses defender safetimes). */
+  isMonument?: boolean;
+}
+
+/**
+ * Detects whether a tag refers to the actual Ancient Monument building
+ * (e.g. "Ancient Monument Lv.83", "Ancient Monument", "Monument Lv.10", "WW")
+ * as opposed to artifact plans (e.g. "Ancient Monument Plan", "Monument Plans").
+ */
+export function isMonumentTag(tag: string): boolean {
+  if (!tag) return false;
+  const clean = tag.trim().toLowerCase();
+  if (clean.includes('plan')) return false;
+  return (
+    /^(?:ancient\s+)?monument(?:\s+(?:lv\.?|lvl|level)?\s*\d+)?$/i.test(clean) ||
+    /^ancient\s+monument/i.test(clean) ||
+    /^(?:wonder\s+of\s+the\s+world|ww)$/i.test(clean)
+  );
 }
 
 /** Strips trailing bracket or paren tags from a village name. */
@@ -333,18 +351,19 @@ export function cleanTargetName(name: string): string {
   if (!name) return '';
   return name
     .replace(/\s*\[.*?\]$/, '')
-    .replace(/\s*\((?:cap|ci|city|capital)[^)]*\)$/i, '')
+    .replace(/\s*\((?:cap|ci|city|capital|monument|ww)[^)]*\)$/i, '')
     .trim();
 }
 
 /**
  * Extracts legacy tags embedded directly in `target.name` (e.g. `Byzantion [City, Capital]`)
- * into structured `isCapital`, `isCity`, `artifactName` booleans if not already defined.
+ * into structured `isCapital`, `isCity`, `isMonument`, `artifactName` booleans if not already defined.
  */
 export function extractLegacyTags(target: CompactTarget): CompactTarget {
   const rawName = target.name || '';
   let isCapital = target.isCapital;
   let isCity = target.isCity;
+  let isMonument = target.isMonument;
   let artifactName = target.artifactName;
 
   // Bracket format: e.g. "Byzantion [Capital, City, Small Harvest Horn]"
@@ -356,6 +375,8 @@ export function extractLegacyTags(target: CompactTarget): CompactTarget {
         if (isCapital === undefined) isCapital = true;
       } else if (/^city$/i.test(tag)) {
         if (isCity === undefined) isCity = true;
+      } else if (isMonumentTag(tag)) {
+        if (isMonument === undefined) isMonument = true;
       } else if (tag && !artifactName) {
         artifactName = tag;
       }
@@ -368,6 +389,9 @@ export function extractLegacyTags(target: CompactTarget): CompactTarget {
     const inner = parenMatch[1].toLowerCase();
     if (inner.includes('cap') && isCapital === undefined) isCapital = true;
     if (inner.includes('ci') && isCity === undefined) isCity = true;
+    if ((inner.includes('monument') || inner.includes('ww')) && !inner.includes('plan') && isMonument === undefined) {
+      isMonument = true;
+    }
   }
 
   return {
@@ -375,6 +399,7 @@ export function extractLegacyTags(target: CompactTarget): CompactTarget {
     name: cleanTargetName(rawName) || rawName,
     isCapital: isCapital ?? false,
     isCity: isCity ?? false,
+    isMonument: isMonument ?? false,
     artifactName: artifactName ?? '',
   };
 }
@@ -385,6 +410,7 @@ export function formatTargetLabel(target: CompactTarget): string {
   const tags: string[] = [];
   if (target.isCapital) tags.push('Capital');
   if (target.isCity) tags.push('City');
+  if (target.isMonument) tags.push('Ancient Monument');
   if (target.artifactName?.trim()) tags.push(target.artifactName.trim());
   return tags.length > 0 ? `${cleanName} [${tags.join(', ')}]` : cleanName;
 }
@@ -1041,6 +1067,7 @@ export function importPlanIntoMasterRoster(
         playerId: mappedPlayerId,
         isCapital: impTgt.isCapital !== undefined ? impTgt.isCapital : existing.isCapital,
         isCity: impTgt.isCity !== undefined ? impTgt.isCity : existing.isCity,
+        isMonument: impTgt.isMonument !== undefined ? impTgt.isMonument : existing.isMonument,
         artifactName: impTgt.artifactName !== undefined ? impTgt.artifactName : existing.artifactName,
       };
       targetIdMap.set(impTgt.id, existing.id);
@@ -1059,6 +1086,18 @@ export function importPlanIntoMasterRoster(
       targets.push(newTgt);
       targetIdMap.set(impTgt.id, uniqueId);
       targetsAdded++;
+    }
+  });
+
+  // Enforce at most 1 Ancient Monument building across master targets
+  let hasMonument = false;
+  targets.forEach((t) => {
+    if (t.isMonument) {
+      if (!hasMonument) {
+        hasMonument = true;
+      } else {
+        t.isMonument = false;
+      }
     }
   });
 
@@ -1138,10 +1177,18 @@ export interface ResolvedSafeTime extends CompactSafeTimeOwner {
  * rather than overrides; only an unassigned one carries its own.
  */
 export function resolveSafeTime(
-  target: CompactSafeTimeOwner & { playerId?: string },
+  target: CompactSafeTimeOwner & { playerId?: string; isMonument?: boolean },
   players: Array<CompactSafeTimeOwner & { id: string; name: string }>,
 ): ResolvedSafeTime {
   const owner = target.playerId ? players.find((p) => p.id === target.playerId) : undefined;
+  if (target.isMonument) {
+    return {
+      safeEnabled: false,
+      safeStart: '00:00',
+      safeEnd: '00:00',
+      sourceName: owner ? owner.name : undefined,
+    };
+  }
   if (!owner) {
     return {
       safeEnabled: target.safeEnabled,
@@ -1212,9 +1259,10 @@ export function encodeCompactPlan(state: CompactPlannerState): string {
     const isCap = tgt.isCapital ? 1 : 0;
     const isCity = tgt.isCity ? 1 : 0;
     const encodedArt = tgt.artifactName ? sanitizeName(tgt.artifactName, '') : '';
+    const isMon = tgt.isMonument ? 1 : 0;
     // `fake`, owner reference, `active`, and village tags are appended last, so a link written
     // before they existed still decodes — the fields simply read as absent.
-    parts.push(`t:${cleanName},${x},${y},${safeOn},${sStart}-${sEnd},${fake},${ownerIndex},${active},${isCap},${isCity},${encodedArt}`);
+    parts.push(`t:${cleanName},${x},${y},${safeOn},${sStart}-${sEnd},${fake},${ownerIndex},${active},${isCap},${isCity},${encodedArt},${isMon}`);
   }
 
   if (state.routeSiegeOverrides) {
@@ -1306,13 +1354,14 @@ export function decodeCompactPlan(compactStr: string): CompactPlannerState | nul
     } else if (seg.startsWith('t:')) {
       const body = seg.slice(2);
       const fields = body.split(',');
-      const [name, xStr, yStr, safeOnStr, timesStr, fakeStr, ownerStr, activeStr, capStr, cityStr, artStr] = fields;
+      const [name, xStr, yStr, safeOnStr, timesStr, fakeStr, ownerStr, activeStr, capStr, cityStr, artStr, monStr] = fields;
       const safeEnabled = safeOnStr === '1' || safeOnStr === 'true';
       const safe = readWindow(timesStr);
       const active = activeStr === undefined ? true : (activeStr === '1' || activeStr === 'true');
       const isCapital = capStr === '1' || capStr === 'true';
       const isCity = cityStr === '1' || cityStr === 'true';
       const artifactName = decodeField(artStr || '');
+      const isMonument = monStr === '1' || monStr === 'true';
 
       ownerIndexByTarget.push(Number(ownerStr) || 0);
       targets.push({
@@ -1329,6 +1378,7 @@ export function decodeCompactPlan(compactStr: string): CompactPlannerState | nul
         isCapital,
         isCity,
         artifactName,
+        isMonument,
       });
     } else if (seg.startsWith('p:')) {
       const fields = seg.slice(2).split(',');
@@ -1486,13 +1536,15 @@ export function parseThronewakeProfileClipboard(rawText: string): PlannerState |
           break;
         }
 
-        // Check for Capital / City
+        // Check for Capital / City / Monument
         if (/^capital$/i.test(nextLine)) {
           if (!tags.includes('Capital')) tags.push('Capital');
         } else if (/^city$/i.test(nextLine)) {
           if (!tags.includes('City')) tags.push('City');
+        } else if (isMonumentTag(nextLine)) {
+          if (!tags.includes('Monument')) tags.push('Monument');
         } else {
-          // Artifact or unique status line (e.g. "Small Harvest Horn", "Small Trickster's Mirror", "Unique War Anvil")
+          // Artifact or unique status line (e.g. "Small Harvest Horn", "Small Trickster's Mirror", "Unique War Anvil", "Ancient Monument Plan")
           // Exclude stray game UI header words
           if (
             !/^(player|tribe|alliance|combat score|description|actions)$/i.test(lowerNext) &&
@@ -1508,7 +1560,8 @@ export function parseThronewakeProfileClipboard(rawText: string): PlannerState |
       const displayName = vName;
       const isCapital = tags.includes('Capital');
       const isCity = tags.includes('City');
-      const artifactName = tags.find((t) => t !== 'Capital' && t !== 'City') || '';
+      const isMonument = tags.includes('Monument');
+      const artifactName = tags.find((t) => t !== 'Capital' && t !== 'City' && t !== 'Monument') || '';
 
       targets.push({
         id: `t_imp_${targets.length + 1}_${Math.random().toString(36).slice(2, 6)}`,
@@ -1523,12 +1576,25 @@ export function parseThronewakeProfileClipboard(rawText: string): PlannerState |
         active: true,
         isCapital,
         isCity,
+        isMonument,
         artifactName,
       });
     }
   }
 
   if (targets.length === 0) return null;
+
+  // Enforce single Ancient Monument building across parsed targets
+  let monumentEncountered = false;
+  for (const t of targets) {
+    if (t.isMonument) {
+      if (!monumentEncountered) {
+        monumentEncountered = true;
+      } else {
+        t.isMonument = false;
+      }
+    }
+  }
 
   return {
     landing: toUtcDatetimeInput(new Date()),

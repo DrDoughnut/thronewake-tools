@@ -165,4 +165,34 @@ describe('combatState URL persistence', () => {
     expect(decodeCombatState('#tool=optimizer&m=cp')).toBeNull();
     expect(hasCombatHashParams('#tool=optimizer')).toBe(false);
   });
+
+  it('preserves custom wave names/labels across URL encoding and decoding', () => {
+    const customState: CombatState = {
+      ...initialCombatState,
+      attackers: [
+        {
+          id: 'wave-1',
+          name: 'Main Hammer & Rams',
+          faction: 'embermark_dominion',
+          smithy: 20,
+          counts: { emberblade: 10000, war_ram: 500 },
+        },
+        {
+          id: 'wave-2',
+          name: 'Catapult Wave 1',
+          faction: 'embermark_dominion',
+          smithy: 0,
+          counts: { dominion_catapult: 75 },
+        },
+      ],
+    };
+
+    const encoded = encodeCombatState(customState);
+    const decoded = decodeCombatState('#' + encoded);
+
+    expect(decoded).not.toBeNull();
+    expect(decoded?.attackers).toHaveLength(2);
+    expect(decoded?.attackers[0].name).toBe('Main Hammer & Rams');
+    expect(decoded?.attackers[1].name).toBe('Catapult Wave 1');
+  });
 });

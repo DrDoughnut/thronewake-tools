@@ -362,6 +362,11 @@ export const OperationParticipantPicker = memo(function OperationParticipantPick
                               <span className="op-participant-chip__meta">({tgt.x}|{tgt.y})</span>
                               {tgt.isCapital && <span className="op-badge-tag op-badge-tag--cap">👑 Cap</span>}
                               {tgt.isCity && <span className="op-badge-tag op-badge-tag--city">🏛️ City</span>}
+                              {tgt.isMonument && (
+                                <span className="op-badge-tag op-badge-tag--monument" title="Ancient Monument (Safe hours bypassed)">
+                                  🗿 Monument
+                                </span>
+                              )}
                               {tgt.artifactName && (
                                 <span className="op-badge-tag op-badge-tag--art" title={`Artifact: ${tgt.artifactName}`}>
                                   🏺 {tgt.artifactName}

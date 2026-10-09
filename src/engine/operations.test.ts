@@ -11,6 +11,7 @@ import {
   formatLocalClock,
   formatLocalDateTime,
   isInSafeWindow,
+  isMonumentTag,
   importPlanIntoMasterRoster,
   mergeTeamRoomData,
   migrateToMasterRoster,
@@ -1764,3 +1765,207 @@ describe('route landing overrides', () => {
     expect(nearestLandingForClock(new Date('2026-08-20T12:00:00Z'), 'bad')).toBeNull();
   });
 });
+
+describe('Ancient Monument safetime exemption', () => {
+  it('correctly identifies Ancient Monument building tags and rejects plan artifacts', () => {
+    expect(isMonumentTag('Ancient Monument Lv.83')).toBe(true);
+    expect(isMonumentTag('Ancient Monument Lv. 83')).toBe(true);
+    expect(isMonumentTag('Ancient Monument Level 100')).toBe(true);
+    expect(isMonumentTag('Ancient Monument')).toBe(true);
+    expect(isMonumentTag('Monument')).toBe(true);
+    expect(isMonumentTag('Monument Lv.10')).toBe(true);
+    expect(isMonumentTag('WW')).toBe(true);
+
+    // Artifact plans must NOT be treated as the Monument building
+    expect(isMonumentTag('Ancient Monument Plan')).toBe(false);
+    expect(isMonumentTag('Ancient Monument Plans')).toBe(false);
+    expect(isMonumentTag('Small Ancient Monument Plan')).toBe(false);
+    expect(isMonumentTag('Great Ancient Monument Plan')).toBe(false);
+    expect(isMonumentTag('Unique Ancient Monument Plan')).toBe(false);
+    expect(isMonumentTag('Small Harvest Horn')).toBe(false);
+  });
+
+  it('distinguishes Ancient Monument building from Ancient Monument Plan in clipboard parser', () => {
+    const rawClipboard = `Player:
+Emperor
+Villages:
+3
+Villages
+Name\tPopulation\tActions
+01 Wonder Site (50|50)
+Ancient Monument Lv.83
+Wilder Site (49|50):
+Food
++25%
+Population
+1,500
+02 Plan Holder (55|55)
+City
+Ancient Monument Plan
+Population
+1,100
+03 Normal (60|60)
+Capital
+City
+Population
+900`;
+
+    const parsed = parseThronewakeProfileClipboard(rawClipboard);
+    expect(parsed).toBeTruthy();
+    expect(parsed?.targets).toHaveLength(3);
+
+    // Village 1: actual Ancient Monument building
+    const monVillage = parsed?.targets[0];
+    expect(monVillage?.name).toBe('01 Wonder Site');
+    expect(monVillage?.x).toBe(50);
+    expect(monVillage?.y).toBe(50);
+    expect(monVillage?.isMonument).toBe(true);
+    expect(monVillage?.artifactName).toBe(''); // Monument is not an artifact
+
+    // Village 2: artifact plan holder
+    const planVillage = parsed?.targets[1];
+    expect(planVillage?.name).toBe('02 Plan Holder');
+    expect(planVillage?.isMonument).toBe(false);
+    expect(planVillage?.isCity).toBe(true);
+    expect(planVillage?.artifactName).toBe('Ancient Monument Plan');
+
+    // Village 3: normal capital
+    const capVillage = parsed?.targets[2];
+    expect(capVillage?.isMonument).toBe(false);
+    expect(capVillage?.isCapital).toBe(true);
+  });
+
+  it('enforces single monument constraint across clipboard parsed villages', () => {
+    const rawClipboard = `Player:
+Emperor
+Villages
+01 Wonder Site (50|50)
+Ancient Monument Lv.83
+02 Imposter Site (51|51)
+Ancient Monument Lv.10`;
+
+    const parsed = parseThronewakeProfileClipboard(rawClipboard);
+    expect(parsed).toBeTruthy();
+    expect(parsed?.targets[0].isMonument).toBe(true);
+    expect(parsed?.targets[1].isMonument).toBe(false);
+  });
+
+  it('resolveSafeTime disables safe window for Ancient Monument targets', () => {
+    const defender = {
+      id: 'def1',
+      name: 'Enemy Lord',
+      safeEnabled: true,
+      safeStart: '22:00',
+      safeEnd: '04:00',
+    };
+
+    const regularVillage = {
+      safeEnabled: true,
+      safeStart: '22:00',
+      safeEnd: '04:00',
+      playerId: 'def1',
+      isMonument: false,
+    };
+
+    const monumentVillage = {
+      safeEnabled: true,
+      safeStart: '22:00',
+      safeEnd: '04:00',
+      playerId: 'def1',
+      isMonument: true,
+    };
+
+    const regSafe = resolveSafeTime(regularVillage, [defender]);
+    expect(regSafe.safeEnabled).toBe(true);
+    expect(regSafe.safeStart).toBe('22:00');
+    expect(regSafe.safeEnd).toBe('04:00');
+    expect(regSafe.sourceName).toBe('Enemy Lord');
+
+    const monSafe = resolveSafeTime(monumentVillage, [defender]);
+    expect(monSafe.safeEnabled).toBe(false);
+    expect(monSafe.sourceName).toBe('Enemy Lord');
+  });
+
+  it('allows attacks to land on Ancient Monument at any time during defender safe hours', () => {
+    const defenderSafeWindow = {
+      enabled: true,
+      start: 22 * 60, // 22:00
+      end: 4 * 60,    // 04:00
+    };
+
+    const monumentSafeWindow = {
+      enabled: false,
+      start: 0,
+      end: 0,
+    };
+
+    const attackerSafeWindow = {
+      enabled: false,
+      start: 0,
+      end: 0,
+    };
+
+    // Attack lands at 23:30 (inside defender's normal safe hours)
+    const sendTime = new Date('2026-08-20T21:00:00Z');
+    const landTime = new Date('2026-08-20T23:30:00Z');
+
+    // 1. Regular village: landDefender is blocked!
+    const regChecks = safeChecks(sendTime, landTime, attackerSafeWindow, defenderSafeWindow);
+    expect(regChecks.landDefender).toBe(true);
+    expect(routeIsPossible(regChecks)).toBe(false);
+
+    // 2. Ancient Monument village: defender safe window is bypassed (CLEAR 24/7)
+    const monChecks = safeChecks(sendTime, landTime, attackerSafeWindow, monumentSafeWindow);
+    expect(monChecks.landDefender).toBe(false);
+    expect(monChecks.sendDefender).toBe(false);
+    expect(routeIsPossible(monChecks)).toBe(true);
+  });
+
+  it('preserves isMonument through compact plan encoding and decoding', () => {
+    const state = {
+      landing: '2026-08-20T19:00',
+      serverSpeed: 3,
+      attackers: [],
+      players: [
+        { id: 'p1', name: 'Defender', safeEnabled: true, safeStart: '22:00', safeEnd: '04:00' },
+      ],
+      targets: [
+        {
+          id: 't1',
+          name: 'Wonder Site',
+          x: 50,
+          y: 50,
+          fake: false,
+          playerId: 'p1',
+          safeEnabled: false,
+          safeStart: '00:00',
+          safeEnd: '00:00',
+          isMonument: true,
+        },
+        {
+          id: 't2',
+          name: 'Plan Site',
+          x: 55,
+          y: 55,
+          fake: false,
+          playerId: 'p1',
+          safeEnabled: true,
+          safeStart: '22:00',
+          safeEnd: '04:00',
+          isMonument: false,
+          artifactName: 'Ancient Monument Plan',
+        },
+      ],
+    };
+
+    const encoded = encodeCompactPlan(state);
+    const decoded = decodeCompactPlan(encoded);
+
+    expect(decoded).toBeTruthy();
+    expect(decoded?.targets[0].isMonument).toBe(true);
+    expect(decoded?.targets[0].name).toBe('Wonder Site');
+    expect(decoded?.targets[1].isMonument).toBe(false);
+    expect(decoded?.targets[1].artifactName).toBe('Ancient Monument Plan');
+  });
+});
+

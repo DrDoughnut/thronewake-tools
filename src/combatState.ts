@@ -3,6 +3,7 @@ import type { Faction } from './data/types';
 
 export interface Army {
   id: string;
+  name?: string;
   faction: string;
   smithy: number;
   levels?: Record<string, number>;
@@ -148,9 +149,10 @@ function serializeArmies(armies: Army[]): string {
         : '';
 
       const typeStr = army.type && army.type !== 'attack' ? army.type : '';
+      const nameStr = army.name?.trim() ? encodeURIComponent(army.name.trim()) : '';
 
-      if (breweryStr || levelsStr || targetsStr || typeStr) {
-        return `${factionShort}:${army.smithy}:${countsStr}:${breweryStr}:${levelsStr}:${targetsStr}:${typeStr}`;
+      if (breweryStr || levelsStr || targetsStr || typeStr || nameStr) {
+        return `${factionShort}:${army.smithy}:${countsStr}:${breweryStr}:${levelsStr}:${targetsStr}:${typeStr}:${nameStr}`;
       }
       return `${factionShort}:${army.smithy}:${countsStr}`;
     })
@@ -175,7 +177,16 @@ function deserializeArmies(rawStr: string | null, prefix: string): Army[] {
       const levelsRaw = parts[4];
       const targetsRaw = parts[5];
       const typeRaw = parts[6];
+      const nameRaw = parts[7];
       const type = (typeRaw === 'siege' || typeRaw === 'raid' || typeRaw === 'attack') ? typeRaw : undefined;
+      let name: string | undefined;
+      if (nameRaw) {
+        try {
+          name = decodeURIComponent(nameRaw);
+        } catch {
+          name = nameRaw;
+        }
+      }
 
       const faction = safeFaction(factionRaw).key;
       const smithy = clamp(Number(smithyRaw) || 0, 0, 20);
@@ -245,6 +256,7 @@ function deserializeArmies(rawStr: string | null, prefix: string): Army[] {
         targetCount,
         targets,
         type,
+        ...(name ? { name } : {}),
         ...(brewery !== undefined ? { brewery } : {}),
         ...(levels && Object.keys(levels).length > 0 ? { levels } : {}),
       };

@@ -836,6 +836,134 @@ describe('CombatCalculator', () => {
     });
     expect(document.body.querySelector('.cc-formula-popover')).toBeNull();
   });
+
+  it('allows custom names/labels for attacking waves and renders drag handles for reordering', async () => {
+    // 2 waves of attackers
+    window.location.hash =
+      '#tool=combat&wl=0&sm=0&ap=1000&dp=1000&att=embermark_dominion:0:emberblade=1000&att=stormfang_clans:0:raider=800&def=verdant_wardens:0:briar_guard=1200';
+
+    await renderComponent();
+
+    // Check drag handles exist on attacker rows
+    const dragHandles = container.querySelectorAll('.cc-army--off .cc-row__drag-handle');
+    expect(dragHandles.length).toBe(2);
+
+    // Check custom label inputs exist on attacker rows
+    const nameInputs = container.querySelectorAll('.cc-army--off .cc-row__name-input') as NodeListOf<HTMLInputElement>;
+    expect(nameInputs.length).toBe(2);
+    expect(nameInputs[0].placeholder).toBe('Wave 1 label...');
+    expect(nameInputs[1].placeholder).toBe('Wave 2 label...');
+
+    // Type a custom label for Wave 1
+    changeInput(nameInputs[0], 'Main Hammer');
+
+    // Check view pills now reflect the custom label
+    const viewPills = container.querySelectorAll('.cc-view-pills button');
+    expect(viewPills[1]?.textContent).toBe('W1: Main Hammer');
+
+    // Drag handle drop test (reorder wave 0 and wave 1)
+    const rows = container.querySelectorAll('.cc-army--off .cc-row');
+    await act(async () => {
+      const dropEvent = new Event('drop', { bubbles: true }) as any;
+      dropEvent.preventDefault = () => {};
+      rows[1]?.dispatchEvent(dropEvent);
+    });
+  });
+
+  it('supports interactive pointer dragging for wave reordering with escape cancellation', async () => {
+    window.location.hash =
+      '#tool=combat&wl=0&sm=0&ap=1000&dp=1000&att=embermark_dominion:0:emberblade=1000&att=stormfang_clans:0:raider=800&def=verdant_wardens:0:briar_guard=1200';
+
+    await renderComponent();
+
+    const dragHandles = container.querySelectorAll('.cc-army--off .cc-row__drag-handle');
+    expect(dragHandles.length).toBe(2);
+
+    // Mock getBoundingClientRect for rows
+    const rows = container.querySelectorAll('.cc-army--off .cc-row');
+    vi.spyOn(rows[0], 'getBoundingClientRect').mockReturnValue({
+      top: 100,
+      bottom: 200,
+      height: 100,
+      left: 0,
+      right: 500,
+      width: 500,
+      x: 0,
+      y: 100,
+      toJSON: () => {},
+    });
+    vi.spyOn(rows[1], 'getBoundingClientRect').mockReturnValue({
+      top: 206,
+      bottom: 306,
+      height: 100,
+      left: 0,
+      right: 500,
+      width: 500,
+      x: 0,
+      y: 206,
+      toJSON: () => {},
+    });
+
+    // Start dragging row 0
+    await act(async () => {
+      const mouseDown = new MouseEvent('mousedown', { bubbles: true, clientY: 150, button: 0 }) as any;
+      mouseDown.pointerId = 1;
+      dragHandles[0]?.dispatchEvent(mouseDown);
+    });
+
+    expect(document.body.classList.contains('is-reordering-wave')).toBe(true);
+
+    // Press Escape to cancel
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    });
+
+    expect(document.body.classList.contains('is-reordering-wave')).toBe(false);
+
+    // Now start dragging and move down past row 1
+    await act(async () => {
+      const mouseDown = new MouseEvent('mousedown', { bubbles: true, clientY: 150, button: 0 }) as any;
+      mouseDown.pointerId = 1;
+      dragHandles[0]?.dispatchEvent(mouseDown);
+    });
+
+    await act(async () => {
+      const mouseMove = new MouseEvent('mousemove', { bubbles: true, clientY: 300 });
+      window.dispatchEvent(mouseMove);
+    });
+
+    // Release pointer to commit reorder
+    await act(async () => {
+      const mouseUp = new MouseEvent('mouseup', { bubbles: true });
+      window.dispatchEvent(mouseUp);
+    });
+
+    expect(document.body.classList.contains('is-reordering-wave')).toBe(false);
+  });
+
+  it('renders reorder handles and buttons in Overall Battle Details report tables', async () => {
+    window.location.hash =
+      '#tool=combat&wl=0&sm=0&ap=1000&dp=1000&att=embermark_dominion:0:emberblade=1000&att=stormfang_clans:0:raider=800&def=verdant_wardens:0:briar_guard=1200';
+
+    await renderComponent();
+
+    // In Overall view (default), check report tables have reorder drag handles
+    const reportDragHandles = container.querySelectorAll('.cc-report-tables .cc-row__drag-handle');
+    expect(reportDragHandles.length).toBe(2);
+
+    // Check order buttons in report tables
+    const moveBtns = container.querySelectorAll('.cc-report-tables .cc-row__order-btn');
+    expect(moveBtns.length).toBe(4); // 2 per wave (up and down)
+
+    // Click down button on Wave 1 (index 1 of moveBtns)
+    await act(async () => {
+      moveBtns[1]?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    // Verify view pills updated
+    const pills = container.querySelectorAll('.cc-view-pills button');
+    expect(pills.length).toBe(3); // Overall, W1, W2
+  });
 });
 
 

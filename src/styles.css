@@ -7534,6 +7534,13 @@ select:focus, .select:focus, .text-input:focus {
   box-shadow: 0 0 6px rgba(56, 189, 248, 0.2);
 }
 
+.op-village-tag-btn--monument.is-active {
+  background: rgba(249, 115, 22, 0.18);
+  color: #fb923c;
+  border-color: rgba(249, 115, 22, 0.5);
+  box-shadow: 0 0 6px rgba(249, 115, 22, 0.2);
+}
+
 .op-village-tag-btn--art.is-active {
   background: rgba(168, 85, 247, 0.18);
   color: #c084fc;
@@ -7651,6 +7658,12 @@ select:focus, .select:focus, .text-input:focus {
   background: rgba(168, 85, 247, 0.2);
   color: #c084fc;
   border: 1px solid rgba(168, 85, 247, 0.4);
+}
+
+.op-badge-tag--monument {
+  background: rgba(249, 115, 22, 0.2);
+  color: #fb923c;
+  border: 1px solid rgba(249, 115, 22, 0.4);
 }
 
 /* ── Operation Planner Attack Clash / Conflict Warning (<20s) ────────── */
@@ -8604,7 +8617,7 @@ select:focus, .select:focus, .text-input:focus {
   line-height: 1;
 }
 
-.cc-rows { display: flex; flex-direction: column; gap: 6px; }
+.cc-rows { display: flex; flex-direction: column; gap: 6px; overflow-anchor: none; }
 
 .cc-row {
   border: 1px solid var(--border);
@@ -8612,6 +8625,8 @@ select:focus, .select:focus, .text-input:focus {
   background: var(--bg-sunken);
   padding: 6px 8px;
   min-width: 0;
+  position: relative;
+  transition: transform 0.16s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.16s ease, border-color 0.16s ease;
 }
 
 .cc-row__bar {
@@ -8937,6 +8952,7 @@ select:focus, .select:focus, .text-input:focus {
   flex-direction: column;
   gap: 6px;
   min-width: 0;
+  overflow-anchor: none;
 }
 
 .cc-report-table-wrap {
@@ -8944,6 +8960,68 @@ select:focus, .select:focus, .text-input:focus {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-raised);
+  position: relative;
+  transition: transform 0.16s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.16s ease, border-color 0.16s ease;
+}
+
+.cc-report-table-wrap.is-pointer-dragging {
+  z-index: 60 !important;
+  transition: none !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.65), 0 0 0 2px var(--accent);
+  border-color: var(--accent);
+  cursor: grabbing;
+  touch-action: none;
+}
+
+.cc-report-table-wrap.is-pointer-dragging input,
+.cc-report-table-wrap.is-pointer-dragging select,
+.cc-report-table-wrap.is-pointer-dragging button {
+  pointer-events: none;
+}
+
+.cc-report-table-wrap.is-pointer-dragging .cc-row__drag-handle {
+  pointer-events: auto;
+}
+
+.cc-report-tables.is-committing .cc-report-table-wrap {
+  transition: none !important;
+}
+
+.cc-report-reorder-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-right: 2px;
+}
+
+.cc-report-banner .cc-row__drag-handle {
+  color: rgba(254, 202, 202, 0.7);
+}
+
+.cc-report-banner .cc-row__drag-handle:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.cc-report-banner .cc-row__drag-handle:active,
+.cc-report-banner .cc-row__drag-handle.is-active {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.cc-report-banner .cc-row__order-btn {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fca5a5;
+  border-color: rgba(254, 202, 202, 0.3);
+}
+
+.cc-report-banner .cc-row__order-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+}
+
+.cc-report-banner .cc-row__order-btn:disabled {
+  opacity: 0.3;
 }
 
 .cc-report-table {
@@ -9392,11 +9470,78 @@ select:focus, .select:focus, .text-input:focus {
   cursor: default;
 }
 
-/* Row reorder and wave controls */
+/* Row reorder, drag handle, and wave controls */
 .cc-row__index-group {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+}
+
+.cc-row__drag-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 24px;
+  color: var(--text-faint);
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  border-radius: 4px;
+  transition: color 0.15s ease, background-color 0.15s ease;
+  flex: none;
+}
+
+.cc-row__drag-handle:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.cc-row__drag-handle:active,
+.cc-row__drag-handle.is-active {
+  cursor: grabbing;
+  color: var(--accent);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.cc-row.is-dragging {
+  opacity: 0.45;
+  border-style: dashed;
+  border-color: var(--accent);
+}
+
+.cc-row.is-pointer-dragging {
+  z-index: 60 !important;
+  transition: none !important;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.6), 0 0 0 1.5px var(--accent);
+  background: var(--bg-raised);
+  border-color: var(--accent);
+  cursor: grabbing;
+  touch-action: none;
+}
+
+.cc-row.is-pointer-dragging input,
+.cc-row.is-pointer-dragging select,
+.cc-row.is-pointer-dragging button {
+  pointer-events: none;
+}
+
+.cc-rows.is-committing .cc-row {
+  transition: none !important;
+}
+
+body.is-reordering-wave,
+body.is-reordering-wave * {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  cursor: grabbing !important;
+}
+
+.cc-row.is-drag-over {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 45%, transparent);
+  transform: translateY(-1px);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 
 .cc-row__reorder-btns {
@@ -9409,9 +9554,9 @@ select:focus, .select:focus, .text-input:focus {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
+  width: 17px;
   height: 12px;
-  font-size: 8px;
+  font-size: 8.5px;
   line-height: 1;
   background: var(--bg-sunken);
   border: 1px solid var(--border);
@@ -9431,6 +9576,32 @@ select:focus, .select:focus, .text-input:focus {
 .cc-row__order-btn:disabled {
   opacity: 0.25;
   cursor: not-allowed;
+}
+
+.cc-row__name-input {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-raised);
+  color: var(--text);
+  font: inherit;
+  font-size: 11.5px;
+  padding: 3px 8px;
+  height: 25px;
+  flex: 0 1 135px;
+  min-width: 90px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.cc-row__name-input::placeholder {
+  color: var(--text-faint);
+  font-style: italic;
+  opacity: 0.65;
+}
+
+.cc-row__name-input:focus {
+  border-color: var(--accent);
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent);
 }
 
 .cc-row__faction-wrap {
