@@ -134,7 +134,7 @@ export const unitSetGroups: UnitSetGroup[] = [
     hint: 'Scouts, rated on scouting and counter-scouting instead of combat stats.',
     stats: 'recon',
     sets: one(
-      `${EMB}/sentinel`, `${STO}/pathstalker`, `${VER}/wind_scout`, `${ANC}/shardwing`,
+      `${EMB}/sentinel`, `${STO}/pathstalker`, `${VER}/wind_scout`,
     ),
   },
 ];

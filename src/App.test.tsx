@@ -173,8 +173,9 @@ describe('the app', () => {
       select.dispatchEvent(new Event('change', { bubbles: true }));
     });
 
-    expect(rows()).toHaveLength(4);
+    expect(rows()).toHaveLength(3);
     expect(container.textContent).toContain('Wind Scout');
+    expect(container.textContent).not.toContain('Shardwing');
     // 'a' (offense) is not a reconnaissance stat, so it must not survive.
     expect(window.location.hash).not.toContain('n=a');
   });
