@@ -338,7 +338,7 @@ export function ArmyCalculator() {
                             }
                             onClick={() => toggleUnit(group.key, unit.key)}
                           >
-                            <UnitIcon unitRef={`${faction.key}/${unit.key}`} size={28} />
+                            <UnitIcon unitRef={`${faction.key}/${unit.key}`} size={24} />
                             {active && (
                               <span className="unit-pick__check" aria-hidden="true">
                                 ✓
@@ -362,7 +362,7 @@ export function ArmyCalculator() {
                   className={`strip__cell ${line.count === 0 ? 'is-zero' : ''}`}
                   key={line.ref}
                 >
-                  <UnitIcon unitRef={line.ref} size={32} mods={mods} />
+                  <UnitIcon unitRef={line.ref} size={26} mods={mods} />
                   <span className="strip__count">{fmt(line.count)}</span>
                 </div>
               ))}

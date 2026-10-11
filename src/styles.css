@@ -679,68 +679,89 @@ select:focus, .select:focus, .text-input:focus {
 
 /* ── Army calculator ─────────────────────────────────────────────────── */
 
-.army { display: flex; flex-direction: column; gap: 14px; }
+.army { display: flex; flex-direction: column; gap: 10px; }
+
+.army .panel {
+  padding: 8px 10px 10px;
+}
+
+.army .panel__title {
+  margin: 0 0 5px;
+  font-size: 10.5px;
+}
 
 .army__setup-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px 16px;
+  gap: 8px 12px;
   align-items: flex-end;
 }
 
 .army__setup-row--sliders {
-  margin-top: 14px;
-  padding-top: 14px;
+  margin-top: 8px;
+  padding-top: 8px;
   border-top: 1px solid var(--border);
   align-items: flex-start;
 }
 
-.army__setup-row--sliders > .slider { flex: 1 1 210px; margin-bottom: 0; }
+.army__setup-row--sliders > .slider { flex: 1 1 200px; margin-bottom: 0; }
 
-.field-inline { display: flex; flex-direction: column; gap: 5px; flex: 1 1 200px; }
-.field-inline--narrow { flex: 0 1 150px; }
-.field-inline--duration { flex: 0 1 220px; }
-.field-inline--anvil { flex: 1 1 210px; }
+.army .slider { margin-bottom: 0; }
+.army .slider__label { margin-bottom: 2px; font-size: 11.5px; gap: 5px; }
+.army .slider__value { font-size: 12px; }
+.army .slider__row { gap: 6px; }
+.army .slider__row .pill--tiny { padding: 2px 5px; font-size: 11px; min-width: 26px; }
 
-.duration-input { display: flex; gap: 6px; }
-.duration-input .text-input { flex: 1 1 70px; min-width: 0; }
-.duration-input .select { flex: 1 1 90px; min-width: 0; }
+.field-inline { display: flex; flex-direction: column; gap: 3px; flex: 1 1 190px; }
+.field-inline--narrow { flex: 0 1 140px; }
+.field-inline--duration { flex: 0 1 210px; }
+.field-inline--anvil { flex: 1 1 200px; }
+
+.army .select,
+.army .text-input {
+  padding: 4px 7px;
+  font-size: 12.5px;
+}
+
+.duration-input { display: flex; gap: 4px; }
+.duration-input .text-input { flex: 1 1 65px; min-width: 0; }
+.duration-input .select { flex: 1 1 85px; min-width: 0; }
 
 .field-inline__label {
-  font-size: 11px;
+  font-size: 10.5px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-faint);
 }
 
 .army__anvil-banner {
-  margin-top: 10px;
-  padding: 6px 12px;
+  margin-top: 8px;
+  padding: 4px 10px;
   background: hsla(43, 85%, 55%, 0.09);
   border: 1px solid hsla(43, 85%, 55%, 0.28);
   border-radius: var(--radius);
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 12px;
+  gap: 6px;
+  font-size: 11.5px;
   color: #ffda73;
   font-weight: 500;
 }
 
 .army__anvil-banner-icon {
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .army__body {
   display: grid;
-  grid-template-columns: 1fr minmax(240px, 300px);
-  gap: 14px;
+  grid-template-columns: 1fr minmax(230px, 280px);
+  gap: 10px;
   align-items: start;
 }
 
-.army__main { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
-.army__groups { display: flex; flex-direction: column; gap: 10px; }
-.army__result { display: flex; flex-direction: column; gap: 10px; }
+.army__main { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.army__groups { display: flex; flex-direction: column; gap: 8px; }
+.army__result { display: flex; flex-direction: column; gap: 8px; }
 
 /* Three level cells side by side, with the shared unit picker filling the
    fourth column. A one-queue group pads with empty cells so every group's
@@ -748,25 +769,26 @@ select:focus, .select:focus, .text-input:focus {
    than a wide gap, so the row stays compact. */
 .qgroup {
   display: grid;
-  grid-template-columns: repeat(3, minmax(160px, 1fr)) minmax(0, 1.6fr);
-  gap: 10px 0;
+  grid-template-columns: repeat(3, minmax(150px, 1fr)) minmax(0, 1.6fr);
+  gap: 8px 0;
   align-items: start;
-  padding: 11px 12px 12px;
+  padding: 8px 10px 9px;
 }
 
-.qcell { display: flex; flex-direction: column; gap: 5px; min-width: 0; padding-left: 10px; }
+.qcell { display: flex; flex-direction: column; gap: 3px; min-width: 0; padding-left: 8px; }
 .qcell--empty { display: none; }
 .qcell:first-child { padding-left: 0; }
 .qcell:not(:first-child) { border-left: 1px solid var(--border); }
 
-.qcell__head { display: flex; align-items: baseline; gap: 5px; }
-.qcell__name { font-weight: 650; font-size: 12.5px; white-space: nowrap; }
-.qcell__level { display: flex; align-items: center; gap: 3px; flex-wrap: nowrap; }
-.qcell__level .pill--tiny { min-width: 28px; padding: 4px 6px; }
-.qcell__cap-buttons { display: inline-flex; gap: 3px; white-space: nowrap; }
+.qcell__head { display: flex; align-items: baseline; gap: 4px; }
+.qcell__name { font-weight: 650; font-size: 12px; white-space: nowrap; }
+.qcell__level { display: flex; align-items: center; gap: 2px; flex-wrap: nowrap; }
+.qcell__level .pill--tiny { min-width: 24px; padding: 2px 5px; font-size: 11.5px; }
+.qcell__cap-buttons { display: inline-flex; gap: 2px; white-space: nowrap; }
+.qcell__cap-buttons .pill--tiny { min-width: 24px; padding: 2px 5px; font-size: 11.5px; }
 
 .qcell__out {
-  font-size: 11.5px;
+  font-size: 11px;
   color: var(--text-faint);
   font-variant-numeric: tabular-nums;
 }
@@ -811,33 +833,33 @@ select:focus, .select:focus, .text-input:focus {
 .qgroup__units {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 3px;
   min-width: 0;
-  padding-left: 10px;
+  padding-left: 8px;
   border-left: 1px solid var(--border);
 }
 
 .qgroup__caption {
-  font-size: 11px;
+  font-size: 10.5px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-faint);
 }
 
 .qgroup__split { text-transform: none; letter-spacing: 0; color: var(--accent); }
-.qgroup__picks { display: flex; flex-wrap: wrap; gap: 5px; }
+.qgroup__picks { display: flex; flex-wrap: wrap; gap: 4px; }
 
 /* Horizontal army strip. Zero slots stay in place so the row does not
    reflow as units are picked. */
-.strip { display: flex; flex-wrap: wrap; gap: 6px; }
+.strip { display: flex; flex-wrap: wrap; gap: 5px; }
 
 .strip__cell {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
-  min-width: 54px;
-  padding: 6px 4px;
+  gap: 2px;
+  min-width: 46px;
+  padding: 4px 3px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-sunken);
@@ -846,14 +868,14 @@ select:focus, .select:focus, .text-input:focus {
 .strip__count {
   font-variant-numeric: tabular-nums;
   font-weight: 650;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .strip__cell.is-zero { opacity: 0.32; }
 .strip__cell.is-zero .strip__count { font-weight: 400; color: var(--text-faint); }
 
 .speed-group { display: flex; gap: 4px; }
-.pill--speed { flex: 1; padding: 7px 0; text-align: center; }
+.pill--speed { flex: 1; padding: 4px 0; font-size: 12px; text-align: center; }
 
 .totals__row--sub dt,
 .totals__row--sub dd {
@@ -893,10 +915,10 @@ select:focus, .select:focus, .text-input:focus {
 .queue__level { display: flex; align-items: center; gap: 6px; margin-bottom: 9px; }
 
 .text-input--level {
-  width: 42px;
+  width: 36px;
   text-align: center;
-  padding: 4px 4px;
-  font-size: 13px;
+  padding: 2px 3px;
+  font-size: 12px;
 }
 
 .queue__pushed {
@@ -914,15 +936,15 @@ select:focus, .select:focus, .text-input:focus {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
-  padding: 3px;
+  width: 32px;
+  height: 32px;
+  padding: 2px;
   border: 1.5px solid rgba(255, 255, 255, 0.12);
   background: rgba(0, 0, 0, 0.32);
   border-radius: var(--radius);
   color: var(--text-dim);
   font: inherit;
-  font-size: 12.5px;
+  font-size: 12px;
   cursor: pointer;
   opacity: 0.44;
   filter: grayscale(80%);
@@ -954,21 +976,21 @@ select:focus, .select:focus, .text-input:focus {
 
 .unit-pick__check {
   position: absolute;
-  top: -5px;
-  right: -5px;
-  width: 15px;
-  height: 15px;
+  top: -4px;
+  right: -4px;
+  width: 13px;
+  height: 13px;
   border-radius: 50%;
   background: var(--faction-color);
   color: #fff;
-  font-size: 9.5px;
+  font-size: 8.5px;
   font-weight: 900;
   line-height: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.75);
-  border: 1.5px solid #1a222e;
+  border: 1px solid #1a222e;
   pointer-events: none;
 }
 
@@ -1020,6 +1042,31 @@ select:focus, .select:focus, .text-input:focus {
 
 .totals__row--sum dd { color: var(--accent); }
 
+.army__result .totals__row {
+  padding: 2px 0;
+  gap: 6px;
+}
+
+.army__result .totals__row dt {
+  font-size: 12px;
+  gap: 5px;
+}
+
+.army__result .totals__row dd {
+  font-size: 12.5px;
+  gap: 5px;
+}
+
+.army__result .totals__row--sub dt,
+.army__result .totals__row--sub dd {
+  font-size: 11px;
+}
+
+.army__result .totals__row--sum {
+  margin-top: 3px;
+  padding-top: 5px;
+}
+
 @media (max-width: 900px) {
   .army__body { grid-template-columns: 1fr; }
 }
@@ -1032,42 +1079,42 @@ select:focus, .select:focus, .text-input:focus {
     grid-column: 1 / -1;
     padding-left: 0;
     border-left: none;
-    padding-top: 10px;
+    padding-top: 8px;
     border-top: 1px solid var(--border);
   }
 }
 
 @media (max-width: 640px) {
-  .army__setup-row { gap: 10px; }
+  .army__setup-row { gap: 8px; }
   .field-inline, .field-inline--narrow, .field-inline--duration { flex: 1 1 100%; }
   .army__setup-row--sliders > .slider { flex: 1 1 100%; }
   /* Keep a building's three queues together. On a phone the controls are
      deliberately terse, but Barracks/Stable 1, 2, and Great remain a single
      scannable row instead of turning every group into a tall mini-form. */
   .qgroup { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; }
-  .qcell { padding-left: 6px; gap: 4px; }
+  .qcell { padding-left: 5px; gap: 3px; }
   .qcell:first-child { padding-left: 0; }
   .qcell:not(:first-child) { border-left: 1px solid var(--border); }
   .qcell--empty { display: block; }
   .qcell__name { font-size: 11px; overflow: hidden; text-overflow: ellipsis; }
   .qcell__level { gap: 2px; }
-  .qcell__level > .pill--tiny { display: inline-flex; justify-content: center; align-items: center; min-width: 19px; flex: 0 0 auto; padding: 5px 2px; font-size: 11px; }
-  .qcell__level .text-input--level { min-width: 0; padding: 5px 2px; font-size: 12px; text-align: center; flex: 1 1 0; }
+  .qcell__level > .pill--tiny { display: inline-flex; justify-content: center; align-items: center; min-width: 19px; flex: 0 0 auto; padding: 4px 2px; font-size: 11px; }
+  .qcell__level .text-input--level { min-width: 0; padding: 4px 2px; font-size: 11.5px; text-align: center; flex: 1 1 0; }
   .qcell__cap-buttons { flex: 0 0 auto; display: inline-flex; gap: 2px; min-width: 0; }
-  .qcell__cap-buttons .pill--tiny { min-width: 0; padding: 5px 3px; font-size: 11px; }
-  .qcell__out { font-size: 10.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .qcell__cap-buttons .pill--tiny { min-width: 0; padding: 4px 3px; font-size: 11px; }
+  .qcell__out { font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .qgroup__units {
     grid-column: 1 / -1;
-    padding: 9px 0 0;
-    margin-top: 9px;
+    padding: 7px 0 0;
+    margin-top: 6px;
     border-left: none;
     border-top: 1px solid var(--border);
   }
   /* Six compact, evenly spaced icons mean a full unit set normally takes
      two rows rather than a column of large two-up tiles. */
-  .qgroup__picks { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; padding-top: 4px; }
+  .qgroup__picks { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 5px; padding-top: 3px; }
   .unit-pick { width: 100%; height: auto; aspect-ratio: 1; padding: 2px; }
-  .strip__cell { min-width: 48px; }
+  .strip__cell { min-width: 42px; }
 }
 
 /* Nothing should be able to scroll the page sideways; wide content
