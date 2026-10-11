@@ -264,13 +264,19 @@ describe('CombatCalculator', () => {
     // Default level is empty / 0
     expect(levelInput.value).toBe('');
 
-    // Click icon -> toggles to 20
+    // Click icon -> cycles to 20
     await act(async () => {
       iconBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
     expect(levelInput.value).toBe('20');
 
-    // Click icon again -> toggles back to 0
+    // Click icon again -> cycles to 23
+    await act(async () => {
+      iconBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(levelInput.value).toBe('23');
+
+    // Click icon again -> cycles back to 0
     await act(async () => {
       iconBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });

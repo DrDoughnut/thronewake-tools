@@ -2318,11 +2318,22 @@ const ArmyRow = forwardRef<HTMLDivElement, ArmyRowProps>(function ArmyRow(
                     <button
                       type="button"
                       className="cc-troop__icon-btn"
-                      title={unit.noUpgrade ? 'No upgrades' : `Click to toggle level (${unitLevel === 20 ? '0' : '20'})`}
+                      title={unit.noUpgrade ? 'No upgrades' : `Click to cycle level (0, 20, 23)`}
                       disabled={Boolean(unit.noUpgrade)}
                       onClick={() => {
                         if (unit.noUpgrade) return;
-                        const next = unitLevel === 20 ? 0 : 20;
+                        const next =
+                          unitLevel === 0
+                            ? 20
+                            : unitLevel === 20
+                              ? 23
+                              : unitLevel === 23
+                                ? 0
+                                : unitLevel < 20
+                                  ? 20
+                                  : unitLevel < 23
+                                    ? 23
+                                    : 0;
                         controls.level(army.id, unit.key, next);
                       }}
                     >
