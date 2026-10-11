@@ -52,7 +52,7 @@ export function ResultsTable({ ranking, heading, mods, resolve = lookup }: Props
                   <div className="unit-cell">
                     <div className="unit-cell__icons">
                       {row.set.map((ref) => (
-                        <UnitIcon key={ref} unitRef={ref} size={24} mods={mods} resolve={resolve} />
+                        <UnitIcon key={ref} unitRef={ref} size={30} mods={mods} resolve={resolve} />
                       ))}
                     </div>
                     <div className="unit-cell__text">

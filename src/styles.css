@@ -11169,7 +11169,7 @@ body.is-reordering-wave * {
 
 /* ── Unit Attributes: Compact Page Layout ───────────────────────────── */
 .ua-page {
-  gap: 12px;
+  gap: 16px;
 }
 
 .ua-page .controls {
@@ -11272,41 +11272,7 @@ body.is-reordering-wave * {
   font-size: 11px;
 }
 
-.ua-page .results__table thead th {
-  padding: 6px 8px;
-  font-size: 10.5px;
-}
-
-.ua-page .results__table td {
-  padding: 2.5px 8px;
-}
-
-.ua-page .col-rank {
-  width: 36px;
-  font-size: 12px;
-}
-
-.ua-page .unit-cell {
-  gap: 6px;
-}
-
-.ua-page .unit-cell__names {
-  font-size: 13px;
-}
-
-.ua-page .value-cell {
-  gap: 8px;
-}
-
-.ua-page .value-cell__bar {
-  height: 12px;
-}
-
-.ua-page .value-cell__number {
-  font-size: 12.5px;
-}
-
-.units-stats-break { margin-top: 20px; }
+.units-stats-break { margin-top: 24px; }
 .units-stats-break .cc-inputs-separator { margin: 0 0 4px; }
 .cc-inputs-separator__badge--btn {
   cursor: pointer;
