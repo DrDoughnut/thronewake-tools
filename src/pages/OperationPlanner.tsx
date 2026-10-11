@@ -42,7 +42,7 @@ import {
 import { type RoomCryptoSession } from '../engine/cryptoSync';
 import { TeamRoomBar } from '../components/TeamRoomBar';
 import { OperationTabs } from '../components/OperationTabs';
-import { ImportPlanModal } from '../components/ImportPlanModal';
+import { ImportPlanModal, type ImportKind } from '../components/ImportPlanModal';
 import {
   AllianceArmiesModal,
   TargetDatabaseModal,
@@ -1626,7 +1626,7 @@ function OperationPlannerV2({
   // Modals state
   const [isArmiesModalOpen, setIsArmiesModalOpen] = useState(false);
   const [isTargetsModalOpen, setIsTargetsModalOpen] = useState(false);
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importKind, setImportKind] = useState<ImportKind | null>(null);
 
   const showLocal = true;
   const [selectedKey, setSelectedKey] = useState('');
@@ -1854,12 +1854,19 @@ function OperationPlannerV2({
 
   const handleCreateOp = (name: string, icon?: string) => {
     const newId = 'op_' + Date.now();
+    // A landing copied from an operation that already happened would file the
+    // new one straight under Past, so those start a day out instead.
+    const copied = parseUtcDatetime(activeOp.landing);
+    const landing =
+      copied && copied.getTime() > Date.now()
+        ? activeOp.landing
+        : new Date(Math.ceil(Date.now() / 3_600_000) * 3_600_000 + 86_400_000).toISOString().slice(0, 16);
     const newOp: OperationPlan = {
       id: newId,
       name,
       icon: icon || '🎯',
       status: 'draft',
-      landing: activeOp.landing,
+      landing,
       serverSpeed: activeOp.serverSpeed,
       assignedAttackerIds: [],
       assignedTargetIds: [],
@@ -2601,29 +2608,37 @@ function OperationPlannerV2({
         onRoomDataLoaded={handleRoomDataLoaded}
         onRoomDisconnected={handleRoomDisconnected}
         onSaveRequested={handleSaveRequested}
+        onRestoreRequested={() => setImportKind('backup')}
       />
 
       {roomSession && (
         <>
-          <section className="panel op-v2-roster" aria-label="Master Directory (Alliance Roster and Targets)">
+          <section className="panel op-v2-roster" aria-label="Directory (allied hammers and enemy targets)">
             <div className="op-v2-roster__head">
-              <h2 className="op-section-title">📚 Master Directory</h2>
-              <button type="button" className="pill pill--tiny pill--import-btn" onClick={() => setIsImportModalOpen(true)}>📥 Import</button>
+              <h2 className="op-section-title">📚 Directory</h2>
+              <button
+                type="button"
+                className="pill pill--tiny pill--import-btn"
+                onClick={() => setImportKind('profile')}
+                title="Paste a player profile copied from Thronewake to add their villages"
+              >
+                📋 Paste Profile
+              </button>
             </div>
             <div className="op-v2-roster__cards">
               <button type="button" className="op-v2-roster-card op-v2-roster-card--hammers" onClick={() => setIsArmiesModalOpen(true)}>
                 <span className="op-v2-roster-card__icon" aria-hidden="true">⚔️</span>
                 <span className="op-v2-roster-card__copy">
-                  <strong>Alliance Hammer Directory</strong>
-                  <span>{roster.attackers.length} registered hammers · {marchingAttackers.length} deployed in active wave</span>
+                  <strong>Allies · Hammer Directory</strong>
+                  <span>{roster.attackers.length} registered {roster.attackers.length === 1 ? 'hammer' : 'hammers'}{activeOpId ? ` · ${marchingAttackers.length} deployed in this operation` : ''}</span>
                 </span>
                 <span className="op-v2-roster-card__action">Manage <span aria-hidden="true">→</span></span>
               </button>
               <button type="button" className="op-v2-roster-card op-v2-roster-card--targets" onClick={() => setIsTargetsModalOpen(true)}>
                 <span className="op-v2-roster-card__icon" aria-hidden="true">🎯</span>
                 <span className="op-v2-roster-card__copy">
-                  <strong>Enemy Target Directory</strong>
-                  <span>{roster.targets.length} registered villages across {roster.players.length} defender accounts</span>
+                  <strong>Enemies · Target Directory</strong>
+                  <span>{roster.targets.length} registered {roster.targets.length === 1 ? 'village' : 'villages'} across {roster.players.length} defender {roster.players.length === 1 ? 'account' : 'accounts'}</span>
                 </span>
                 <span className="op-v2-roster-card__action">Manage <span aria-hidden="true">→</span></span>
               </button>
@@ -2639,6 +2654,8 @@ function OperationPlannerV2({
             onDuplicateOp={handleDuplicateOp}
             onRenameOp={handleRenameOp}
             onDeleteOp={handleDeleteOp}
+            onImportPlan={() => setImportKind('plan')}
+            nowMs={Math.floor(now.getTime() / 60_000) * 60_000}
           />
         </>
       )}
@@ -2648,29 +2665,33 @@ function OperationPlannerV2({
         <section className="panel op-standby-panel">
           <div className="op-standby-panel__body">
             <span className="op-standby-panel__icon">🗺️</span>
-            <h3 className="op-standby-panel__title">No Operation Wave Open</h3>
+            <h3 className="op-standby-panel__title">No Operation Open</h3>
+            <p className="op-standby-panel__desc">
+              Pick an operation above to open it, or create a new one. You can also start from a shared plan
+              link, or fill in the Directory first.
+            </p>
             <div className="op-standby-panel__actions">
               <button
                 type="button"
                 className="pill pill--primary"
-                onClick={() => setIsImportModalOpen(true)}
-                title="Import or seed a plan from a shared URL or code"
+                onClick={() => setImportKind('plan')}
+                title="Open a plan link or code someone shared as a new operation"
               >
-                📥 Import / Seed Plan Link
+                🔗 Import Plan Link
               </button>
               <button
                 type="button"
                 className="pill pill--secondary"
                 onClick={() => setIsArmiesModalOpen(true)}
               >
-                👥 Alliance Hammer Directory
+                ⚔️ Allies · Hammer Directory
               </button>
               <button
                 type="button"
                 className="pill pill--secondary"
                 onClick={() => setIsTargetsModalOpen(true)}
               >
-                🎯 Enemy Target Directory
+                🎯 Enemies · Target Directory
               </button>
             </div>
           </div>
@@ -2682,25 +2703,27 @@ function OperationPlannerV2({
         <>
           <div className="op-workspace-bar">
             <div className="op-workspace-bar__operation">
-              <span className="op-workspace-bar__eyebrow">Viewing Workspace</span>
               <div className="op-workspace-bar__title-group">
                 <strong className="op-workspace-bar__title">
                   {activeOp.name}
                 </strong>
-                <span
-                  className={`op-status-badge ${isOpLocked ? 'op-status-badge--ready' : 'op-status-badge--draft'}`}
-                  title={isOpLocked ? 'Confirmed / Ready: Protected against accidental edits' : 'Draft: Editable'}
-                >
-                  {isOpLocked ? '✅ Ready' : '📝 Draft'}
-                </span>
+                {/* One control for the status: it says what the operation is and flips it. */}
                 <button
                   type="button"
-                  className={`pill pill--tiny ${isOpLocked ? 'op-lock-toggle--unlock' : 'op-lock-toggle--lock'}`}
+                  className={`pill pill--tiny op-status-toggle ${isOpLocked ? 'op-status-toggle--ready' : 'op-status-toggle--draft'}`}
                   onClick={() => handleToggleOpStatus(activeOp.id)}
-                  title={isOpLocked ? 'Unlock operation to allow edits' : 'Lock operation as Ready to prevent accidental edits'}
-                  aria-label={isOpLocked ? 'Unlock operation' : 'Lock operation as Ready'}
+                  aria-pressed={isOpLocked}
+                  title={
+                    isOpLocked
+                      ? 'Ready: locked against accidental edits. Click to unlock.'
+                      : 'Draft: editable. Click to mark as Ready and lock it.'
+                  }
                 >
-                  {isOpLocked ? '🔓 Unlock' : '🔒 Mark as Ready'}
+                  {isOpLocked ? (
+                    <>🔒 Ready <span className="op-status-toggle__action">Unlock</span></>
+                  ) : (
+                    <>📝 Draft <span className="op-status-toggle__action">Mark ready</span></>
+                  )}
                 </button>
                 <button
                   type="button"
@@ -2744,25 +2767,6 @@ function OperationPlannerV2({
               ✕
             </button>
           </div>
-
-          {isOpLocked && (
-            <div className="op-lock-banner" role="alert">
-              <div className="op-lock-banner__info">
-                <span className="op-lock-banner__icon">🔒</span>
-                <div className="op-lock-banner__text">
-                  <strong>Locked: {activeOp.name}</strong>
-                </div>
-              </div>
-              <button
-                type="button"
-                className="pill pill--tiny pill--primary op-lock-banner__btn"
-                onClick={() => handleToggleOpStatus(activeOp.id)}
-                title="Unlock operation to allow edits"
-              >
-                🔓 Unlock
-              </button>
-            </div>
-          )}
 
           {/* ── STEP 1: SCHEDULING (V2) ───────────────────────────── */}
           {workspaceView === 'scheduling' && (
@@ -3293,6 +3297,7 @@ function OperationPlannerV2({
         targets={roster.targets}
         isOpen={isTargetsModalOpen}
         onClose={() => setIsTargetsModalOpen(false)}
+        onPasteProfile={() => setImportKind('profile')}
         onAddPlayer={handleAddPlayer}
         onPatchPlayer={handlePatchPlayer}
         onRemovePlayer={handleRemovePlayer}
@@ -3302,8 +3307,9 @@ function OperationPlannerV2({
       />
 
       <ImportPlanModal
-        isOpen={isImportModalOpen}
-        onClose={() => setIsImportModalOpen(false)}
+        kind={importKind}
+        onClose={() => setImportKind(null)}
+        knownTargets={roster.targets}
         onImport={handleImportPlan}
         onImportRoom={handleImportRoom}
       />

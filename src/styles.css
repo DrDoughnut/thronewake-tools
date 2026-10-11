@@ -1645,9 +1645,9 @@ select:focus, .select:focus, .text-input:focus {
 .op-target-group {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-bottom: 10px;
-  padding: 8px 12px;
+  gap: 6px;
+  margin-bottom: 6px;
+  padding: 6px 10px;
   border-radius: 8px;
   border: 1px solid hsl(220, 15%, 20%);
   background: hsl(220, 18%, 10%);
@@ -1794,21 +1794,24 @@ select:focus, .select:focus, .text-input:focus {
   flex: 0 0 auto;
 }
 
-/* Group Dropdown Bar (Underneath Safetime) */
-.op-group-dropdown-bar {
-  display: flex;
-  align-items: center;
-  padding: 0;
-  margin: 0;
+/* Directory rows sit tighter than the same cards elsewhere */
+.op-roster-target-group .op-strip-list {
+  gap: 3px;
+}
+.op-roster-target-group .op-strip-card {
+  padding: 3px 8px;
 }
 
+/* Expand/collapse toggle that leads each player row */
 .op-group-dropdown-btn {
+  flex: 0 0 auto;
   font-weight: 600;
   cursor: pointer;
   font-size: 11px;
-  padding: 1px 6px;
-  height: 20px;
+  padding: 1px 8px;
+  height: 28px;
   line-height: 18px;
+  white-space: nowrap;
 }
 
 /* Single Unified Villages Disclosure */
@@ -5104,29 +5107,9 @@ select:focus, .select:focus, .text-input:focus {
   white-space: nowrap;
 }
 
-.op-team-room-bar__title-wrap {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.op-team-room-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 12.5px;
-  font-weight: 700;
-  color: var(--text-bright);
-}
-
-.op-team-room-secure-pill {
-  font-size: 10.5px;
-  font-weight: 600;
-  padding: 2px 7px;
-  border-radius: 999px;
-  background: rgba(46, 204, 113, 0.12);
-  border: 1px solid rgba(46, 204, 113, 0.3);
-  color: #2ecc71;
+.op-team-room-connect {
+  min-width: 124px;
+  justify-content: center;
 }
 
 .op-team-room-form {
@@ -5192,11 +5175,40 @@ select:focus, .select:focus, .text-input:focus {
   border-color: #ff6b6b;
 }
 
+/* Fixed width, so the label changing ("Saving…" ↔ "✓ Saved") moves nothing. */
 .op-team-room-status {
+  display: inline-block;
+  min-width: 68px;
   font-size: 11.5px;
-  padding: 2px 8px;
-  border-radius: 4px;
+  font-weight: 600;
+  text-align: right;
   white-space: nowrap;
+}
+
+/* The sentence behind an error or offline state, on its own line. */
+.op-team-room-detail {
+  margin: 0;
+  padding: 7px 14px 9px;
+  border-top: 1px solid hsl(220, 16%, 18%);
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: #ff6b6b;
+}
+
+.op-team-room-detail--offline {
+  color: #f39c12;
+}
+
+.op-team-room-live-dot--offline {
+  background: #f39c12;
+  box-shadow: 0 0 6px rgba(243, 156, 18, 0.6);
+  animation: none;
+}
+
+.op-team-room-live-dot--error {
+  background: #ff6b6b;
+  box-shadow: 0 0 6px rgba(255, 107, 107, 0.6);
+  animation: none;
 }
 
 .op-team-room-status--connecting {
@@ -5209,10 +5221,6 @@ select:focus, .select:focus, .text-input:focus {
 
 .op-team-room-status--dirty {
   color: #f39c12;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
   animation: pulse-dirty 2s infinite ease-in-out;
 }
 
@@ -5223,7 +5231,6 @@ select:focus, .select:focus, .text-input:focus {
 
 .op-save-btn--dirty {
   background: linear-gradient(135deg, #e67e22, #d35400) !important;
-  box-shadow: 0 0 10px rgba(230, 126, 34, 0.45);
 }
 
 .op-autosave-active {
@@ -5244,16 +5251,6 @@ select:focus, .select:focus, .text-input:focus {
   color: #f39c12;
 }
 
-/* These two carry a sentence about what went wrong, not a two-word state. */
-.op-team-room-status--error,
-.op-team-room-status--offline {
-  white-space: normal;
-}
-
-.op-team-room-synctime {
-  color: var(--text-dim);
-  font-size: 11px;
-}
 
 /* ==========================================================================
    Multi-Operation Tabs Strip
@@ -6564,7 +6561,7 @@ select:focus, .select:focus, .text-input:focus {
 
 /* Standby Empty Panel when no operation wave is open */
 .op-standby-panel {
-  padding: 40px 24px;
+  padding: 32px 24px;
   text-align: center;
   background: hsl(220, 22%, 9.5%);
   border: 1px dashed hsl(220, 16%, 22%);
@@ -6600,11 +6597,6 @@ select:focus, .select:focus, .text-input:focus {
   margin: 0;
 }
 
-.op-standby-panel__hint {
-  font-size: 11.5px;
-  color: var(--text-faint);
-  line-height: 1.4;
-}
 .op-standby-panel__actions {
   display: flex;
   align-items: center;
@@ -6613,7 +6605,6 @@ select:focus, .select:focus, .text-input:focus {
   flex-wrap: wrap;
   margin: 6px 0;
 }
-
 .op-roster-summary-card--import {
   border-color: rgba(84, 160, 255, 0.28);
 }
@@ -6639,7 +6630,129 @@ select:focus, .select:focus, .text-input:focus {
 .op-import-form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  flex: 1;
+  min-height: 0;
+}
+
+/* "What to copy" example in the Paste Profile modal */
+.op-import-guide {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin: 0;
+  padding: 10px;
+  border: 1px solid hsl(220, 14%, 22%);
+  border-radius: 8px;
+  background: hsl(220, 19%, 9%);
+}
+
+.op-modal--import-profile {
+  max-width: 860px;
+}
+
+/* Wide screens: the example on the left; the steps, text box and preview on the right. */
+@media (min-width: 721px) {
+  .op-modal--import-profile .op-modal__body {
+    display: grid;
+    grid-template-columns: 400px minmax(0, 1fr);
+    column-gap: 18px;
+    align-content: start;
+  }
+  .op-modal--import-profile .op-modal__body > * {
+    grid-column: 2;
+  }
+  .op-modal--import-profile .op-import-guide {
+    display: contents;
+  }
+  .op-modal--import-profile .op-import-guide__shot {
+    grid-column: 1;
+    grid-row: 1 / span 8;
+    align-self: start;
+  }
+  .op-modal--import-profile .op-import-guide__steps {
+    grid-column: 2;
+  }
+}
+
+.op-import-guide__shot {
+  flex: 0 0 420px;
+  display: block;
+  line-height: 0;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid hsl(220, 14%, 26%);
+}
+
+.op-import-guide__shot img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.op-import-guide__steps {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+
+.op-import-guide__steps strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #fff;
+  font-size: 13px;
+}
+
+.op-import-guide__steps ol {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.op-import-guide__steps li + li {
+  margin-top: 3px;
+}
+
+.op-import-guide__steps b {
+  color: var(--text);
+}
+
+@media (max-width: 720px) {
+  .op-import-guide {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .op-import-guide__shot {
+    flex: 0 0 auto;
+    max-width: 420px;
+    align-self: center;
+  }
+}
+
+.op-import-footer {
+  gap: 8px;
+}
+
+.op-import-label__optional {
+  font-weight: 400;
+  opacity: 0.6;
+}
+
+.op-import-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.op-import-check input {
+  accent-color: #54a0ff;
+}
+
+.op-import-preview__sub--wrap {
+  white-space: normal;
 }
 
 .op-import-input-group {
@@ -6722,39 +6835,15 @@ select:focus, .select:focus, .text-input:focus {
   color: var(--text-dim);
 }
 
-.op-import-preview__grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
 @media (max-width: 540px) {
   .op-import-preview__grid {
     grid-template-columns: 1fr;
   }
 }
 
-.op-import-preview__stat {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  font-size: 12px;
-  color: var(--text);
-  background: rgba(0, 0, 0, 0.2);
-  padding: 8px 10px;
-  border-radius: 6px;
-}
-
-.op-import-preview__stat-title {
-  font-size: 13px;
-  font-weight: 700;
-  color: #fff;
-}
-
 .op-import-preview__sub {
-  font-size: 11px;
-  color: var(--text-faint);
-  margin-top: 2px;
+  font-size: 11.5px;
+  color: var(--text-dim);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -6804,6 +6893,10 @@ select:focus, .select:focus, .text-input:focus {
 .op-import-mode-card.is-selected {
   border-color: #54a0ff;
   background: rgba(84, 160, 255, 0.08);
+}
+
+.op-import-mode-card.is-danger.is-selected input[type="radio"] {
+  accent-color: #ff6b6b;
 }
 
 .op-import-mode-card.is-danger.is-selected {
@@ -6882,7 +6975,6 @@ select:focus, .select:focus, .text-input:focus {
 .op-v2-roster-card--targets .op-v2-roster-card__action { color: #fa6d5f; }
 
 .op-v2-quickbar__badge,
-.op-workspace-bar__eyebrow,
 .op-participant-picker__eyebrow {
   color: #2ecc71;
   font-size: 9.5px;
@@ -7284,22 +7376,6 @@ select:focus, .select:focus, .text-input:focus {
   z-index: 30;
   margin-bottom: 12px;
 }
-.op-unified-room-card__classified-strip {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 6px 14px;
-  background: linear-gradient(90deg, rgba(46, 204, 113, 0.14) 0%, rgba(26, 188, 156, 0.06) 100%);
-  border-bottom: 1px solid rgba(46, 204, 113, 0.25);
-  border-top-left-radius: inherit;
-  border-top-right-radius: inherit;
-  font-size: 11px;
-  font-weight: 750;
-  color: #2ecc71;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
 .op-unified-room-card .op-team-room-bar__content {
   padding: 10px 14px;
 }
@@ -7351,11 +7427,6 @@ select:focus, .select:focus, .text-input:focus {
   font-weight: 750;
   color: #fff;
 }
-.op-plans-strip__subtitle {
-  font-size: 11px;
-  color: var(--text-faint);
-}
-
 /* ── Operation Tab Content & Inline Rename ────────────────────────── */
 .op-plan-tab__content {
   display: flex;
@@ -7461,9 +7532,9 @@ select:focus, .select:focus, .text-input:focus {
     flex-shrink: 0;
   }
   .op-modal--roster {
-    min-width: 680px;
+    min-width: 880px;
     max-width: none;
-    width: 680px;
+    width: 880px;
   }
   .op-modal--roster .op-modal__header {
     padding: 12px 14px;
@@ -7485,7 +7556,7 @@ select:focus, .select:focus, .text-input:focus {
     font-size: 11px;
   }
   .op-target-group {
-    padding: 8px 10px;
+    padding: 6px 10px;
   }
   .op-target-group__head {
     flex-wrap: nowrap;
@@ -11059,7 +11130,61 @@ body.is-reordering-wave * {
   font-size: 11px;
 }
 
-/* ── Operation Tabs: Ready vs Draft Partitioning & Divider ───────────────── */
+/* ── Operation Tabs: Upcoming vs Past ────────────────────────────────────── */
+
+.op-plans-strip__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.op-plan-tab__when {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.op-plans-past__summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.op-plans-past__summary::-webkit-details-marker {
+  display: none;
+}
+
+.op-plans-past__count {
+  font-size: 11.5px;
+  color: var(--text-faint);
+}
+
+.op-plans-past__count::after {
+  content: ' ▾';
+}
+
+.op-plans-past[open] .op-plans-past__count::after {
+  content: ' ▴';
+}
+
+.op-plans-past[open] > .op-plans-group {
+  margin-top: 8px;
+}
+
+.op-plans-group--past .op-plan-tab:not(.is-active) {
+  opacity: 0.7;
+}
+
+.op-plans-group__label.op-plans-group__label--past {
+  color: var(--text-dim);
+  background: hsla(220, 15%, 28%, 0.3);
+  border: 1px solid hsl(220, 14%, 26%);
+}
 
 .op-plans-group {
   display: flex;
@@ -11083,59 +11208,12 @@ body.is-reordering-wave * {
   flex-shrink: 0;
 }
 
-.op-plans-group__label--draft {
-  color: var(--text-muted);
-  background: hsla(220, 15%, 28%, 0.3);
-  border: 1px solid hsl(220, 14%, 26%);
-}
-
-.op-plans-divider {
-  display: block;
-  flex-shrink: 0;
-}
-
-.op-plans-divider--horizontal {
-  width: 100%;
-  height: 1px;
-  background: hsl(220, 15%, 22%);
-  margin: 2px 0;
-  border: none;
-}
-
-.op-plans-divider--vertical {
-  width: 1px;
-  min-width: 1px;
-  height: 28px;
-  background: hsl(220, 15%, 28%);
-  margin: 0 8px;
-  align-self: center;
-}
-
 .op-plans-empty-hint {
   font-size: 11.5px;
   color: var(--text-faint);
   font-style: italic;
   padding: 4px 6px;
   user-select: none;
-}
-
-.op-plans-divider__line {
-  width: 1px;
-  height: 28px;
-  background: hsl(220, 15%, 25%);
-}
-
-.op-plans-divider__label {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-faint);
-  padding: 1px 6px;
-  background: hsl(220, 18%, 15%);
-  border: 1px solid hsl(220, 14%, 24%);
-  border-radius: 999px;
-  white-space: nowrap;
 }
 
 .op-tab-status-badge {
@@ -11173,7 +11251,36 @@ body.is-reordering-wave * {
   font-size: 12px;
 }
 
-/* ── Workspace Bar: Status Badge and Lock Toggle ─────────────────────────── */
+/* ── Workspace Bar: Status Toggle ────────────────────────────────────────── */
+
+.op-status-toggle {
+  gap: 6px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.op-status-toggle--draft {
+  background: hsla(38, 92%, 50%, 0.15);
+  border-color: hsla(38, 92%, 50%, 0.35);
+  color: hsl(38, 92%, 75%);
+}
+
+.op-status-toggle--ready {
+  background: hsla(142, 70%, 45%, 0.2);
+  border-color: hsla(142, 70%, 45%, 0.45);
+  color: #4ade80;
+}
+
+.op-status-toggle:hover {
+  filter: brightness(1.2);
+}
+
+.op-status-toggle__action {
+  padding-left: 6px;
+  border-left: 1px solid currentColor;
+  font-weight: 600;
+  opacity: 0.75;
+}
 
 .op-workspace-bar__title-group {
   display: flex;
@@ -11182,106 +11289,6 @@ body.is-reordering-wave * {
   flex-wrap: wrap;
 }
 
-.op-status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 999px;
-  letter-spacing: 0.03em;
-}
-
-.op-status-badge--ready {
-  background: hsla(142, 70%, 45%, 0.2);
-  color: #4ade80;
-  border: 1px solid hsla(142, 70%, 45%, 0.45);
-}
-
-.op-status-badge--draft {
-  background: hsla(38, 92%, 50%, 0.15);
-  color: hsl(38, 92%, 75%);
-  border: 1px solid hsla(38, 92%, 50%, 0.35);
-}
-
-.op-lock-toggle--lock {
-  background: hsl(220, 16%, 20%);
-  border-color: hsl(220, 15%, 32%);
-  color: var(--text-muted);
-  cursor: pointer;
-}
-
-.op-lock-toggle--lock:hover {
-  background: hsl(220, 18%, 26%);
-  color: var(--text);
-}
-
-.op-lock-toggle--unlock {
-  background: hsla(38, 92%, 50%, 0.18);
-  border-color: hsla(38, 92%, 50%, 0.45);
-  color: hsl(38, 92%, 78%);
-  cursor: pointer;
-}
-
-.op-lock-toggle--unlock:hover {
-  background: hsla(38, 92%, 50%, 0.28);
-}
-
-/* ── Operation Locked Banner ─────────────────────────────────────────────── */
-
-.op-lock-banner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  background: linear-gradient(135deg, hsla(215, 60%, 14%, 0.95), hsla(142, 60%, 10%, 0.95));
-  border: 1.5px solid hsla(142, 60%, 45%, 0.5);
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
-  border-radius: var(--radius-md, 8px);
-  padding: 12px 18px;
-  margin-bottom: 14px;
-}
-
-.op-lock-banner__info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.op-lock-banner__icon {
-  font-size: 22px;
-  flex-shrink: 0;
-}
-
-.op-lock-banner__text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.op-lock-banner__text strong {
-  font-size: 13.5px;
-  color: #4ade80;
-}
-
-.op-lock-banner__text span {
-  font-size: 12px;
-  color: var(--text-dim);
-}
-
-.op-lock-banner__btn {
-  flex-shrink: 0;
-  background: #16a34a !important;
-  color: #fff !important;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgba(22, 163, 74, 0.35);
-}
-
-.op-lock-banner__btn:hover {
-  background: #15803d !important;
-}
 
 .op-participant-picker__locked-notice {
   margin-top: 8px;

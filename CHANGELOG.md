@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.15.0] - 2026-10-11
+
+### Added
+- **Paste Profile** modal for the Directory, with an annotated screenshot showing what to copy from a Thronewake player profile and a preview of new vs already-listed villages.
+- **Upcoming / Past** grouping of operations by landing time, with a time-until-landing label on each tab. Past operations are collapsed by default.
+
+### Changed
+- The catch-all Import modal is split by purpose: **Paste Profile** (Directory), **Import Link** (Operations), and **Restore Backup** (Room options). Merge vs replace now only appears when restoring a backup.
+- Room header: a single connection dot, a fixed-width save status so buttons no longer shift, and error/offline details on their own line. The "Top Secret Classified Mode" strip is removed.
+- An open operation has one combined **Draft / Ready** toggle instead of a status badge, a lock button, and an unlock banner.
+- New and duplicated operations default to a future landing time.
+- Allies and Enemies directories: the expand toggle leads each player row instead of taking its own line, village and hammer rows are tighter, and the mobile layout is wider so buttons no longer crowd.
+- Import modals have proper padding around their fields and buttons.
+
 ## [1.14.2] - 2026-10-07
 
 ### Changed

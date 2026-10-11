@@ -2,7 +2,7 @@
  * Player release notes. Bump `APP_VERSION` and add an entry here
  * whenever a change is worth telling returning players about.
  */
-export const APP_VERSION = '1.14.3';
+export const APP_VERSION = '1.15.0';
 
 export interface ChangelogEntry {
   version: string;
@@ -11,6 +11,17 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '1.15.0',
+    date: '2026-10-11',
+    changes: [
+      'Operation Planner declutter: one connection dot and a steady "Saved / Saving…" status in the room header, with no more "Top Secret" banner or shifting buttons.',
+      'Import split into three: "Paste Profile" in the Directory (with a picture of what to copy), "Import Link" in Operations, and "Restore Backup" under Room options.',
+      'Operations are grouped into Upcoming and Past by landing time, and each tab shows how long until it lands.',
+      'One Draft / Ready button on an open operation replaces the separate badge, lock button, and unlock banner.',
+      'Tighter Allies and Enemies directory rows, with a roomier scrolling layout on phones.',
+    ],
+  },
   {
     version: '1.14.3',
     date: '2026-10-11',

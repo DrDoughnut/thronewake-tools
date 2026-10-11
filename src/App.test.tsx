@@ -553,7 +553,7 @@ describe('the operation planner', () => {
 
     // When first entering secret mode, no operation is open by default.
     expect(container.querySelector('.op-standby-panel')).toBeTruthy();
-    expect(container.textContent).toContain('No Operation Wave Open');
+    expect(container.textContent).toContain('Pick an operation above to open it');
 
     // Click the operation tab to open Operation 1
     const firstOpTab = container.querySelector('.op-plan-tab') as HTMLElement;
@@ -767,7 +767,7 @@ describe('the operation planner', () => {
     expect(artBtn.classList.contains('is-active')).toBe(true);
   });
 
-  it('supports importing and seeding plans from shared links via the Import Plan modal', async () => {
+  it('supports importing and seeding plans from shared links via the Import Plan Link modal', async () => {
     const originalFetch = globalThis.fetch;
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -778,21 +778,21 @@ describe('the operation planner', () => {
     try {
       await unlockV2('import_test_room');
 
-      // Open Import Plan modal
-      const importBtn = container.querySelector('.pill--import-btn') as HTMLButtonElement;
+      // Open Import Plan Link modal
+      const importBtn = container.querySelector('.op-plans-import-btn') as HTMLButtonElement;
       expect(importBtn).toBeTruthy();
       click(importBtn);
 
       const importModal = container.querySelector('.op-modal--import');
       expect(importModal).toBeTruthy();
-      expect(importModal?.textContent).toContain('Import Plan');
+      expect(importModal?.textContent).toContain('Import Plan Link');
 
       const textarea = importModal?.querySelector('.op-import-textarea') as HTMLTextAreaElement;
       expect(textarea).toBeTruthy();
 
       // Paste invalid text
       setInputValue(textarea, 'invalid_gibberish');
-      expect(importModal?.textContent).toContain('Could not detect room backup JSON');
+      expect(importModal?.textContent).toContain("Couldn't read a plan from that link or code.");
 
       // Paste a valid plan URL with 2 attackers: one past and one upcoming to test the continuous arrow
       const nowMs = Date.now();
@@ -979,10 +979,8 @@ describe('the operation planner', () => {
   it('properly rechecks safetimes with new send times when siege mode is toggled', async () => {
     await unlockV2('password123');
 
-    // Open Alliance Hammer Directory to set safe hours on the member
-    const armiesBtn = [...container.querySelectorAll('button')].find(
-      (b) => b.textContent?.includes('Alliance Hammer Directory'),
-    ) as HTMLButtonElement;
+    // Open the Allies directory to set safe hours on the member
+    const armiesBtn = container.querySelector('.op-v2-roster-card--hammers') as HTMLButtonElement;
     expect(armiesBtn).toBeTruthy();
     click(armiesBtn);
 
@@ -1074,29 +1072,29 @@ describe('the operation planner', () => {
     expect(blockedParticipantBlock?.textContent).toContain('Blocked');
   });
 
-  it('supports draft vs ready operations with divider, edit locking, and emergency unlock', async () => {
+  it('supports draft vs ready operations with a single status toggle and edit locking', async () => {
     // Unlock v2 mode
     await unlockV2('password123');
 
-    // Initial state: Operation 1 is Draft (listed in Drafts group, with no draft tag cluttering the tab name)
+    // Initial state: Operation 1 is Draft, with no draft tag cluttering the tab name
     const opTabs = container.querySelectorAll('.op-plan-tab');
     expect(opTabs.length).toBeGreaterThan(0);
     expect(container.querySelector('.op-tab-status-badge--draft')).toBeNull();
 
-    // Ready and Drafts groups and the horizontal divider are always visible
-    expect(container.querySelector('.op-plans-group--ready')).toBeTruthy();
-    expect(container.querySelector('.op-plans-divider--horizontal')).toBeTruthy();
-    expect(container.querySelector('.op-plans-group--draft')).toBeTruthy();
+    // Operations are grouped by landing time; the Upcoming group is always visible
+    expect(container.querySelector('.op-plans-group--upcoming')?.textContent).toContain('Upcoming');
+    expect(container.querySelector('.op-plans-group--ready')).toBeNull();
+    expect(container.querySelector('.op-plans-group--draft')).toBeNull();
 
     // Open Operation 1
     click(opTabs[0]);
 
-    // Check workspace bar shows Draft status and "🔒 Mark as Ready" button
-    const workspaceStatus = container.querySelector('.op-status-badge--draft');
-    expect(workspaceStatus).toBeTruthy();
-    const lockBtn = container.querySelector('.op-lock-toggle--lock') as HTMLButtonElement;
+    // The workspace bar has one control that both shows the status and flips it
+    expect(container.querySelectorAll('.op-status-toggle').length).toBe(1);
+    const lockBtn = container.querySelector('.op-status-toggle--draft') as HTMLButtonElement;
     expect(lockBtn).toBeTruthy();
-    expect(lockBtn.textContent).toContain('Mark as Ready');
+    expect(lockBtn.textContent).toContain('Draft');
+    expect(lockBtn.textContent).toContain('Mark ready');
 
     // The tab menu should NOT have a lock icon button
     expect(container.querySelector('.op-plan-tab__btn--lock')).toBeNull();
@@ -1106,14 +1104,14 @@ describe('the operation planner', () => {
     click(lockBtn);
 
     // Verify status switches to Ready
-    const readyBadge = container.querySelector('.op-status-badge--ready');
+    const readyBadge = container.querySelector('.op-status-toggle--ready');
     expect(readyBadge).toBeTruthy();
     expect(readyBadge?.textContent).toContain('Ready');
+    expect(readyBadge?.textContent).toContain('Unlock');
 
-    // Verify Unlock banner appears (no "emergency" wording)
-    const lockBanner = container.querySelector('.op-lock-banner');
-    expect(lockBanner).toBeTruthy();
-    expect(lockBanner?.textContent).toContain('Locked: Operation 1');
+    // No second unlock control: the banner is gone
+    expect(container.querySelector('.op-lock-banner')).toBeNull();
+    expect(container.querySelectorAll('.op-status-toggle').length).toBe(1);
 
     // Verify inputs are disabled while locked
     const dateInput = container.querySelector('.text-input--date') as HTMLInputElement;
@@ -1127,37 +1125,31 @@ describe('the operation planner', () => {
     expect(duplicateBtn).toBeTruthy();
     click(duplicateBtn);
 
-    // Verify divider and both groups remain visible
-    const divider = container.querySelector('.op-plans-divider--horizontal');
-    expect(divider).toBeTruthy();
-    expect(container.querySelector('.op-plans-group--draft')?.textContent).toContain('Drafts');
-    expect(container.querySelector('.op-plans-group--ready')?.textContent).toContain('Ready');
+    // The copy is a draft; only the original carries the Ready flag
+    expect(container.querySelectorAll('.op-plan-tab.is-ready').length).toBe(1);
 
     // Now test unlock on Operation 1
     const readyTab = container.querySelector('.op-plan-tab.is-ready') as HTMLDivElement;
     expect(readyTab).toBeTruthy();
     click(readyTab);
 
-    const unlockBtn = container.querySelector('.op-lock-banner__btn') as HTMLButtonElement;
+    const unlockBtn = container.querySelector('.op-status-toggle--ready') as HTMLButtonElement;
     expect(unlockBtn).toBeTruthy();
     expect(unlockBtn.textContent).toContain('Unlock');
-    expect(unlockBtn.textContent).not.toContain('Emergency');
     click(unlockBtn);
 
-    // Verify lock banner disappears and inputs are re-enabled
-    expect(container.querySelector('.op-lock-banner')).toBeNull();
+    // Verify the operation is a draft again and inputs are re-enabled
+    expect(container.querySelector('.op-status-toggle--draft')).toBeTruthy();
     expect((container.querySelector('.text-input--date') as HTMLInputElement)?.disabled).toBe(false);
     expect((container.querySelector('.op-time-slider') as HTMLInputElement)?.disabled).toBe(false);
   });
 
-  it('supports player race filter in the Alliance Hammer Directory and filters unit picker to race', async () => {
+  it('supports player race filter in the Allies directory and filters unit picker to race', async () => {
     // Unlock v2 mode
     await unlockV2('password123');
 
-    // Open Alliance Hammer Directory
-    const armiesBtn = [...container.querySelectorAll('button')].find(
-      (b) => b.textContent?.includes('Alliance Hammer Directory'),
-    ) as HTMLButtonElement;
+    // Open the Allies directory
+    const armiesBtn = container.querySelector('.op-v2-roster-card--hammers') as HTMLButtonElement;
     expect(armiesBtn).toBeTruthy();
     click(armiesBtn);
 

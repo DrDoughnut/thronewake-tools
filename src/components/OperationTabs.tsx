@@ -1,5 +1,5 @@
 import { memo, useState } from 'react';
-import type { OperationPlan } from '../engine/operations';
+import { parseUtcDatetime, type OperationPlan } from '../engine/operations';
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 
 interface OperationTabsProps {
@@ -10,6 +10,26 @@ interface OperationTabsProps {
   onDuplicateOp: (opId: string) => void;
   onRenameOp: (opId: string, newName: string) => void;
   onDeleteOp: (opId: string) => void;
+  /** Opens the "import a shared plan link" flow; the button is hidden without it. */
+  onImportPlan?: () => void;
+  /** Current time, used to file operations under Upcoming or Past. */
+  nowMs?: number;
+}
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/** "in 2d 4h" for a landing still ahead, "Oct 9" for one that has passed. */
+function landingLabel(landingMs: number, nowMs: number): string {
+  const diff = landingMs - nowMs;
+  if (diff <= 0) {
+    const d = new Date(landingMs);
+    return `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}`;
+  }
+  const mins = Math.max(1, Math.round(diff / 60_000));
+  if (mins < 60) return `in ${mins}m`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `in ${hours}h ${mins % 60}m`;
+  return `in ${Math.floor(hours / 24)}d ${hours % 24}h`;
 }
 
 export const OperationTabs = memo(function OperationTabs({
@@ -20,12 +40,15 @@ export const OperationTabs = memo(function OperationTabs({
   onDuplicateOp,
   onRenameOp,
   onDeleteOp,
+  onImportPlan,
+  nowMs = Date.now(),
 }: OperationTabsProps) {
   const [isRenamingId, setIsRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [newOpName, setNewOpName] = useState('');
   const [deleteConfirmOp, setDeleteConfirmOp] = useState<OperationPlan | null>(null);
+  const [isPastOpen, setIsPastOpen] = useState(false);
 
   const handleStartRename = (op: OperationPlan) => {
     setIsRenamingId(op.id);
@@ -46,13 +69,26 @@ export const OperationTabs = memo(function OperationTabs({
     setIsCreating(false);
   };
 
-  const readyOps = operations.filter((o) => o.status === 'ready');
-  const draftOps = operations.filter((o) => o.status !== 'ready');
+  // Filed by landing time rather than by a tag typed into the name: an
+  // operation moves to Past on its own once it has landed.
+  const landingMsOf = (op: OperationPlan) => parseUtcDatetime(op.landing)?.getTime() ?? null;
+  const isPast = (op: OperationPlan) => {
+    const ms = landingMsOf(op);
+    return ms !== null && ms <= nowMs;
+  };
+  const upcomingOps = operations
+    .filter((o) => !isPast(o))
+    .sort((a, b) => (landingMsOf(a) ?? Infinity) - (landingMsOf(b) ?? Infinity));
+  const pastOps = operations
+    .filter(isPast)
+    .sort((a, b) => (landingMsOf(b) ?? 0) - (landingMsOf(a) ?? 0));
+  const isActivePast = pastOps.some((o) => o.id === activeOpId);
 
   const renderOpTab = (op: OperationPlan) => {
     const isActive = op.id === activeOpId;
     const isRenaming = isRenamingId === op.id;
     const isReady = op.status === 'ready';
+    const landingMs = landingMsOf(op);
 
     if (isRenaming) {
       return (
@@ -84,7 +120,7 @@ export const OperationTabs = memo(function OperationTabs({
         title={
           isActive
             ? 'Click to close this operation wave'
-            : `Click to open ${op.name} (${isReady ? 'Confirmed / Ready' : 'Draft'})`
+            : `Click to open ${op.name} (${isReady ? 'Ready' : 'Draft'}) · lands ${op.landing.replace('T', ' ')} UTC`
         }
       >
         <div className="op-plan-tab__content">
@@ -105,6 +141,9 @@ export const OperationTabs = memo(function OperationTabs({
             >
               Ready
             </span>
+          )}
+          {landingMs !== null && (
+            <span className="op-plan-tab__when">{landingLabel(landingMs, nowMs)}</span>
           )}
         </div>
 
@@ -156,48 +195,35 @@ export const OperationTabs = memo(function OperationTabs({
         <div className="op-plans-strip__header">
           <div className="op-plans-strip__title-wrap">
             <h2 className="op-section-title">Operations</h2>
-            <span className="op-plans-strip__subtitle">
-              <span><strong>{readyOps.length}</strong> Ready · </span>
-              <span><strong>{draftOps.length}</strong> Draft{draftOps.length === 1 ? '' : 's'}</span>
-              <span> ({operations.length} total)</span>
-            </span>
           </div>
-          <button
-            type="button"
-            className="pill pill--tiny pill--primary"
-            onClick={() => setIsCreating(true)}
-            title="Create a new draft operation"
-          >
-            + New Operation
-          </button>
+          <div className="op-plans-strip__actions">
+            {onImportPlan && (
+              <button
+                type="button"
+                className="pill pill--tiny pill--secondary op-plans-import-btn"
+                onClick={onImportPlan}
+                title="Open a plan link someone shared as a new operation"
+              >
+                🔗 Import Link
+              </button>
+            )}
+            <button
+              type="button"
+              className="pill pill--tiny pill--primary"
+              onClick={() => setIsCreating(true)}
+              title="Create a new draft operation"
+            >
+              + New Operation
+            </button>
+          </div>
         </div>
 
         <div className="op-plans-strip">
-          {/* Ready operations row - always shown */}
-          <div className="op-plans-group op-plans-group--ready" role="tablist" aria-label="Ready operations">
-            <span className="op-plans-group__label">Ready</span>
-            {readyOps.length > 0 ? (
-              readyOps.map(renderOpTab)
-            ) : (
-              <span className="op-plans-empty-hint">None</span>
-            )}
-          </div>
-
-          {/* Horizontal divider between Ready and Drafts - always shown */}
-          <div
-            className="op-plans-divider op-plans-divider--horizontal"
-            role="separator"
-            aria-orientation="horizontal"
-            aria-label="Divider between Ready and Draft operations"
-          />
-
-          {/* Draft operations row - always shown */}
-          <div className="op-plans-group op-plans-group--draft" role="tablist" aria-label="Draft operations">
-            <span className="op-plans-group__label op-plans-group__label--draft">Drafts</span>
-            {draftOps.length > 0 ? (
-              draftOps.map(renderOpTab)
-            ) : (
-              <span className="op-plans-empty-hint">None</span>
+          <div className="op-plans-group op-plans-group--upcoming" role="tablist" aria-label="Upcoming operations">
+            <span className="op-plans-group__label">Upcoming</span>
+            {upcomingOps.map(renderOpTab)}
+            {upcomingOps.length === 0 && !isCreating && (
+              <span className="op-plans-empty-hint">Nothing scheduled</span>
             )}
 
             {isCreating ? (
@@ -218,6 +244,25 @@ export const OperationTabs = memo(function OperationTabs({
               </div>
             ) : null}
           </div>
+
+          {/* Landed operations stay out of the way until asked for */}
+          {pastOps.length > 0 && (
+            <details
+              className="op-plans-past"
+              open={isPastOpen || isActivePast}
+              onToggle={(e) => setIsPastOpen(e.currentTarget.open)}
+            >
+              <summary className="op-plans-past__summary">
+                <span className="op-plans-group__label op-plans-group__label--past">Past</span>
+                <span className="op-plans-past__count">
+                  {pastOps.length} landed {pastOps.length === 1 ? 'operation' : 'operations'}
+                </span>
+              </summary>
+              <div className="op-plans-group op-plans-group--past" role="tablist" aria-label="Past operations">
+                {pastOps.map(renderOpTab)}
+              </div>
+            </details>
+          )}
         </div>
       </section>
 

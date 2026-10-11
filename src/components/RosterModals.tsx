@@ -427,7 +427,16 @@ export function AttackerPlayerGroupCard({
       <div className="op-target-group is-player op-roster-target-group" key={player.id}>
         <div className="op-target-group__head">
           <div className="op-target-group__player-title">
-            <span className="op-target-group__icon" aria-hidden="true">👤</span>
+            <button
+              type="button"
+              className="pill pill--tiny pill--secondary op-group-dropdown-btn"
+              onClick={() => setIsExpanded(!isExpanded)}
+              aria-expanded={isExpanded}
+              title={isExpanded ? 'Collapse hammer details' : 'Expand hammer details'}
+              aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${playerHammers.length} ${playerHammers.length === 1 ? 'hammer' : 'hammers'}`}
+            >
+              {isExpanded ? '▾' : '▸'} 🔨 {playerHammers.length}
+            </button>
             <span className="op-card__idx">#{pIdx + 1}</span>
             <input
               className="text-input op-player__name"
@@ -468,18 +477,6 @@ export function AttackerPlayerGroupCard({
               🗑️
             </button>
           </div>
-        </div>
-
-        <div className="op-group-dropdown-bar">
-          <button
-            type="button"
-            className="pill pill--tiny pill--secondary op-group-dropdown-btn"
-            onClick={() => setIsExpanded(!isExpanded)}
-            aria-expanded={isExpanded}
-            title={isExpanded ? 'Collapse hammer details' : 'Expand hammer details'}
-          >
-            🔨 {playerHammers.length} {playerHammers.length === 1 ? 'hammer' : 'hammers'} {isExpanded ? '▲' : '▼'}
-          </button>
         </div>
 
         {isExpanded && (
@@ -650,7 +647,7 @@ export function AllianceArmiesModal({
           <div className="op-modal__title-wrap">
             <span className="op-modal__icon">🔨</span>
             <div>
-              <h2 className="op-modal__title">Alliance Hammer Directory ({attackers.length} Registered)</h2>
+              <h2 className="op-modal__title">Allies · {attackers.length} {attackers.length === 1 ? 'hammer' : 'hammers'}</h2>
             </div>
           </div>
           <div className="op-modal__header-actions">
@@ -727,7 +724,7 @@ export function AllianceArmiesModal({
 
         <div className="op-modal__footer">
           <button type="button" className="pill pill--primary" onClick={onClose}>
-            Done / Save Directory
+            Done
           </button>
         </div>
       </div>
@@ -891,7 +888,16 @@ export function PlayerGroupCard({
       <div className="op-target-group is-player op-roster-target-group" key={player.id}>
         <div className="op-target-group__head">
           <div className="op-target-group__player-title">
-            <span className="op-target-group__icon" aria-hidden="true">👤</span>
+            <button
+              type="button"
+              className="pill pill--tiny pill--secondary op-group-dropdown-btn"
+              onClick={() => setIsExpanded(!isExpanded)}
+              aria-expanded={isExpanded}
+              title={isExpanded ? 'Collapse village details' : 'Expand village details'}
+              aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${playerVillages.length} ${playerVillages.length === 1 ? 'village' : 'villages'}`}
+            >
+              {isExpanded ? '▾' : '▸'} 🏘️ {playerVillages.length}
+            </button>
             <span className="op-card__idx">#{pIdx + 1}</span>
             <input
               className="text-input op-player__name"
@@ -925,18 +931,6 @@ export function PlayerGroupCard({
               🗑️
             </button>
           </div>
-        </div>
-
-        <div className="op-group-dropdown-bar">
-          <button
-            type="button"
-            className="pill pill--tiny pill--secondary op-group-dropdown-btn"
-            onClick={() => setIsExpanded(!isExpanded)}
-            aria-expanded={isExpanded}
-            title={isExpanded ? 'Collapse village details' : 'Expand village details'}
-          >
-            🏘️ {playerVillages.length} {playerVillages.length === 1 ? 'village' : 'villages'} {isExpanded ? '▲' : '▼'}
-          </button>
         </div>
 
         {isExpanded && (
@@ -1095,6 +1089,8 @@ interface TargetDatabaseModalProps {
   targets: Target[];
   isOpen: boolean;
   onClose: () => void;
+  /** Opens the "paste a player profile" flow; the button is hidden without it. */
+  onPasteProfile?: () => void;
   onAddPlayer: () => void;
   onPatchPlayer: (id: string, patch: Partial<Player>) => void;
   onRemovePlayer: (id: string) => void;
@@ -1108,6 +1104,7 @@ export function TargetDatabaseModal({
   targets,
   isOpen,
   onClose,
+  onPasteProfile,
   onAddPlayer,
   onPatchPlayer,
   onRemovePlayer,
@@ -1127,7 +1124,7 @@ export function TargetDatabaseModal({
             <span className="op-modal__icon">🎯</span>
             <div>
               <h2 className="op-modal__title">
-                Enemy Target Directory ({players.length} Accounts · {targets.length} Villages)
+                Enemies · {players.length} {players.length === 1 ? 'player' : 'players'} · {targets.length} {targets.length === 1 ? 'village' : 'villages'}
               </h2>
             </div>
           </div>
@@ -1140,6 +1137,16 @@ export function TargetDatabaseModal({
                 title={expandAll === true ? 'Collapse all village lists' : 'Expand all village lists'}
               >
                 {expandAll === true ? 'Collapse All' : 'Expand All'}
+              </button>
+            )}
+            {onPasteProfile && (
+              <button
+                type="button"
+                className="pill pill--secondary"
+                onClick={onPasteProfile}
+                title="Paste a player profile copied from Thronewake to add their villages"
+              >
+                📋 Paste Profile
               </button>
             )}
             <button type="button" className="pill pill--primary" onClick={onAddPlayer}>
@@ -1176,7 +1183,7 @@ export function TargetDatabaseModal({
 
         <div className="op-modal__footer">
           <button type="button" className="pill pill--primary" onClick={onClose}>
-            Done / Save Directory
+            Done
           </button>
         </div>
       </div>

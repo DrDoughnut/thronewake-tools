@@ -21,6 +21,8 @@ interface TeamRoomBarProps {
   onRoomDataLoaded: (data: TeamRoomData, session: RoomCryptoSession) => void;
   onRoomDisconnected: () => void;
   onSaveRequested: () => Promise<TeamRoomData>;
+  /** Opens the "restore a room backup" flow; the menu entry is hidden without it. */
+  onRestoreRequested?: () => void;
 }
 
 /** The plan a brand-new room starts with. */
@@ -91,6 +93,7 @@ export function TeamRoomBar({
   onRoomDataLoaded,
   onRoomDisconnected,
   onSaveRequested,
+  onRestoreRequested,
 }: TeamRoomBarProps) {
   const [passcode, setPasscode] = useState<string>(() => {
     try {
@@ -495,27 +498,31 @@ export function TeamRoomBar({
       ).padStart(2, '0')}:${String(lastSyncedAt.getUTCSeconds()).padStart(2, '0')} UTC`
     : null;
 
-  // Before a room is joined there is no badge to fall back on, so every
-  // message shows — otherwise a failed connect looks like nothing happened.
-  const showTransientStatus = Boolean(
-    statusMsg && (session ? status !== 'connected' : status !== 'idle'),
-  );
+  // One short, fixed-width label for the room's state. Anything longer (what
+  // went wrong, why it's offline) goes on its own line below, so the buttons
+  // beside it never shift as the state changes.
+  const pill: { tone: string; label: string } | null = !session
+    ? null
+    : status === 'error'
+      ? { tone: 'error', label: '⚠ Error' }
+      : status === 'offline'
+        ? { tone: 'offline', label: 'Offline' }
+        : status === 'connecting'
+          ? { tone: 'connecting', label: 'Syncing…' }
+          : status === 'saving' || hasUnsavedChanges
+            ? { tone: 'dirty', label: 'Saving…' }
+            : { tone: 'connected', label: '✓ Saved' };
+
+  // Before a room is joined there is no label to fall back on, so a failed
+  // connect has to say why — otherwise it looks like nothing happened.
+  const detailMsg =
+    statusMsg && (status === 'error' || status === 'offline') ? statusMsg : '';
+
+  const dotTone = status === 'error' ? 'error' : status === 'offline' ? 'offline' : 'live';
 
   return (
     <>
       <section className="op-team-room-bar panel op-unified-room-card" aria-label="Team Room Cloud Sync">
-        {/* Top Secret Classified Header Strip */}
-        <div className="op-unified-room-card__classified-strip">
-          <div className="op-v2-classified-banner__left">
-            <span className="op-v2-classified-banner__pulse" />
-            <span className="op-v2-classified-banner__title">🕵️ TOP SECRET CLASSIFIED MODE</span>
-            <span className="op-team-room-badge">
-              <span className="op-team-room-badge__icon">🛡️</span> Team Room
-            </span>
-          </div>
-        </div>
-
-        {/* Main Content Strip: Room Connection + Server Speed + Live Status */}
         <div className="op-team-room-bar__content">
           <div className="op-team-room-bar__left">
             {!session ? (
@@ -534,29 +541,29 @@ export function TeamRoomBar({
                 />
                 <button
                   type="button"
-                  className="pill pill--primary"
+                  className="pill pill--primary op-team-room-connect"
                   onClick={() => handleConnect()}
                   disabled={status === 'connecting' || !passcode.trim()}
                 >
-                  {status === 'connecting' ? 'Connecting...' : 'Connect Room'}
+                  {status === 'connecting' ? 'Connecting…' : 'Connect Room'}
                 </button>
               </div>
             ) : (
               <div className="op-team-room-active">
                 <span className="op-team-room-connected-tag">
-                  <span className="op-team-room-live-dot" />
+                  <span className={`op-team-room-live-dot op-team-room-live-dot--${dotTone}`} />
                   Room: <strong>{session.roomName}</strong>
                 </span>
 
                 <div className="op-team-room-actions">
                   <button
                     type="button"
-                    className={`pill pill--tiny ${hasUnsavedChanges ? 'pill--primary op-save-btn--dirty' : 'pill--primary'}`}
+                    className={`pill pill--tiny pill--primary ${hasUnsavedChanges ? 'op-save-btn--dirty' : ''}`}
                     onClick={() => handleSave(false)}
                     disabled={status === 'saving'}
-                    title="Save current plan to this room"
+                    title="Changes save automatically — click to save right now"
                   >
-                    {status === 'saving' ? '💾 Saving...' : '💾 Save Room'}
+                    💾 Save Room
                   </button>
 
                   <details className="op-room-menu">
@@ -574,10 +581,20 @@ export function TeamRoomBar({
                         type="button"
                         className="pill pill--tiny pill--secondary"
                         onClick={handleOpenExport}
-                        title="Export full room backup (JSON download or copy code)"
+                        title="Download or copy a full backup of this room"
                       >
-                        📤 Export Room Backup
+                        📤 Export Backup
                       </button>
+                      {onRestoreRequested && (
+                        <button
+                          type="button"
+                          className="pill pill--tiny pill--secondary op-room-restore-btn"
+                          onClick={onRestoreRequested}
+                          title="Load a room backup file into this room"
+                        >
+                          📥 Restore Backup
+                        </button>
+                      )}
                       <button
                         type="button"
                         className="pill pill--tiny pill--secondary op-team-room-leave"
@@ -614,29 +631,23 @@ export function TeamRoomBar({
               </div>
             )}
 
-            {showTransientStatus ? (
-              <span className={`op-team-room-status op-team-room-status--${status}`} role="status">
-                {statusMsg}
-              </span>
-            ) : session && (
-              hasUnsavedChanges ? (
-                <span className="op-team-room-status op-team-room-status--dirty">
-                  ● Saving...
-                </span>
-              ) : (
-                <span className="op-team-room-status op-team-room-status--connected">
-                  ✓ Up to Date
-                </span>
-              )
-            )}
-
-            {syncTimeStr && session && !hasUnsavedChanges && (
-              <span className="op-team-room-synctime">
-                Last synced: {syncTimeStr}
+            {pill && (
+              <span
+                className={`op-team-room-status op-team-room-status--${pill.tone}`}
+                role="status"
+                title={syncTimeStr ? `Last synced: ${syncTimeStr}` : undefined}
+              >
+                {pill.label}
               </span>
             )}
           </div>
         </div>
+
+        {detailMsg && (
+          <p className={`op-team-room-detail op-team-room-detail--${status}`} role="alert">
+            {detailMsg}
+          </p>
+        )}
       </section>
 
       {isExportModalOpen && exportData && (
