@@ -6,6 +6,7 @@ import {
   decryptPayload,
   saveToCloud,
   loadFromCloud,
+  checkRemoteTimestamp,
   packageTimestamp,
 } from './cryptoSync';
 
@@ -104,19 +105,40 @@ describe('cryptoSync Zero-Knowledge Engine', () => {
       vi.unstubAllEnvs();
     });
 
-    it('saves encrypted payload to cloud Upstash endpoint', async () => {
-      const mockFetch = answer({ result: 'OK' });
+    it('saves encrypted payload to cloud Upstash endpoint using pipeline', async () => {
+      const mockFetch = answer([{ result: 'OK' }, { result: 'OK' }]);
       globalThis.fetch = mockFetch;
 
-      const res = await saveToCloud('test_room_id', '{"iv":"abc","ct":"xyz"}');
+      const res = await saveToCloud('test_room_id', '{"iv":"abc","ct":"xyz","ts":1700000000000}');
       expect(res.success).toBe(true);
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('upstash.io'),
+        expect.stringContaining('upstash.io/pipeline'),
         expect.objectContaining({
           method: 'POST',
-          body: JSON.stringify(['SET', 'tw_test_room_id', '{"iv":"abc","ct":"xyz"}']),
+          body: JSON.stringify([
+            ['SET', 'tw_test_room_id', '{"iv":"abc","ct":"xyz","ts":1700000000000}'],
+            ['SET', 'tw_v_test_room_id', '1700000000000'],
+          ]),
         })
       );
+    });
+
+    it('checks remote timestamp without downloading full payload', async () => {
+      globalThis.fetch = answer({ result: '1700000000000' });
+      const res = await checkRemoteTimestamp('test_room_id');
+      expect(res).toEqual({ status: 'found', ts: 1700000000000 });
+    });
+
+    it('returns empty when remote timestamp key is not set', async () => {
+      globalThis.fetch = answer({ result: null });
+      const res = await checkRemoteTimestamp('test_room_id');
+      expect(res).toEqual({ status: 'empty' });
+    });
+
+    it('returns error when checkRemoteTimestamp encounters network failure', async () => {
+      globalThis.fetch = vi.fn().mockRejectedValue(new TypeError('Failed to fetch'));
+      const res = await checkRemoteTimestamp('test_room_id');
+      expect(res.status).toBe('error');
     });
 
     it('reports a save the server rejected', async () => {

@@ -17,9 +17,20 @@ function fakeServer() {
   let read: () => Promise<unknown> = async () => ({ result: null });
 
   const fetch = vi.fn(async (_url: string, init: { body: string }) => {
-    const [command, , value] = JSON.parse(init.body) as [string, string, string?];
+    const parsed = JSON.parse(init.body);
+    if (Array.isArray(parsed) && Array.isArray(parsed[0])) {
+      for (const cmd of parsed) {
+        if (cmd[0] === 'SET' && typeof cmd[1] === 'string' && cmd[1].startsWith('tw_') && !cmd[1].startsWith('tw_v_')) {
+          writes.push(cmd[2] ?? '');
+        }
+      }
+      return { ok: true, status: 200, json: async () => parsed.map(() => ({ result: 'OK' })) };
+    }
+    const [command, key, value] = parsed as [string, string, string?];
     if (command === 'SET') {
-      writes.push(value ?? '');
+      if (typeof key === 'string' && key.startsWith('tw_') && !key.startsWith('tw_v_')) {
+        writes.push(value ?? '');
+      }
       return { ok: true, status: 200, json: async () => ({ result: 'OK' }) };
     }
     const body = await read();

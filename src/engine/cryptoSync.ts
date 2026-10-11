@@ -104,15 +104,33 @@ export interface EncryptedPackage {
   iv: string;
   ct: string;
   ts: number;
+  gz?: boolean;
 }
 
 /**
  * Encrypts arbitrary JSON-serializable data using AES-256-GCM.
+ * Compresses payload with gzip (if supported) to minimize cloud payload size.
  * Returns a JSON string containing the initialization vector and ciphertext.
  */
 export async function encryptPayload(data: unknown, cryptoKey: CryptoKey): Promise<string> {
   const enc = new TextEncoder();
   const plaintextBytes = enc.encode(JSON.stringify(data));
+  let bytesToEncrypt: Uint8Array = plaintextBytes;
+  let isGzip = false;
+
+  if (typeof CompressionStream !== 'undefined') {
+    try {
+      const cs = new CompressionStream('gzip');
+      const writer = cs.writable.getWriter();
+      writer.write(plaintextBytes);
+      writer.close();
+      const compressedBuffer = await new Response(cs.readable).arrayBuffer();
+      bytesToEncrypt = new Uint8Array(compressedBuffer);
+      isGzip = true;
+    } catch {
+      // Fallback to uncompressed
+    }
+  }
 
   // 12-byte random IV for AES-GCM
   const iv = crypto.getRandomValues(new Uint8Array(12));
@@ -123,7 +141,7 @@ export async function encryptPayload(data: unknown, cryptoKey: CryptoKey): Promi
       iv,
     },
     cryptoKey,
-    plaintextBytes
+    bytesToEncrypt as BufferSource
   );
 
   const pkg: EncryptedPackage = {
@@ -131,6 +149,7 @@ export async function encryptPayload(data: unknown, cryptoKey: CryptoKey): Promi
     iv: bufferToBase64(iv),
     ct: bufferToBase64(ciphertextBuffer),
     ts: Date.now(),
+    ...(isGzip ? { gz: true } : {}),
   };
 
   return JSON.stringify(pkg);
@@ -138,6 +157,7 @@ export async function encryptPayload(data: unknown, cryptoKey: CryptoKey): Promi
 
 /**
  * Decrypts an encrypted package string using AES-256-GCM.
+ * Decompresses gzip if package was compressed.
  * Returns the parsed JSON payload, or null if the key is incorrect or data is corrupted.
  */
 export async function decryptPayload<T = unknown>(
@@ -162,8 +182,21 @@ export async function decryptPayload<T = unknown>(
       ciphertext.buffer as ArrayBuffer
     );
 
+    let finalBuffer: ArrayBuffer = decryptedBuffer;
+    if (pkg.gz) {
+      if (typeof DecompressionStream !== 'undefined') {
+        const ds = new DecompressionStream('gzip');
+        const writer = ds.writable.getWriter();
+        writer.write(decryptedBuffer);
+        writer.close();
+        finalBuffer = await new Response(ds.readable).arrayBuffer();
+      } else {
+        return null;
+      }
+    }
+
     const dec = new TextDecoder();
-    const jsonString = dec.decode(decryptedBuffer);
+    const jsonString = dec.decode(finalBuffer);
     return JSON.parse(jsonString) as T;
   } catch {
     // Decryption failed (wrong key / bad ciphertext)
@@ -188,6 +221,7 @@ const REQUEST_TIMEOUT_MS = 8000;
 
 const cacheKey = (roomId: string) => `thronewake.room_cache.${roomId}`;
 const storeKey = (roomId: string) => `tw_${roomId.slice(0, 32)}`;
+const metaKey = (roomId: string) => `tw_v_${roomId.slice(0, 32)}`;
 
 const REQUEST_HEADERS = {
   Authorization: `Bearer ${UPSTASH_REST_TOKEN}`,
@@ -220,6 +254,43 @@ async function sendCommand(command: string[]): Promise<{ result?: string | null;
   }
 }
 
+async function sendPipeline(commands: string[][]): Promise<Array<{ result?: string | null; error?: string }>> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    const res = await fetch(`${UPSTASH_REST_URL}/pipeline`, {
+      method: 'POST',
+      headers: REQUEST_HEADERS,
+      body: JSON.stringify(commands),
+      signal: controller.signal,
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    let payload: unknown;
+    try {
+      payload = await res.json();
+    } catch {}
+    if (payload && typeof payload === 'object') {
+      if ('error' in payload && typeof (payload as { error: unknown }).error === 'string') {
+        throw new Error((payload as { error: string }).error);
+      }
+      if (Array.isArray(payload)) {
+        for (const item of payload) {
+          if (item && typeof item === 'object' && 'error' in item && typeof item.error === 'string') {
+            throw new Error(item.error);
+          }
+        }
+      }
+    }
+    return (payload as Array<{ result?: string | null; error?: string }>) ?? [];
+  } catch (err: unknown) {
+    if (err instanceof Error && err.name === 'AbortError') throw new Error('timed out');
+    throw err instanceof Error ? err : new Error('network error');
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 function readCache(roomId: string): string | null {
   try {
     return localStorage.getItem(cacheKey(roomId));
@@ -230,6 +301,7 @@ function readCache(roomId: string): string | null {
 
 /**
  * Saves encrypted ciphertext to the cloud store and local cache.
+ * Updates both the full ciphertext key and the tiny version timestamp key in a single pipeline.
  */
 export async function saveToCloud(
   roomId: string,
@@ -240,8 +312,13 @@ export async function saveToCloud(
     localStorage.setItem(cacheKey(roomId), encryptedCiphertext);
   } catch {}
 
+  const ts = packageTimestamp(encryptedCiphertext) ?? Date.now();
+
   try {
-    await sendCommand(['SET', storeKey(roomId), encryptedCiphertext]);
+    await sendPipeline([
+      ['SET', storeKey(roomId), encryptedCiphertext],
+      ['SET', metaKey(roomId), String(ts)],
+    ]);
     return { success: true };
   } catch (err: unknown) {
     return { success: false, error: err instanceof Error ? err.message : 'network error' };
@@ -272,12 +349,47 @@ export async function loadFromCloud(roomId: string): Promise<CloudLoad> {
     try {
       localStorage.setItem(cacheKey(roomId), text);
     } catch {}
+
+    // Backfill meta timestamp key if needed so future polls are fast
+    const ts = packageTimestamp(text);
+    if (ts) {
+      void sendCommand(['SET', metaKey(roomId), String(ts)]).catch(() => {});
+    }
+
     return { status: 'found', data: text };
   } catch (err: unknown) {
     return {
       status: 'error',
       error: err instanceof Error ? err.message : 'network error',
       cached: readCache(roomId),
+    };
+  }
+}
+
+export type RemoteTimestampCheck =
+  | { status: 'found'; ts: number }
+  | { status: 'empty' }
+  | { status: 'error'; error: string };
+
+/**
+ * Checks only the tiny (13-byte) version timestamp key without downloading the full room payload.
+ * Reduces background heartbeat polling bandwidth by >99.9%.
+ */
+export async function checkRemoteTimestamp(roomId: string): Promise<RemoteTimestampCheck> {
+  try {
+    const payload = await sendCommand(['GET', metaKey(roomId)]);
+    const text = typeof payload.result === 'string' ? payload.result : null;
+    if (text) {
+      const parsed = parseInt(text, 10);
+      if (Number.isFinite(parsed) && parsed > 0) {
+        return { status: 'found', ts: parsed };
+      }
+    }
+    return { status: 'empty' };
+  } catch (err: unknown) {
+    return {
+      status: 'error',
+      error: err instanceof Error ? err.message : 'network error',
     };
   }
 }

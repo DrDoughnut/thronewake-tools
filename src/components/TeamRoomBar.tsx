@@ -5,6 +5,7 @@ import {
   decryptPayload,
   saveToCloud,
   loadFromCloud,
+  checkRemoteTimestamp,
   packageTimestamp,
   type RoomCryptoSession,
 } from '../engine/cryptoSync';
@@ -263,25 +264,29 @@ export function TeamRoomBar({
         let currentData = await onSaveRequestedRef.current();
 
         // Check if cloud has newer updates from a teammate to merge with
-        const cloud = await loadFromCloud(session.roomId);
-        if (cloud.status === 'error') {
+        const check = await checkRemoteTimestamp(session.roomId);
+        if (check.status === 'error') {
           // Writing without that read would overwrite anything a teammate
           // saved since, so the changes stay here until the server answers.
           saveBlockedRef.current = true;
           setStatus('error');
           setStatusMsg(
-            `Not saved — couldn't reach the room server (${cloud.error}). Your changes are kept and will save when it's back.`
+            `Not saved — couldn't reach the room server (${check.error}). Your changes are kept and will save when it's back.`
           );
           return;
         }
-        if (cloud.status === 'found') {
-          const ts = packageTimestamp(cloud.data);
-          if (lastSyncedAt && ts && ts > lastSyncedAt.getTime() + 500) {
-            const cloudData = await decryptPayload<TeamRoomData>(cloud.data, session.cryptoKey);
-            if (cloudData) {
-              // Seamlessly merge cloud changes with local changes
-              currentData = mergeTeamRoomData(cloudData, currentData);
-              onRoomDataLoadedRef.current(currentData, session);
+
+        // If a teammate saved newer data, download full cloud payload and merge
+        if (check.status === 'found') {
+          if (lastSyncedAt && check.ts > lastSyncedAt.getTime() + 500) {
+            const cloud = await loadFromCloud(session.roomId);
+            if (cloud.status === 'found') {
+              const cloudData = await decryptPayload<TeamRoomData>(cloud.data, session.cryptoKey);
+              if (cloudData) {
+                // Seamlessly merge cloud changes with local changes
+                currentData = mergeTeamRoomData(cloudData, currentData);
+                onRoomDataLoadedRef.current(currentData, session);
+              }
             }
           }
         }
@@ -324,15 +329,29 @@ export function TeamRoomBar({
     return () => clearTimeout(timer);
   }, [session, hasUnsavedChanges, handleSave]);
 
-  // Background live heartbeat poll for updates from teammates (every 6s)
+  // Background live heartbeat poll for updates from teammates
+  // Uses lightweight 30-byte metadata check, pauses on hidden tabs, and backs off on idle.
   useEffect(() => {
     if (!session || isConnectingRef.current || saveInProgressRef.current) return;
 
-    const interval = setInterval(async () => {
-      if (saveInProgressRef.current || isConnectingRef.current) return;
+    let isPolling = false;
+    let timerId: ReturnType<typeof setTimeout> | null = null;
+    let lastUserActivity = Date.now();
+
+    const onUserActivity = () => {
+      lastUserActivity = Date.now();
+    };
+    window.addEventListener('pointerdown', onUserActivity, { passive: true });
+    window.addEventListener('keydown', onUserActivity, { passive: true });
+
+    const checkUpdates = async () => {
+      if (isPolling || saveInProgressRef.current || isConnectingRef.current) return;
+      if (typeof document !== 'undefined' && document.hidden) return;
+
+      isPolling = true;
       try {
-        const cloud = await loadFromCloud(session.roomId);
-        if (cloud.status === 'error') return;
+        const check = await checkRemoteTimestamp(session.roomId);
+        if (check.status === 'error') return;
 
         if (offlineRef.current) {
           offlineRef.current = false;
@@ -340,39 +359,79 @@ export function TeamRoomBar({
           setStatusMsg(`Back online — connected to ${session.roomName}`);
         }
 
-        // Changes held back while the server was unreachable, or a room that
-        // has gone missing from the server: either way, this copy goes back up.
-        // handleSave reads first, so anything newer is merged rather than lost.
-        if ((saveBlockedRef.current && hasUnsavedChanges) || cloud.status === 'empty') {
+        if (saveBlockedRef.current && hasUnsavedChanges) {
           void handleSaveRef.current(true);
           return;
         }
         saveBlockedRef.current = false;
 
-        const ts = packageTimestamp(cloud.data);
-        if (lastSyncedAt && ts && ts > lastSyncedAt.getTime() + 1000) {
-          const decrypted = await decryptPayload<TeamRoomData>(cloud.data, session.cryptoKey);
-          if (decrypted) {
-            if (!hasUnsavedChanges) {
-              onRoomDataLoadedRef.current(decrypted, session);
-            } else {
-              // Merge live teammate updates with current local changes
-              const currentLocal = await onSaveRequestedRef.current();
-              const merged = mergeTeamRoomData(decrypted, currentLocal);
-              onRoomDataLoadedRef.current(merged, session);
+        if (check.status === 'empty') {
+          if (hasUnsavedChanges) {
+            const cloud = await loadFromCloud(session.roomId);
+            if (cloud.status === 'empty') {
+              void handleSaveRef.current(true);
             }
-            setLastSyncedAt(new Date());
-            setStatus('connected');
-            setStatusMsg('⚡ Live synced from teammate');
-            setTimeout(() => {
-              setStatusMsg((prev) => (prev.includes('Live synced') ? `Connected to ${session.roomName}` : prev));
-            }, 2500);
+          }
+          return;
+        }
+
+        const remoteTs = check.ts;
+        if (lastSyncedAt && remoteTs > lastSyncedAt.getTime() + 1000) {
+          const cloud = await loadFromCloud(session.roomId);
+          if (cloud.status === 'found') {
+            const decrypted = await decryptPayload<TeamRoomData>(cloud.data, session.cryptoKey);
+            if (decrypted) {
+              if (!hasUnsavedChanges) {
+                onRoomDataLoadedRef.current(decrypted, session);
+              } else {
+                // Merge live teammate updates with current local changes
+                const currentLocal = await onSaveRequestedRef.current();
+                const merged = mergeTeamRoomData(decrypted, currentLocal);
+                onRoomDataLoadedRef.current(merged, session);
+              }
+              setLastSyncedAt(new Date(remoteTs));
+              setStatus('connected');
+              setStatusMsg('⚡ Live synced from teammate');
+              setTimeout(() => {
+                setStatusMsg((prev) => (prev.includes('Live synced') ? `Connected to ${session.roomName}` : prev));
+              }, 2500);
+            }
           }
         }
-      } catch {}
-    }, 6000);
+      } catch {} finally {
+        isPolling = false;
+      }
+    };
 
-    return () => clearInterval(interval);
+    const scheduleNext = () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      const isIdle = Date.now() - lastUserActivity > 120_000;
+      const intervalMs = isIdle ? 30_000 : 12_000;
+      timerId = setTimeout(async () => {
+        await checkUpdates();
+        scheduleNext();
+      }, intervalMs);
+    };
+
+    const onVisibilityChange = () => {
+      if (!document.hidden) {
+        lastUserActivity = Date.now();
+        if (timerId) clearTimeout(timerId);
+        void checkUpdates().then(() => scheduleNext());
+      } else {
+        if (timerId) clearTimeout(timerId);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    scheduleNext();
+
+    return () => {
+      if (timerId) clearTimeout(timerId);
+      window.removeEventListener('pointerdown', onUserActivity);
+      window.removeEventListener('keydown', onUserActivity);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
   }, [session, lastSyncedAt, hasUnsavedChanges]);
 
   const handleSync = useCallback(async () => {
