@@ -11272,6 +11272,37 @@ body.is-reordering-wave * {
   font-size: 11px;
 }
 
+.ua-page .results__table thead th {
+  padding: 7px 10px;
+  font-size: 10.5px;
+}
+
+.ua-page .results__table td {
+  padding: 3px 8px;
+}
+
+.ua-page .col-rank {
+  width: 38px;
+  font-size: 12.5px;
+}
+
+.ua-page .unit-cell {
+  gap: 7px;
+}
+
+.ua-page .unit-cell__names {
+  font-size: 13.5px;
+}
+
+.ua-page .value-cell {
+  min-height: 20px;
+  padding: 0 8px;
+}
+
+.ua-page .value-cell__number {
+  font-size: 13px;
+}
+
 .units-stats-break { margin-top: 24px; }
 .units-stats-break .cc-inputs-separator { margin: 0 0 4px; }
 .cc-inputs-separator__badge--btn {
