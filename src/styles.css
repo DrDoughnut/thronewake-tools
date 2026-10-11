@@ -1085,9 +1085,46 @@ select:focus, .select:focus, .text-input:focus {
 }
 
 @media (max-width: 640px) {
-  .army__setup-row { gap: 8px; }
-  .field-inline, .field-inline--narrow, .field-inline--duration { flex: 1 1 100%; }
-  .army__setup-row--sliders > .slider { flex: 1 1 100%; }
+  .army__setup-row {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: 8px 10px;
+    align-items: end;
+  }
+  .army__setup-row > .field-inline:nth-child(1) { grid-column: 1 / -1; }
+  .army__setup-row > .field-inline:nth-child(2) { grid-column: 1; grid-row: 2; }
+  .army__setup-row > .field-inline:nth-child(5) { grid-column: 2; grid-row: 2; }
+  .army__setup-row > .field-inline:nth-child(3) { grid-column: 1; grid-row: 3; }
+  .army__setup-row > .field-inline:nth-child(4) { grid-column: 2; grid-row: 3; }
+
+  .field-inline,
+  .field-inline--narrow,
+  .field-inline--duration,
+  .field-inline--anvil {
+    flex: initial;
+    min-width: 0;
+  }
+
+  .army__setup-row--sliders {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 8px 12px;
+    margin-top: 8px;
+    padding-top: 8px;
+  }
+  .army__setup-row--sliders > .slider {
+    flex: initial;
+    min-width: 0;
+  }
+  .army .slider__row {
+    gap: 5px;
+  }
+  .army .slider__row .pill--tiny {
+    padding: 2px 4px;
+    font-size: 10.5px;
+    min-width: 22px;
+  }
+
   /* Keep a building's three queues together. On a phone the controls are
      deliberately terse, but Barracks/Stable 1, 2, and Great remain a single
      scannable row instead of turning every group into a tall mini-form. */
@@ -1113,28 +1150,28 @@ select:focus, .select:focus, .text-input:focus {
   .qgroup__picks {
     display: flex;
     flex-wrap: wrap;
-    gap: 5px;
+    gap: 6px;
     padding-top: 3px;
   }
   .unit-pick {
-    width: 30px;
-    height: 30px;
-    padding: 1px;
+    width: 36px;
+    height: 36px;
+    padding: 2px;
     flex: 0 0 auto;
   }
   .unit-pick .unit-icon {
-    width: 22px !important;
-    height: 22px !important;
-    font-size: 12px !important;
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 15px !important;
   }
   .unit-pick__check {
-    top: -3px;
-    right: -3px;
-    width: 12px;
-    height: 12px;
-    font-size: 8px;
+    top: -4px;
+    right: -4px;
+    width: 14px;
+    height: 14px;
+    font-size: 9px;
   }
-  .strip__cell { min-width: 42px; }
+  .strip__cell { min-width: 44px; }
 }
 
 /* Nothing should be able to scroll the page sideways; wide content
