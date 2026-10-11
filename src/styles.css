@@ -1110,10 +1110,30 @@ select:focus, .select:focus, .text-input:focus {
     border-left: none;
     border-top: 1px solid var(--border);
   }
-  /* Six compact, evenly spaced icons mean a full unit set normally takes
-     two rows rather than a column of large two-up tiles. */
-  .qgroup__picks { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 5px; padding-top: 3px; }
-  .unit-pick { width: 100%; height: auto; aspect-ratio: 1; padding: 2px; }
+  .qgroup__picks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    padding-top: 3px;
+  }
+  .unit-pick {
+    width: 30px;
+    height: 30px;
+    padding: 1px;
+    flex: 0 0 auto;
+  }
+  .unit-pick .unit-icon {
+    width: 22px !important;
+    height: 22px !important;
+    font-size: 12px !important;
+  }
+  .unit-pick__check {
+    top: -3px;
+    right: -3px;
+    width: 12px;
+    height: 12px;
+    font-size: 8px;
+  }
   .strip__cell { min-width: 42px; }
 }
 
