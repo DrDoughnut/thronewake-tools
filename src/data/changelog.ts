@@ -2,7 +2,7 @@
  * Player release notes. Bump `APP_VERSION` and add an entry here
  * whenever a change is worth telling returning players about.
  */
-export const APP_VERSION = '1.14.2';
+export const APP_VERSION = '1.14.3';
 
 export interface ChangelogEntry {
   version: string;
@@ -11,6 +11,15 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '1.14.3',
+    date: '2026-10-11',
+    changes: [
+      'Combat Calculator Quick Level Cycle: clicking a troop\'s icon now cycles its upgrade level through 0, 20, and 23.',
+      'Compact Army Calculator: tighter setup controls, building queues, and mobile layout with quick shortcut buttons and balanced unit selection icons.',
+      'Sync Bandwidth Optimization: lightweight room polling, gzip compression, and idle tab pausing for team rooms.',
+    ],
+  },
   {
     version: '1.14.2',
     date: '2026-10-07',
