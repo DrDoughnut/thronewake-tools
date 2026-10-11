@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Controls } from '../components/Controls';
 import { FormulaDisplay } from '../components/FormulaDisplay';
 import { ResultsTable } from '../components/ResultsTable';
@@ -10,6 +10,7 @@ import { useAppState } from '../state';
 
 export function UnitAttributes() {
   const { state, patch } = useAppState();
+  const [isStatTableOpen, setIsStatTableOpen] = useState(false);
   const group = groupByKey(state.group);
 
   const query: Query = useMemo(
@@ -47,7 +48,7 @@ export function UnitAttributes() {
 
   return (
     <>
-      <main className="app__body">
+      <main className="app__body ua-page">
         <aside className="app__controls">
           <Controls state={state} patch={patch} formulaError={ranking.error} />
         </aside>
@@ -69,17 +70,35 @@ export function UnitAttributes() {
       <div className="units-stats-break">
         <div className="cc-inputs-separator" role="separator">
           <div className="cc-inputs-separator__line" />
-          <div className="cc-inputs-separator__badge">
+          <button
+            type="button"
+            className={`cc-inputs-separator__badge cc-inputs-separator__badge--btn ${isStatTableOpen ? 'is-open' : ''}`}
+            onClick={() => setIsStatTableOpen((prev) => !prev)}
+            aria-expanded={isStatTableOpen}
+            title={isStatTableOpen ? 'Collapse raw unit stat table' : 'Expand raw unit stat table'}
+          >
             <span className="cc-inputs-separator__icon">📋</span>
-            <span className="cc-inputs-separator__text">Unit Stat Table</span>
-          </div>
+            <span className="cc-inputs-separator__text">
+              {isStatTableOpen ? 'Hide Unit Stat Table' : 'Show Unit Stat Table'}
+            </span>
+            {changes > 0 && (
+              <span className="units-stats-break__badge-count">
+                {changes} {changes === 1 ? 'custom stat' : 'custom stats'}
+              </span>
+            )}
+            <span className="units-stats-break__arrow">{isStatTableOpen ? '▲' : '▼'}</span>
+          </button>
           <div className="cc-inputs-separator__line" />
         </div>
-        <p className="units-stats-break__note">
-          The raw stats behind the ranking above. Edit any number, or pick a preset, to see how the ranking would change.
-        </p>
+        {!isStatTableOpen && (
+          <p className="units-stats-break__note">
+            Expand to view and edit raw unit stats (attack, defense, speed, training cost/time).
+          </p>
+        )}
       </div>
-      <StatTable edits={state.edits} onChange={(edits) => patch({ edits })} />
+      <div className={`units-stats-collapse ${isStatTableOpen ? 'is-open' : 'is-collapsed'}`}>
+        <StatTable edits={state.edits} onChange={(edits) => patch({ edits })} />
+      </div>
     </>
   );
 }

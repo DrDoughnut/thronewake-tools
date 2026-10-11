@@ -100,6 +100,24 @@ describe('the app', () => {
     expect(window.location.hash).not.toContain('x=');
   });
 
+  it('toggles the unit stat table open and closed with the separator button', () => {
+    const toggleBtn = container.querySelector('.cc-inputs-separator__badge--btn') as HTMLButtonElement;
+    expect(toggleBtn).toBeTruthy();
+    expect(toggleBtn.getAttribute('aria-expanded')).toBe('false');
+    expect(toggleBtn.textContent).toContain('Show Unit Stat Table');
+    expect(container.querySelector('.units-stats-collapse')?.classList.contains('is-collapsed')).toBe(true);
+
+    click(toggleBtn);
+    expect(toggleBtn.getAttribute('aria-expanded')).toBe('true');
+    expect(toggleBtn.textContent).toContain('Hide Unit Stat Table');
+    expect(container.querySelector('.units-stats-collapse')?.classList.contains('is-open')).toBe(true);
+
+    click(toggleBtn);
+    expect(toggleBtn.getAttribute('aria-expanded')).toBe('false');
+    expect(toggleBtn.textContent).toContain('Show Unit Stat Table');
+    expect(container.querySelector('.units-stats-collapse')?.classList.contains('is-collapsed')).toBe(true);
+  });
+
   it('shows real unit artwork rather than the emoji fallback', () => {
     const imgs = container.querySelectorAll('.results__table img.unit-icon');
     expect(imgs).toHaveLength(21);
