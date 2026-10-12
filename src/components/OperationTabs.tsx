@@ -10,8 +10,6 @@ interface OperationTabsProps {
   onDuplicateOp: (opId: string) => void;
   onRenameOp: (opId: string, newName: string) => void;
   onDeleteOp: (opId: string) => void;
-  /** Opens the "import a shared plan link" flow; the button is hidden without it. */
-  onImportPlan?: () => void;
   /** Current time, used to file operations under Upcoming or Past. */
   nowMs?: number;
 }
@@ -40,7 +38,6 @@ export const OperationTabs = memo(function OperationTabs({
   onDuplicateOp,
   onRenameOp,
   onDeleteOp,
-  onImportPlan,
   nowMs = Date.now(),
 }: OperationTabsProps) {
   const [isRenamingId, setIsRenamingId] = useState<string | null>(null);
@@ -197,16 +194,6 @@ export const OperationTabs = memo(function OperationTabs({
             <h2 className="op-section-title">Operations</h2>
           </div>
           <div className="op-plans-strip__actions">
-            {onImportPlan && (
-              <button
-                type="button"
-                className="pill pill--tiny pill--secondary op-plans-import-btn"
-                onClick={onImportPlan}
-                title="Open a plan link someone shared as a new operation"
-              >
-                🔗 Import Link
-              </button>
-            )}
             <button
               type="button"
               className="pill pill--tiny pill--primary"

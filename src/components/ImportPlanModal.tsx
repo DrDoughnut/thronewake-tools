@@ -1,22 +1,18 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import type { CompactTarget, PlannerState, TeamRoomData } from '../engine/operations';
 import {
-  decodeCompactPlan,
   parseRoomBackup,
   parseThronewakeProfileClipboard,
   type ImportMode,
 } from '../engine/operations';
-import { decodeState } from '../pages/OperationPlanner';
 import profileCopyGuide from '../assets/profile-copy-guide.png';
 
 /**
- * The three things that can be brought into a room. Each has its own entry
- * point and its own wording, because they answer different questions:
+ * What can be brought into a room:
  * - `profile`: a player profile copied in game, added to the Enemies directory
- * - `plan`: a shared plan link, opened as a new operation
  * - `backup`: a full room backup, restored over (or merged into) this room
  */
-export type ImportKind = 'profile' | 'plan' | 'backup';
+export type ImportKind = 'profile' | 'backup';
 
 interface ImportPlanModalProps {
   /** Which import flow to show; `null` keeps the modal closed. */
@@ -31,7 +27,6 @@ interface ImportPlanModalProps {
 type Detected =
   | { type: 'backup'; roomData: TeamRoomData }
   | { type: 'profile'; plan: PlannerState }
-  | { type: 'plan'; plan: PlannerState }
   | { type: 'none'; error: string };
 
 const COPY: Record<
@@ -47,14 +42,6 @@ const COPY: Record<
     submit: 'Add to Directory',
     rows: 6,
   },
-  plan: {
-    title: '🔗 Import Plan Link',
-    subtitle: 'Paste a plan link or code someone shared. It opens as a new operation in this room.',
-    label: 'Plan link or code',
-    placeholder: 'Paste a plan link (#p=...) or plan code...',
-    submit: 'Import Operation',
-    rows: 3,
-  },
   backup: {
     title: '📥 Restore Room Backup',
     subtitle: 'Load a backup made with Export Backup: upload the .json file or paste its contents.',
@@ -69,24 +56,16 @@ const COPY: Record<
 const WRONG_PLACE: Record<ImportKind, Record<Exclude<Detected['type'], 'none'>, string>> = {
   profile: {
     profile: '',
-    plan: 'This is a plan link, not a player profile. Use “Import Link” in the Operations section.',
     backup: 'This is a room backup, not a player profile. Use Room options → Restore Backup.',
-  },
-  plan: {
-    plan: '',
-    profile: 'This is a player profile, not a plan link. Use “Paste Profile” in the Directory section.',
-    backup: 'This is a room backup, not a plan link. Use Room options → Restore Backup.',
   },
   backup: {
     backup: '',
     profile: 'This is a player profile, not a room backup. Use “Paste Profile” in the Directory section.',
-    plan: 'This is a plan link, not a room backup. Use “Import Link” in the Operations section.',
   },
 };
 
 const NOT_RECOGNIZED: Record<ImportKind, string> = {
   profile: "Couldn't find any villages with coordinates in that text.",
-  plan: "Couldn't read a plan from that link or code.",
   backup: "That isn't a room backup file.",
 };
 
@@ -97,48 +76,19 @@ function detect(text: string): Detected {
   const profilePlan = parseThronewakeProfileClipboard(text);
   if (profilePlan && profilePlan.targets.length > 0) return { type: 'profile', plan: profilePlan };
 
-  let hash = text;
-  if (hash.includes('#')) {
-    hash = hash.substring(hash.indexOf('#') + 1);
-  } else if (hash.includes('?')) {
-    hash = hash.substring(hash.indexOf('?') + 1);
-  }
-
-  const queryString = hash.includes('p=') || hash.includes('plan=') ? hash : `p=${hash}`;
-  const params = new URLSearchParams(queryString);
-  const compactParam = params.get('p');
-  const rawPlanParam = params.get('plan');
-
-  let plan: PlannerState | null = null;
-  if (compactParam) {
-    if (decodeCompactPlan(compactParam)) {
-      plan = decodeState(`p=${encodeURIComponent(compactParam)}`);
-    }
-  } else if (rawPlanParam) {
-    plan = decodeState(`plan=${encodeURIComponent(rawPlanParam)}`);
-  }
-
-  if (!plan) return { type: 'none', error: '' };
-  if (plan.attackers.length === 0 && plan.targets.length === 0) {
-    return { type: 'none', error: 'That plan has no armies or villages in it.' };
-  }
-  return { type: 'plan', plan };
+  return { type: 'none', error: '' };
 }
 
 export function ImportPlanModal({ kind, onClose, onImport, onImportRoom, knownTargets }: ImportPlanModalProps) {
   const [inputText, setInputText] = useState('');
-  const [directoryOnly, setDirectoryOnly] = useState(false);
   const [roomImportMode, setRoomImportMode] = useState<'replace' | 'merge'>('merge');
-  const [customWaveName, setCustomWaveName] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Start from a clean form each time a flow is opened
   useEffect(() => {
     if (kind) {
       setInputText('');
-      setDirectoryOnly(false);
       setRoomImportMode('merge');
-      setCustomWaveName('');
     }
   }, [kind]);
 
@@ -201,12 +151,6 @@ export function ImportPlanModal({ kind, onClose, onImport, onImportRoom, knownTa
       onImportRoom?.(detected.roomData, roomImportMode);
     } else if (detected.type === 'profile') {
       onImport(detected.plan, 'merge_only');
-    } else if (detected.type === 'plan') {
-      onImport(
-        detected.plan,
-        directoryOnly ? 'merge_only' : 'new_wave',
-        directoryOnly ? undefined : customWaveName.trim() || undefined,
-      );
     }
     onClose();
   };
@@ -234,50 +178,24 @@ export function ImportPlanModal({ kind, onClose, onImport, onImportRoom, knownTa
       );
     }
 
-    if (detected.type === 'profile') {
-      const { plan } = detected;
-      const known = new Set((knownTargets ?? []).map((t) => `${t.x}|${t.y}`));
-      const existing = plan.targets.filter((t) => known.has(`${t.x}|${t.y}`)).length;
-      const fresh = plan.targets.length - existing;
-      return (
-        <>
-          <div className="op-import-preview__head">
-            <span className="op-import-preview__badge is-success">
-              ✓ {plan.players[0]?.name || 'Player'}
-            </span>
-            <span className="op-import-preview__meta">
-              {fresh} new {fresh === 1 ? 'village' : 'villages'}
-              {existing > 0 ? ` · ${existing} already listed (will be updated)` : ''}
-            </span>
-          </div>
-          <div className="op-import-preview__sub op-import-preview__sub--wrap">
-            {plan.targets.map((t) => `${t.name} (${t.x}|${t.y})`).slice(0, 8).join(' · ')}
-            {plan.targets.length > 8 ? ` · +${plan.targets.length - 8} more` : ''}
-          </div>
-        </>
-      );
-    }
-
     const { plan } = detected;
+    const known = new Set((knownTargets ?? []).map((t) => `${t.x}|${t.y}`));
+    const existing = plan.targets.filter((t) => known.has(`${t.x}|${t.y}`)).length;
+    const fresh = plan.targets.length - existing;
     return (
       <>
         <div className="op-import-preview__head">
-          <span className="op-import-preview__badge is-success">✓ Valid Plan</span>
+          <span className="op-import-preview__badge is-success">
+            ✓ {plan.players[0]?.name || 'Player'}
+          </span>
           <span className="op-import-preview__meta">
-            🕐 {plan.landing.replace('T', ' ')} UTC &nbsp;·&nbsp; {plan.serverSpeed}× Speed
+            {fresh} new {fresh === 1 ? 'village' : 'villages'}
+            {existing > 0 ? ` · ${existing} already listed (will be updated)` : ''}
           </span>
         </div>
         <div className="op-import-preview__sub op-import-preview__sub--wrap">
-          🔨 {plan.attackers.length} {plan.attackers.length === 1 ? 'army' : 'armies'}
-          {plan.attackers.length > 0
-            ? `: ${plan.attackers.map((a) => a.name || 'Army').slice(0, 4).join(', ')}${
-                plan.attackers.length > 4 ? ` +${plan.attackers.length - 4} more` : ''
-              }`
-            : ''}
-        </div>
-        <div className="op-import-preview__sub">
-          🎯 {plan.targets.length} {plan.targets.length === 1 ? 'village' : 'villages'} across{' '}
-          {plan.players.length} {plan.players.length === 1 ? 'player' : 'players'}
+          {plan.targets.map((t) => `${t.name} (${t.x}|${t.y})`).slice(0, 8).join(' · ')}
+          {plan.targets.length > 8 ? ` · +${plan.targets.length - 8} more` : ''}
         </div>
       </>
     );
@@ -386,34 +304,6 @@ export function ImportPlanModal({ kind, onClose, onImport, onImportRoom, knownTa
               </div>
             )}
 
-            {kind === 'plan' && (
-              <>
-                {!directoryOnly && (
-                  <div className="op-import-name-group">
-                    <label htmlFor="import-wave-name" className="op-import-label">
-                      Operation name <span className="op-import-label__optional">(optional)</span>
-                    </label>
-                    <input
-                      id="import-wave-name"
-                      type="text"
-                      className="text-input"
-                      placeholder="e.g. Wave 2 – Flank Attack"
-                      value={customWaveName}
-                      onChange={(e) => setCustomWaveName(e.target.value)}
-                    />
-                  </div>
-                )}
-                <label className="op-import-check">
-                  <input
-                    type="checkbox"
-                    checked={directoryOnly}
-                    onChange={(e) => setDirectoryOnly(e.target.checked)}
-                  />
-                  Only add its hammers and villages to the Directory (don't create an operation)
-                </label>
-              </>
-            )}
-
             {kind === 'backup' && (
               <div className="op-import-mode-options">
                 <label className={`op-import-mode-card ${roomImportMode === 'merge' ? 'is-selected' : ''}`}>
@@ -462,7 +352,7 @@ export function ImportPlanModal({ kind, onClose, onImport, onImportRoom, knownTa
               className="pill pill--primary op-import-submit-btn"
               disabled={!detected}
             >
-              {kind === 'plan' && directoryOnly ? 'Add to Directory' : copy.submit}
+              {copy.submit}
             </button>
           </div>
         </form>

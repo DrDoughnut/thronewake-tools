@@ -2,7 +2,7 @@
  * Player release notes. Bump `APP_VERSION` and add an entry here
  * whenever a change is worth telling returning players about.
  */
-export const APP_VERSION = '1.16.3';
+export const APP_VERSION = '1.16.4';
 
 export interface ChangelogEntry {
   version: string;
@@ -11,6 +11,13 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '1.16.4',
+    date: '2026-10-11',
+    changes: [
+      'Operation Planner: Removed legacy "Import Plan Link" option and buttons since operations are coordinated via room codes and backups.',
+    ],
+  },
   {
     version: '1.16.3',
     date: '2026-10-11',

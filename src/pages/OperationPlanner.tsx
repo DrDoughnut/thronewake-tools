@@ -2692,7 +2692,6 @@ function OperationPlannerV2({
             onDuplicateOp={handleDuplicateOp}
             onRenameOp={handleRenameOp}
             onDeleteOp={handleDeleteOp}
-            onImportPlan={() => setImportKind('plan')}
             nowMs={Math.floor(now.getTime() / 60_000) * 60_000}
           />
         </>
@@ -2705,18 +2704,9 @@ function OperationPlannerV2({
             <span className="op-standby-panel__icon">🗺️</span>
             <h3 className="op-standby-panel__title">No Operation Open</h3>
             <p className="op-standby-panel__desc">
-              Pick an operation above to open it, or create a new one. You can also start from a shared plan
-              link, or fill in the Directory first.
+              Pick an operation above to open it, create a new one, or fill in the Directory first.
             </p>
             <div className="op-standby-panel__actions">
-              <button
-                type="button"
-                className="pill pill--primary"
-                onClick={() => setImportKind('plan')}
-                title="Open a plan link or code someone shared as a new operation"
-              >
-                🔗 Import Plan Link
-              </button>
               <button
                 type="button"
                 className="pill pill--secondary"

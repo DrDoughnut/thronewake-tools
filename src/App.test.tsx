@@ -5,7 +5,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
 import { APP_VERSION } from './data/changelog';
 import { decodeState } from './pages/OperationPlanner';
-import { encodeCompactPlan } from './engine/operations';
 import { presets } from './state';
 
 // The public (v1) planner tab only shows a "temporarily down" notice. The
@@ -767,7 +766,7 @@ describe('the operation planner', () => {
     expect(artBtn.classList.contains('is-active')).toBe(true);
   });
 
-  it('supports importing and seeding plans from shared links via the Import Plan Link modal', async () => {
+  it('supports pasting player profiles into the directory via the Paste Profile modal', async () => {
     const originalFetch = globalThis.fetch;
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -778,122 +777,39 @@ describe('the operation planner', () => {
     try {
       await unlockV2('import_test_room');
 
-      // Open Import Plan Link modal
-      const importBtn = container.querySelector('.op-plans-import-btn') as HTMLButtonElement;
-      expect(importBtn).toBeTruthy();
-      click(importBtn);
+      // Open Paste Profile modal
+      const pasteBtn = container.querySelector('.pill--import-btn') as HTMLButtonElement;
+      expect(pasteBtn).toBeTruthy();
+      click(pasteBtn);
 
       const importModal = container.querySelector('.op-modal--import');
       expect(importModal).toBeTruthy();
-      expect(importModal?.textContent).toContain('Import Plan Link');
+      expect(importModal?.textContent).toContain('Paste Player Profile');
 
       const textarea = importModal?.querySelector('.op-import-textarea') as HTMLTextAreaElement;
       expect(textarea).toBeTruthy();
 
       // Paste invalid text
       setInputValue(textarea, 'invalid_gibberish');
-      expect(importModal?.textContent).toContain("Couldn't read a plan from that link or code.");
+      expect(importModal?.textContent).toContain("Couldn't find any villages with coordinates in that text.");
 
-      // Paste a valid plan URL with 2 attackers: one past and one upcoming to test the continuous arrow
-      const nowMs = Date.now();
-      const futureDate = new Date(nowMs + 86400000 * 5).toISOString().slice(0, 16);
-      const sampleEncoded = encodeCompactPlan({
-        landing: futureDate,
-        serverSpeed: 3,
-        attackers: [
-          {
-            id: 'atk_seed_1',
-            name: 'Alpha Strike',
-            x: 50,
-            y: 50,
-            unitRef: 'embermark_dominion/emberblade',
-            artifactMultiplier: 1,
-            bannerfieldLevel: 0,
-            safeEnabled: true,
-            safeStart: '22:00',
-            safeEnd: '04:00',
-          },
-          {
-            id: 'atk_seed_2',
-            name: 'Bravo Vanguard',
-            x: 52,
-            y: 52,
-            unitRef: 'embermark_dominion/emberblade',
-            artifactMultiplier: 1,
-            bannerfieldLevel: 0,
-            safeEnabled: true,
-            safeStart: '22:00',
-            safeEnd: '04:00',
-          },
-        ],
-        players: [
-          {
-            id: 'ply_seed_1',
-            name: 'Defender King',
-            safeEnabled: true,
-            safeStart: '22:00',
-            safeEnd: '04:00',
-          },
-        ],
-        targets: [
-          {
-            id: 'tgt_seed_1',
-            name: 'Capital City',
-            x: 100,
-            y: 100,
-            fake: false,
-            playerId: 'ply_seed_1',
-            safeEnabled: true,
-            safeStart: '22:00',
-            safeEnd: '04:00',
-          },
-        ],
-      });
-      const samplePlan = `https://thronewake-tools.app/#tool=operations&p=${sampleEncoded}`;
-      setInputValue(textarea, samplePlan);
+      // Paste a valid player profile copied from game
+      const sampleProfile = `Gugl\nVillages:\nCapital (12|34)\nOutpost (56|78)`;
+      setInputValue(textarea, sampleProfile);
 
-      // Verify validation passes — preview shows badge and attacker name
-      expect(importModal?.textContent).toContain('Valid Plan');
-      expect(importModal?.textContent).toContain('Alpha Strike');
+      // Verify validation passes — preview shows badge and player info
+      expect(importModal?.textContent).toContain('Gugl');
+      expect(importModal?.textContent).toContain('2 new villages');
 
-      // Submit the import as New Operation Wave
+      // Submit the import
       const submitBtn = importModal?.querySelector('.op-import-submit-btn') as HTMLButtonElement;
       expect(submitBtn.disabled).toBe(false);
       click(submitBtn);
 
-      // Verify modal closes and new operation is created and open
+      // Verify modal closes and directory is updated
       expect(container.querySelector('.op-modal--import')).toBeNull();
-      expect(container.querySelector('.op-workspace-bar')).toBeTruthy();
-
-      // Switch to Targets & Setup to view deployed participant chips
-      const targetsTab = [...container.querySelectorAll('.op-workspace-nav button')].find(
-        (button) => button.textContent?.includes('Targets & Setup'),
-      ) as HTMLButtonElement;
-      expect(targetsTab).toBeTruthy();
-      click(targetsTab);
-
-      expect(container.textContent).toContain('Alpha Strike');
-      expect(container.textContent).toContain('Capital City');
-
-      // Switch to Routes view to inspect routes table
-      const routesTab = [...container.querySelectorAll('.op-workspace-nav button')].find(
-        (button) => button.textContent?.includes('Routes'),
-      ) as HTMLButtonElement;
-      expect(routesTab).toBeTruthy();
-      click(routesTab);
-
-      // Verify simplified Safetime column header and cell (Clear badge, no permanent A B C dots)
-      const safetimeTh = container.querySelector('.op-safetime-th');
-      expect(safetimeTh?.textContent).toContain('Safetime');
-      expect(safetimeTh?.textContent).not.toContain('Safetime (A/B/C)');
-
-      const safetimeCell = container.querySelector('.op-checks-cell');
-      expect(['Clear', 'Blocked']).toContain(safetimeCell?.querySelector('.op-check-pill')?.textContent);
-      expect(safetimeCell?.querySelector('.op-check-dots')).toBeNull();
-
-      // Verify next upcoming attack highlighted row
-      expect(container.querySelector('.op-route-row.is-next-launch')).toBeTruthy();
-      expect(container.querySelector('.op-next-launch-pointer')).toBeNull();
+      const targetsCard = container.querySelector('.op-v2-roster-card--targets');
+      expect(targetsCard?.textContent).toContain('3 registered villages across 2 defender accounts');
     } finally {
       globalThis.fetch = originalFetch;
     }
