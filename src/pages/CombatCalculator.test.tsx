@@ -2,7 +2,8 @@
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { CombatCalculator } from './CombatCalculator';
+import { CombatCalculator, computeQueueLoss } from './CombatCalculator';
+import type { Regiment } from '../engine/combat';
 
 let container: HTMLDivElement;
 let root: Root;
@@ -775,6 +776,19 @@ describe('CombatCalculator', () => {
     expect(queueCard?.textContent).toContain('Recruitment Queue Lost');
     expect(queueCard?.textContent).toContain('Offense Queue');
     expect(queueCard?.textContent).toContain('Defense Queue');
+  });
+
+  it('splits queue time by training building and reports the slowest, not the sum', () => {
+    const reg = (key: string, count: number) => ({ key, count }) as Regiment;
+    // Level 20 times: emberblade 216s (Barracks), sun_rider 357s (Stable), iron_ram 621s (Workshop).
+    const before = [reg('emberblade', 1000), reg('sun_rider', 500), reg('iron_ram', 100)];
+    const after = [reg('emberblade', 0), reg('sun_rider', 100), reg('iron_ram', 100)];
+    const loss = computeQueueLoss(before, after);
+    expect(loss.infantry).toBe(216000);
+    expect(loss.cavalry).toBe(142800);
+    expect(loss.siege).toBe(0);
+    expect(loss.total).toBe(358800);
+    expect(loss.longest).toBe(216000);
   });
 
   it('renders Trapper field when village is Verdant Wardens and simulates trapped troops with 3x scale', async () => {

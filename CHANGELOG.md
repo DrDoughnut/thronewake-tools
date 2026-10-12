@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.16.1] - 2026-10-11
+
+### Fixed
+- **Recruitment Queue Lost overstated mixed armies** in the Combat Calculator. It added infantry, cavalry and siege training time into one number, as if a single building trained them one after another. The headline is now the slowest building's queue, with a per-building breakdown and the combined training time shown beneath.
+
 ## [1.16.0] - 2026-10-11
 
 ### Added

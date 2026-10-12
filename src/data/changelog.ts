@@ -2,7 +2,7 @@
  * Player release notes. Bump `APP_VERSION` and add an entry here
  * whenever a change is worth telling returning players about.
  */
-export const APP_VERSION = '1.16.0';
+export const APP_VERSION = '1.16.1';
 
 export interface ChangelogEntry {
   version: string;
@@ -11,6 +11,13 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '1.16.1',
+    date: '2026-10-11',
+    changes: [
+      'Combat Calculator: Recruitment Queue Lost no longer adds Barracks, Stable and Workshop time together. It shows the slowest building as the time to recover, with each building listed underneath.',
+    ],
+  },
   {
     version: '1.16.0',
     date: '2026-10-11',

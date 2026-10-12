@@ -10350,6 +10350,36 @@ body.is-reordering-wave * {
   color: var(--text);
 }
 
+.cc-queue-time-breakdown {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-dim);
+}
+
+.cc-queue-time-breakdown li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cc-queue-time-breakdown li.is-longest {
+  color: var(--text);
+  font-weight: 650;
+}
+
+.cc-queue-time-sum,
+.cc-queue-time-note {
+  margin: 0;
+  font-size: 10.5px;
+  color: var(--text-faint);
+}
+
 .cc-empty {
   margin: 0;
   padding: 16px;

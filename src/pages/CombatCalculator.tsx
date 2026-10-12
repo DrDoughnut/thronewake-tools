@@ -5,6 +5,7 @@ import { FactionSelect } from '../components/FactionSelect';
 import { KiloNumberInput } from '../components/KiloNumberInput';
 import { BUILDINGS } from '../data/buildingCatalog';
 import { formatTimeSeconds } from '../data/buildingEffects';
+import { trainingCategory } from '../data/buildings';
 import { factions, unitRef } from '../data/factions';
 import { trapperCapacity, watchTowerBonus, watchTowerDurability, watchTowerFlat } from '../data/rules';
 import type { Faction, Unit } from '../data/types';
@@ -61,6 +62,47 @@ interface ResourceLossBreakdown {
   total: number;
   xp: number;
 }
+
+/** Seconds of training lost, split by the building that has to retrain it. */
+export interface QueueLoss {
+  infantry: number;
+  cavalry: number;
+  siege: number;
+  /** Leaders and settlers, which come from the Residence or Palace. */
+  residence: number;
+  /** Every queue added together: the total training work lost. */
+  total: number;
+  /** The slowest single building. Queues run side by side, so this is the wait to be back at full strength. */
+  longest: number;
+}
+
+const QUEUE_ROWS: { key: 'infantry' | 'cavalry' | 'siege' | 'residence'; label: string }[] = [
+  { key: 'infantry', label: 'Barracks' },
+  { key: 'cavalry', label: 'Stable' },
+  { key: 'siege', label: 'Workshop' },
+  { key: 'residence', label: 'Residence / Palace' },
+];
+
+/** Training time lost, assuming level 20 training buildings. */
+export function computeQueueLoss(before: Regiment[], after: Regiment[]): QueueLoss {
+  const loss: QueueLoss = { infantry: 0, cavalry: 0, siege: 0, residence: 0, total: 0, longest: 0 };
+  before.forEach((r, i) => {
+    const lost = Math.max(0, r.count - (after[i]?.count ?? 0));
+    if (lost <= 0) return;
+    for (const f of factions) {
+      const u = f.units.find((unit) => unit.key === r.key);
+      if (u) {
+        loss[trainingCategory(u) ?? 'residence'] += lost * effectiveTime(f, u, defaultModifiers);
+        break;
+      }
+    }
+  });
+  loss.total = loss.infantry + loss.cavalry + loss.siege + loss.residence;
+  loss.longest = Math.max(loss.infantry, loss.cavalry, loss.siege, loss.residence);
+  return loss;
+}
+
+const NO_QUEUE_LOSS: QueueLoss = { infantry: 0, cavalry: 0, siege: 0, residence: 0, total: 0, longest: 0 };
 
 function computeLossBreakdown(before: Regiment[], after: Regiment[]): ResourceLossBreakdown {
   let wood = 0;
@@ -887,63 +929,29 @@ export function CombatCalculator() {
   }, [battle, isOverall, activeWaveIdx, w, enteringDefendersForWave]);
 
   // Recruitment queue time lost (assuming level 20 training buildings)
-  const attQueueSeconds = useMemo(() => {
-    if (!battle) return 0;
-    const computeQueueSecs = (before: Regiment[], after: Regiment[]) => {
-      let secs = 0;
-      before.forEach((r, i) => {
-        const lost = Math.max(0, r.count - (after[i]?.count ?? 0));
-        if (lost <= 0) return;
-        for (const f of factions) {
-          const u = f.units.find((unit) => unit.key === r.key);
-          if (u) {
-            const timePerUnit = effectiveTime(f, u, defaultModifiers);
-            secs += lost * timePerUnit;
-            break;
-          }
-        }
-      });
-      return secs;
-    };
-
+  const attQueue = useMemo(() => {
+    if (!battle) return NO_QUEUE_LOSS;
     if (isOverall) {
-      return computeQueueSecs(
+      return computeQueueLoss(
         battle.waveArmies.flat(),
         battle.result.waves.flatMap((wave) => wave.attackerSurvivors)
       );
     }
     if (activeWaveIdx !== null && w) {
-      return computeQueueSecs(battle.waveArmies[activeWaveIdx], w.attackerSurvivors);
+      return computeQueueLoss(battle.waveArmies[activeWaveIdx], w.attackerSurvivors);
     }
-    return 0;
+    return NO_QUEUE_LOSS;
   }, [battle, isOverall, activeWaveIdx, w]);
 
-  const defQueueSeconds = useMemo(() => {
-    if (!battle) return 0;
-    const computeQueueSecs = (before: Regiment[], after: Regiment[]) => {
-      let secs = 0;
-      before.forEach((r, i) => {
-        const lost = Math.max(0, r.count - (after[i]?.count ?? 0));
-        if (lost <= 0) return;
-        for (const f of factions) {
-          const u = f.units.find((unit) => unit.key === r.key);
-          if (u) {
-            const timePerUnit = effectiveTime(f, u, defaultModifiers);
-            secs += lost * timePerUnit;
-            break;
-          }
-        }
-      });
-      return secs;
-    };
-
+  const defQueue = useMemo(() => {
+    if (!battle) return NO_QUEUE_LOSS;
     if (isOverall) {
-      return computeQueueSecs(battle.defenders, battle.result.defenderSurvivors);
+      return computeQueueLoss(battle.defenders, battle.result.defenderSurvivors);
     }
     if (activeWaveIdx !== null && w) {
-      return computeQueueSecs(enteringDefendersForWave, w.defenderSurvivors);
+      return computeQueueLoss(enteringDefendersForWave, w.defenderSurvivors);
     }
-    return 0;
+    return NO_QUEUE_LOSS;
   }, [battle, isOverall, activeWaveIdx, w, enteringDefendersForWave]);
 
   const totalLossCost = attackerCost + (defenderCost + damageCost);
@@ -1998,15 +2006,38 @@ export function CombatCalculator() {
                 <span>Recruitment Queue Lost (Lvl 20)</span>
               </div>
               <div className="cc-queue-time-grid">
-                <div className="cc-queue-time-col cc-queue-time-col--off">
-                  <span className="cc-queue-time-label">Offense Queue</span>
-                  <span className="cc-queue-time-val">{formatTimeSeconds(attQueueSeconds)}</span>
-                </div>
-                <div className="cc-queue-time-col cc-queue-time-col--def">
-                  <span className="cc-queue-time-label">Defense Queue</span>
-                  <span className="cc-queue-time-val">{formatTimeSeconds(defQueueSeconds)}</span>
-                </div>
+                {([['off', 'Offense Queue', attQueue], ['def', 'Defense Queue', defQueue]] as const).map(([side, label, queue]) => {
+                  const rows = QUEUE_ROWS.filter((row) => queue[row.key] > 0);
+                  return (
+                    <div key={side} className={`cc-queue-time-col cc-queue-time-col--${side}`}>
+                      <span className="cc-queue-time-label">{label}</span>
+                      <span
+                        className="cc-queue-time-val"
+                        title="Time until the slowest building has retrained its losses. Barracks, Stable and Workshop train at the same time."
+                      >
+                        {formatTimeSeconds(queue.longest)}
+                      </span>
+                      {rows.length > 1 && (
+                        <>
+                          <ul className="cc-queue-time-breakdown">
+                            {rows.map((row) => (
+                              <li key={row.key} className={queue[row.key] === queue.longest ? 'is-longest' : ''}>
+                                <span>{row.label}</span>
+                                <span>{formatTimeSeconds(queue[row.key])}</span>
+                              </li>
+                            ))}
+                          </ul>
+                          <span className="cc-queue-time-sum">{formatTimeSeconds(queue.total)} of training in all</span>
+                        </>
+                      )}
+                      {rows.length === 1 && <span className="cc-queue-time-sum">{rows[0].label} only</span>}
+                    </div>
+                  );
+                })}
               </div>
+              <p className="cc-queue-time-note">
+                Buildings train side by side, so the big number is the slowest one, not the sum. Assumes all losses retrain in one village.
+              </p>
             </div>
           </section>
         </div>
