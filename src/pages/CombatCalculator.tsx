@@ -70,10 +70,8 @@ export interface QueueLoss {
   siege: number;
   /** Leaders and settlers, which come from the Residence or Palace. */
   residence: number;
-  /** Every queue added together: the total training work lost. */
+  /** Every queue added together: the total training time lost. */
   total: number;
-  /** The slowest single building. Queues run side by side, so this is the wait to be back at full strength. */
-  longest: number;
 }
 
 const QUEUE_ROWS: { key: 'infantry' | 'cavalry' | 'siege' | 'residence'; label: string }[] = [
@@ -85,7 +83,7 @@ const QUEUE_ROWS: { key: 'infantry' | 'cavalry' | 'siege' | 'residence'; label: 
 
 /** Training time lost, assuming level 20 training buildings. */
 export function computeQueueLoss(before: Regiment[], after: Regiment[]): QueueLoss {
-  const loss: QueueLoss = { infantry: 0, cavalry: 0, siege: 0, residence: 0, total: 0, longest: 0 };
+  const loss: QueueLoss = { infantry: 0, cavalry: 0, siege: 0, residence: 0, total: 0 };
   before.forEach((r, i) => {
     const lost = Math.max(0, r.count - (after[i]?.count ?? 0));
     if (lost <= 0) return;
@@ -98,11 +96,10 @@ export function computeQueueLoss(before: Regiment[], after: Regiment[]): QueueLo
     }
   });
   loss.total = loss.infantry + loss.cavalry + loss.siege + loss.residence;
-  loss.longest = Math.max(loss.infantry, loss.cavalry, loss.siege, loss.residence);
   return loss;
 }
 
-const NO_QUEUE_LOSS: QueueLoss = { infantry: 0, cavalry: 0, siege: 0, residence: 0, total: 0, longest: 0 };
+const NO_QUEUE_LOSS: QueueLoss = { infantry: 0, cavalry: 0, siege: 0, residence: 0, total: 0 };
 
 function computeLossBreakdown(before: Regiment[], after: Regiment[]): ResourceLossBreakdown {
   let wood = 0;
@@ -2011,33 +2008,23 @@ export function CombatCalculator() {
                   return (
                     <div key={side} className={`cc-queue-time-col cc-queue-time-col--${side}`}>
                       <span className="cc-queue-time-label">{label}</span>
-                      <span
-                        className="cc-queue-time-val"
-                        title="Time until the slowest building has retrained its losses. Barracks, Stable and Workshop train at the same time."
-                      >
-                        {formatTimeSeconds(queue.longest)}
+                      <span className="cc-queue-time-val" title="Total training time of every unit lost, all buildings added together">
+                        {formatTimeSeconds(queue.total)}
                       </span>
                       {rows.length > 1 && (
-                        <>
-                          <ul className="cc-queue-time-breakdown">
-                            {rows.map((row) => (
-                              <li key={row.key} className={queue[row.key] === queue.longest ? 'is-longest' : ''}>
-                                <span>{row.label}</span>
-                                <span>{formatTimeSeconds(queue[row.key])}</span>
-                              </li>
-                            ))}
-                          </ul>
-                          <span className="cc-queue-time-sum">{formatTimeSeconds(queue.total)} of training in all</span>
-                        </>
+                        <ul className="cc-queue-time-breakdown">
+                          {rows.map((row) => (
+                            <li key={row.key}>
+                              <span>{row.label}</span>
+                              <span>{formatTimeSeconds(queue[row.key])}</span>
+                            </li>
+                          ))}
+                        </ul>
                       )}
-                      {rows.length === 1 && <span className="cc-queue-time-sum">{rows[0].label} only</span>}
                     </div>
                   );
                 })}
               </div>
-              <p className="cc-queue-time-note">
-                Buildings train side by side, so the big number is the slowest one, not the sum. Assumes all losses retrain in one village.
-              </p>
             </div>
           </section>
         </div>

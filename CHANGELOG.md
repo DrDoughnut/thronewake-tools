@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.16.2] - 2026-10-11
+
+### Changed
+- **Recruitment Queue Lost** in the Combat Calculator shows the summed training time again, reverting the "slowest building" headline from 1.16.1. The per-building breakdown stays as detail beneath the total.
+
 ## [1.16.1] - 2026-10-11
 
 ### Fixed
@@ -238,6 +243,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.16.2] - 2026-10-11
+
+### Changed
+- **Recruitment Queue Lost** in the Combat Calculator shows the summed training time again, reverting the "slowest building" headline from 1.16.1. The per-building breakdown stays as detail beneath the total.
+
 ## [1.6.0] - 2026-08-18
 
 ### Added
@@ -250,6 +260,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.16.2] - 2026-10-11
+
+### Changed
+- **Recruitment Queue Lost** in the Combat Calculator shows the summed training time again, reverting the "slowest building" headline from 1.16.1. The per-building breakdown stays as detail beneath the total.
+
 ## [1.5.6] - 2026-08-16
 
 ### Added
@@ -258,12 +273,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.16.2] - 2026-10-11
+
+### Changed
+- **Recruitment Queue Lost** in the Combat Calculator shows the summed training time again, reverting the "slowest building" headline from 1.16.1. The per-building breakdown stays as detail beneath the total.
+
 ## [1.5.5] - 2026-08-15
 
 ### Added
 - Interactive timeline lane selection and hover effects for daily schedule visualization.
 
 ---
+
+## [1.16.2] - 2026-10-11
+
+### Changed
+- **Recruitment Queue Lost** in the Combat Calculator shows the summed training time again, reverting the "slowest building" headline from 1.16.1. The per-building breakdown stays as detail beneath the total.
 
 ## [1.5.4] - 2026-08-14
 
@@ -273,12 +298,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.16.2] - 2026-10-11
+
+### Changed
+- **Recruitment Queue Lost** in the Combat Calculator shows the summed training time again, reverting the "slowest building" headline from 1.16.1. The per-building breakdown stays as detail beneath the total.
+
 ## [1.5.3] - 2026-08-13
 
 ### Added
 - Discord-safe URL encoding and rich OpenGraph embed previews.
 
 ---
+
+## [1.16.2] - 2026-10-11
+
+### Changed
+- **Recruitment Queue Lost** in the Combat Calculator shows the summed training time again, reverting the "slowest building" headline from 1.16.1. The per-building breakdown stays as detail beneath the total.
 
 ## [1.0.0] - 2026-08-10
 

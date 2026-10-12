@@ -778,7 +778,7 @@ describe('CombatCalculator', () => {
     expect(queueCard?.textContent).toContain('Defense Queue');
   });
 
-  it('splits queue time by training building and reports the slowest, not the sum', () => {
+  it('sums queue time across training buildings and keeps the per-building split', () => {
     const reg = (key: string, count: number) => ({ key, count }) as Regiment;
     // Level 20 times: emberblade 216s (Barracks), sun_rider 357s (Stable), iron_ram 621s (Workshop).
     const before = [reg('emberblade', 1000), reg('sun_rider', 500), reg('iron_ram', 100)];
@@ -788,7 +788,6 @@ describe('CombatCalculator', () => {
     expect(loss.cavalry).toBe(142800);
     expect(loss.siege).toBe(0);
     expect(loss.total).toBe(358800);
-    expect(loss.longest).toBe(216000);
   });
 
   it('renders Trapper field when village is Verdant Wardens and simulates trapped troops with 3x scale', async () => {
