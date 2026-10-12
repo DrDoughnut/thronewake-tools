@@ -2,7 +2,7 @@
  * Player release notes. Bump `APP_VERSION` and add an entry here
  * whenever a change is worth telling returning players about.
  */
-export const APP_VERSION = '1.15.0';
+export const APP_VERSION = '1.15.1';
 
 export interface ChangelogEntry {
   version: string;
@@ -11,6 +11,16 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '1.15.1',
+    date: '2026-10-11',
+    changes: [
+      'Operation Planner on phones: route cards are much shorter, with one row of matching chips and a tidy grid of launch, travel, land and send times.',
+      'The Scheduling / Targets / Routes tabs fit on one line, and the sticky operation header takes less of the screen.',
+      'Scheduling timeline: the NOW and landing badges no longer cover the hour marks, and long names are cut at the end instead of the start.',
+      'Targets & Setup fits the screen without sideways scrolling, and the blocked-routes warning is more compact.',
+    ],
+  },
   {
     version: '1.15.0',
     date: '2026-10-11',

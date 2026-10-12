@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.15.1] - 2026-10-11
+
+### Changed
+- **Mobile route cards** in the Operation Planner: each route is now names, one row of uniform chips (type, siege, map pin, safetime check), and a 2x2 grid of labelled times, instead of nine stacked lines.
+- **Mobile workspace header**: the three step tabs stay on one line (icons hidden on phones), and the operation name, status toggle and share button take two rows instead of three.
+- **Mobile scheduling timeline**: NOW and landing badges sit above the hour ticks instead of covering them; long lane names truncate at the end.
+- **Mobile Targets & Setup**: army and target columns fit the screen width, long safetime tags wrap, the blocked-routes banner is tighter, and the troop speed badge is hidden in army rows so village names fit.
+
 ## [1.15.0] - 2026-10-11
 
 ### Added

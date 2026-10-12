@@ -3386,10 +3386,43 @@ select:focus, .select:focus, .text-input:focus {
   .op-routes table, .op-routes tbody, .op-routes tr, .op-routes td { display: block; }
   .op-routes table { min-width: 0; }
   .op-routes thead { display: none; }
-  .op-routes tr { margin-bottom: 8px; padding: 10px 12px; border: 1px solid hsl(220, 15%, 26%); border-left-width: 4px; border-radius: var(--radius); }
+  /* Compact route card: names, one row of same-shaped chips (type / siege / pin / safetime),
+     then a plain 2x2 of labelled times. Colour carries meaning; shape and size stay uniform. */
+  .op-routes tr { display: flex; flex-wrap: wrap; align-items: center; column-gap: 6px; margin-bottom: 6px; padding: 8px 10px; border: 1px solid hsl(220, 15%, 26%); border-left-width: 4px; border-radius: var(--radius); }
   .op-routes tr:last-child { margin-bottom: 0; }
-  .op-routes td { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px 0; border: 0; }
-  .op-routes td::before { content: attr(data-label); color: var(--text-faint); font-size: 10.5px; font-weight: 650; letter-spacing: 0.06em; text-transform: uppercase; }
+  .op-routes tr::before { content: ''; order: 6; flex: 0 0 100%; height: 1px; margin: 6px 0 4px; background: hsl(220, 14%, 20%); }
+  .op-routes td,
+  .op-routes td:first-child,
+  .op-routes td:not(:first-child) { display: flex; align-items: center; gap: 6px; width: auto; min-width: 0; padding: 0; border: 0; text-align: left; }
+  .op-routes td::before { content: none; }
+  .op-routes td[data-label="Route"] { order: 1; flex: 0 0 100%; white-space: normal; margin-bottom: 6px; }
+  .op-routes td[data-label="Type"] { order: 2; }
+  .op-routes td[data-label="Siege"] { order: 3; }
+  .op-routes td[data-label="Map Pin"] { order: 4; }
+  .op-routes td[data-label="Safetime Checks"] { order: 5; margin-left: auto; }
+  .op-routes .op-target-mode,
+  .op-routes .op-route-siege-toggle,
+  .op-routes .op-map-pin-btn,
+  .op-routes .op-check-pill { display: inline-flex; align-items: center; box-sizing: border-box; height: 24px; min-height: 0; min-width: 0; padding: 0 8px; border-width: 1px; border-radius: 6px; font-size: 11px; font-weight: 700; line-height: 1; }
+  .op-routes .op-check-pill { border: 1px solid transparent; }
+  .op-routes .op-checks-cell { padding: 0; }
+  .op-routes .op-map-pin-coords { text-decoration: none; }
+  .op-routes td[data-label="Launch In"] { order: 7; }
+  .op-routes td[data-label="Travel"] { order: 8; }
+  .op-routes td[data-label="Land (UTC)"] { order: 9; }
+  .op-routes td[data-label="Send Time (UTC)"] { order: 10; }
+  .op-routes td[data-label="Launch In"],
+  .op-routes td[data-label="Travel"],
+  .op-routes td[data-label="Land (UTC)"],
+  .op-routes td[data-label="Send Time (UTC)"] { flex: 0 0 calc(50% - 3px); flex-direction: column; align-items: flex-start; align-self: flex-start; gap: 1px; padding: 3px 0; font-size: 12px; }
+  .op-routes td[data-label="Launch In"]::before,
+  .op-routes td[data-label="Travel"]::before,
+  .op-routes td[data-label="Land (UTC)"]::before,
+  .op-routes td[data-label="Send Time (UTC)"]::before { content: attr(data-label); color: var(--text-faint); font-size: 9.5px; font-weight: 650; letter-spacing: 0.06em; text-transform: uppercase; }
+  .op-routes .op-launch-cell { align-items: flex-start; }
+  .op-routes .op-countdown-tag { padding: 0; border: 0; background: none; font-size: 12px; }
+  .op-routes .op-dist-travel-cell { flex-direction: row; align-items: baseline; gap: 6px; }
+  .op-routes .travel-stat { padding: 0; background: none; }
   .op-route-button { align-items: flex-end; text-align: right; }
   .schedule__axis-row, .schedule__row { grid-template-columns: 96px minmax(0, 1fr); }
   .schedule__label { font-size: 10.5px; padding-right: 6px; }
@@ -11620,3 +11653,51 @@ body.is-reordering-wave * {
 }
 .planner-offline__title { margin: 0 0 8px; font-size: 18px; }
 .planner-offline__text { margin: 0; color: var(--text-dim); }
+
+/* Phone tidy-ups for the operation workspace tabs */
+@media (max-width: 680px) {
+  /* Step tabs stay on one line */
+  .op-workspace-nav { flex-wrap: nowrap; gap: 2px; }
+  .op-workspace-nav button { flex: 1 1 auto; min-width: 0; padding: 7px 4px; font-size: 11.5px; }
+
+  /* Scheduling: NOW / landing badges sit above the hour ticks instead of covering them */
+  .schedule__axis-row { margin-top: 24px; }
+  .schedule__axis-row:has(.schedule__axis-now-pin.is-offset) { margin-top: 42px; }
+  .schedule__axis-land-pin { top: -24px; }
+  .schedule__axis-now-pin { top: -21px; }
+  .schedule__axis-now-pin.is-offset { top: -39px; }
+  /* Long lane names cut off at the end, not the start */
+  .schedule__label { display: block; }
+
+  /* Targets & Setup: columns fit the screen instead of scrolling sideways */
+  .op-participant-picker__grid { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .op-participant-col { min-width: 0; padding: 10px; }
+  .op-participant-col__actions .pill { flex: 1 1 auto; min-width: 0; padding-left: 6px; padding-right: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}
+@media (max-width: 680px) {
+  .op-workspace-nav__icon { display: none; }
+  .op-participant-player-header { flex-wrap: wrap; row-gap: 3px; }
+  .op-participant-player-header .op-safetime__tag { white-space: normal; }
+}
+@media (max-width: 680px) {
+  /* Sticky operation header: name + close on one line, status + share on the next */
+  .op-workspace-bar__operation { grid-column: 1 / -1; grid-row: 1; min-width: 0; }
+  .op-workspace-bar__title { flex: 1 1 100%; min-width: 0; min-height: 30px; padding-right: 44px; line-height: 30px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .op-workspace-bar__title-group { gap: 6px; }
+  .op-workspace-bar__title-group .pill { min-height: 30px; padding-top: 3px; padding-bottom: 3px; }
+  .op-workspace-close { align-self: start; justify-self: end; z-index: 1; min-height: 30px; padding-top: 3px; padding-bottom: 3px; }
+
+  /* Blocked-routes banner reads as a short note, not a wall */
+  .op-route-clash-banner { gap: 8px; padding: 9px 11px; }
+  .op-route-clash-banner__icon { font-size: 16px; }
+  .op-route-clash-banner ul { margin: 2px 0; padding-left: 16px; }
+  .op-route-clash-banner li { font-size: 12px; line-height: 1.4; }
+  .op-route-clash-banner li + li { margin-top: 3px; }
+  .op-route-clash-banner summary { font-size: 12px; }
+}
+@media (max-width: 680px) {
+  /* Deployed armies: drop the speed badge so long village names fit their chip */
+  .op-participant-row { gap: 6px; }
+  .op-participant-row .op-wave-troop-picker .unit-grid-picker { min-width: 0; }
+  .op-participant-row .op-wave-troop-picker .unit-grid-picker__speed-badge { display: none; }
+}

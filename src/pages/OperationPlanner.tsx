@@ -2741,21 +2741,21 @@ function OperationPlannerV2({
                 className={workspaceView === 'scheduling' ? 'is-active' : ''}
                 onClick={() => setWorkspaceView('scheduling')}
               >
-                🕒 1. Scheduling
+                <span className="op-workspace-nav__icon" aria-hidden="true">🕒 </span>1. Scheduling
               </button>
               <button
                 type="button"
                 className={workspaceView === 'targets' ? 'is-active' : ''}
                 onClick={() => setWorkspaceView('targets')}
               >
-                🎯 2. Targets & Setup
+                <span className="op-workspace-nav__icon" aria-hidden="true">🎯 </span>2. Targets & Setup
               </button>
               <button
                 type="button"
                 className={workspaceView === 'routes' ? 'is-active' : ''}
                 onClick={() => setWorkspaceView('routes')}
               >
-                🗺️ 3. Routes ({routes.length})
+                <span className="op-workspace-nav__icon" aria-hidden="true">🗺️ </span>3. Routes ({routes.length})
               </button>
             </nav>
             <button
