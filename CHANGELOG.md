@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.16.0] - 2026-10-11
+
+### Added
+- **Collapsible "no routes" groups** on the Scheduling timeline: the divider above attackers and defenders without routes is now a toggle showing the group's size. Each side collapses separately and the choice is remembered on the device.
+
 ## [1.15.2] - 2026-10-11
 
 ### Fixed

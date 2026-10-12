@@ -2,7 +2,7 @@
  * Player release notes. Bump `APP_VERSION` and add an entry here
  * whenever a change is worth telling returning players about.
  */
-export const APP_VERSION = '1.15.2';
+export const APP_VERSION = '1.16.0';
 
 export interface ChangelogEntry {
   version: string;
@@ -11,6 +11,13 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '1.16.0',
+    date: '2026-10-11',
+    changes: [
+      'Scheduling timeline: tap the "no routes" divider to hide or show the attackers or defenders that have no routes. It shows how many are in the group and remembers your choice.',
+    ],
+  },
   {
     version: '1.15.2',
     date: '2026-10-11',

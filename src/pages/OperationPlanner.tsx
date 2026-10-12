@@ -866,6 +866,22 @@ const ScheduleTimeline = memo(function ScheduleTimeline({
   onReviewRoutes?: () => void;
 }) {
   const axisRef = useRef<HTMLDivElement>(null);
+  // "No routes" lanes can be folded away per side; the choice sticks across visits.
+  const [noRoutesCollapsed, setNoRoutesCollapsed] = useState<{ attackers: boolean; defenders: boolean }>(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('thronewake.schedule.noRoutesCollapsed') || '{}');
+      return { attackers: Boolean(saved.attackers), defenders: Boolean(saved.defenders) };
+    } catch {
+      return { attackers: false, defenders: false };
+    }
+  });
+  const toggleNoRoutes = (side: 'attackers' | 'defenders') => {
+    setNoRoutesCollapsed((prev) => {
+      const next = { ...prev, [side]: !prev[side] };
+      try { localStorage.setItem('thronewake.schedule.noRoutesCollapsed', JSON.stringify(next)); } catch { /* storage unavailable */ }
+      return next;
+    });
+  };
   const [nowDate, setNowDate] = useState(() => new Date());
 
   useEffect(() => {
@@ -1243,8 +1259,18 @@ const ScheduleTimeline = memo(function ScheduleTimeline({
         return (
           <Fragment key={attacker.id}>
           {groupByParticipation && !attacker.hasRoutes && (index === 0 || orderedAttackers[index - 1].hasRoutes) && (
-            <div className="schedule__no-routes">no routes</div>
+            <button
+              type="button"
+              className="schedule__no-routes"
+              aria-expanded={!noRoutesCollapsed.attackers}
+              onClick={() => toggleNoRoutes('attackers')}
+              title={noRoutesCollapsed.attackers ? 'Show attackers with no routes' : 'Hide attackers with no routes'}
+            >
+              <span className="schedule__no-routes-caret" aria-hidden="true">{noRoutesCollapsed.attackers ? '▸' : '▾'}</span>
+              no routes ({orderedAttackers.length - index})
+            </button>
           )}
+          {!(groupByParticipation && !attacker.hasRoutes && noRoutesCollapsed.attackers) && (
           <TimelineLane
             label={attacker.name}
             sendRoutes={sendRoutes}
@@ -1258,6 +1284,7 @@ const ScheduleTimeline = memo(function ScheduleTimeline({
             nowPosition={nowPosition}
             nowClock={nowClock}
           />
+          )}
           </Fragment>
         );
       })}
@@ -1272,8 +1299,18 @@ const ScheduleTimeline = memo(function ScheduleTimeline({
         return (
           <Fragment key={defender.key}>
           {groupByParticipation && !defender.hasRoutes && (index === 0 || orderedDefenders[index - 1].hasRoutes) && (
-            <div className="schedule__no-routes">no routes</div>
+            <button
+              type="button"
+              className="schedule__no-routes"
+              aria-expanded={!noRoutesCollapsed.defenders}
+              onClick={() => toggleNoRoutes('defenders')}
+              title={noRoutesCollapsed.defenders ? 'Show defenders with no routes' : 'Hide defenders with no routes'}
+            >
+              <span className="schedule__no-routes-caret" aria-hidden="true">{noRoutesCollapsed.defenders ? '▸' : '▾'}</span>
+              no routes ({orderedDefenders.length - index})
+            </button>
           )}
+          {!(groupByParticipation && !defender.hasRoutes && noRoutesCollapsed.defenders) && (
           <TimelineLane
             label={defender.label}
             sendRoutes={sendRoutes}
@@ -1287,6 +1324,7 @@ const ScheduleTimeline = memo(function ScheduleTimeline({
             nowPosition={nowPosition}
             nowClock={nowClock}
           />
+          )}
           </Fragment>
         );
       })}
