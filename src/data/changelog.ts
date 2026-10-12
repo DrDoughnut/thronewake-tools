@@ -2,7 +2,7 @@
  * Player release notes. Bump `APP_VERSION` and add an entry here
  * whenever a change is worth telling returning players about.
  */
-export const APP_VERSION = '1.15.1';
+export const APP_VERSION = '1.15.2';
 
 export interface ChangelogEntry {
   version: string;
@@ -11,6 +11,13 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '1.15.2',
+    date: '2026-10-11',
+    changes: [
+      'Targets & Setup on phones: a village with several tags no longer squashes its checkbox. The tags wrap onto a second line instead.',
+    ],
+  },
   {
     version: '1.15.1',
     date: '2026-10-11',

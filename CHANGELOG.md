@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.15.2] - 2026-10-11
+
+### Fixed
+- **Target checkbox squashed on phones**: in Targets & Setup, a village with a long artifact tag shrank its checkbox to a sliver and split the village name over two lines. The checkbox now keeps its size and the tags wrap onto a second line.
+
 ## [1.15.1] - 2026-10-11
 
 ### Changed

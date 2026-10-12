@@ -5764,6 +5764,7 @@ select:focus, .select:focus, .text-input:focus {
 }
 
 .op-participant-chip__check {
+  flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -11700,4 +11701,13 @@ body.is-reordering-wave * {
   .op-participant-row { gap: 6px; }
   .op-participant-row .op-wave-troop-picker .unit-grid-picker { min-width: 0; }
   .op-participant-row .op-wave-troop-picker .unit-grid-picker__speed-badge { display: none; }
+}
+
+/* Phones: a target with several tags wraps the tags onto a second line instead of
+   squeezing the checkbox and breaking the village name. */
+@media (max-width: 680px) {
+  .op-target-assignment .op-participant-chip { flex-wrap: wrap; row-gap: 4px; }
+  .op-participant-chip .op-participant-warning,
+  .op-participant-chip .op-badge-tag { flex: 0 0 auto; }
+  .op-participant-chip .op-badge-tag--art { display: inline-block; flex: 0 1 auto; min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 }
