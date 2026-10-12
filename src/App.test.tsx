@@ -1496,19 +1496,18 @@ describe('the Building Stats tool', () => {
   });
 });
 
-describe('the defense simulator', () => {
-  it('displays a beta warning banner when selecting the Defense Sim tool', () => {
+describe('legacy defense simulator route', () => {
+  it('removes Defense Sim from the navigation toolbar and falls back to Combat Calculator', () => {
     const defenseTab = [...container.querySelectorAll('.pill--tool')].find(
       (b) => b.getAttribute('aria-label') === 'Defense Sim',
-    )!;
-    expect(defenseTab).toBeTruthy();
-    click(defenseTab);
+    );
+    expect(defenseTab).toBeUndefined();
 
-    expect(window.location.hash).toContain('tool=defense');
-    const banner = container.querySelector('.ds-beta-banner');
-    expect(banner).toBeTruthy();
-    expect(banner?.textContent).toContain('Beta');
-    expect(banner?.textContent).toContain('Defense Simulator is currently in beta');
+    act(() => {
+      window.location.hash = '#tool=defense';
+      window.dispatchEvent(new Event('hashchange'));
+    });
+    expect(container.querySelector('.cc-page')).toBeTruthy();
   });
 });
 

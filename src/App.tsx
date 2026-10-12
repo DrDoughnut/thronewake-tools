@@ -6,7 +6,6 @@ import { ArmyCalculator } from './pages/ArmyCalculator';
 import { BuildingStats } from './pages/BuildingStats';
 import { CombatCalculator } from './pages/CombatCalculator';
 import { CpOptimizer } from './pages/CpOptimizer';
-import { DefenseSimulator } from './pages/DefenseSimulator';
 import { OperationPlanner } from './pages/OperationPlanner';
 import { PlannerOffline } from './pages/PlannerOffline';
 import { UnitAttributes } from './pages/UnitAttributes';
@@ -85,16 +84,6 @@ const TOOLS: Tool[] = [
       v2 ? <OperationPlanner isV2Unlocked onExitV2={onExitV2} /> : <PlannerOffline />,
   },
   {
-    key: 'defense',
-    name: 'Defense Sim',
-    icon: '🛡️',
-    blurb:
-      'Work out how many villages your defence can actually hold, when you cannot yet tell a real hammer from a fake.',
-    footer:
-      'Every fight is resolved by the combat engine, so defence answers a hammer by how much of it is mounted. Hammer sizes are taken as scouted exactly, so a 1.00× stack is the optimistic case.',
-    render: () => <DefenseSimulator />,
-  },
-  {
     key: 'optimizer',
     name: 'CP Optimizer',
     icon: '🏛️',
@@ -122,6 +111,7 @@ const readTool = (): string => {
   const key = params.get('tool');
   if (key === 'cp-optimizer') return 'optimizer';
   if (key === 'building-stats' || key === 'catalog') return 'buildings';
+  if (key === 'defense') return 'combat';
   if (key && TOOLS.some((t) => t.key === key)) return key;
 
   const savedTool = loadStoredJson<string>(StorageKeys.LAST_TOOL, '');
