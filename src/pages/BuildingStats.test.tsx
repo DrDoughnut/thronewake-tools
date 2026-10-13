@@ -355,6 +355,38 @@ describe('BuildingStats Component & Effect Helpers', () => {
     changeInput(wilderSelect, '75');
     expect(container.textContent).toContain('Total: +100% (2.00× output)');
   });
+
+  it('renders separate Butcher and Smokehouse dropdowns for Grazing Field with authentic compound multipliers', () => {
+    act(() => root.unmount());
+    // Wilder 150%, Butcher 35%, Smokehouse 25%
+    window.location.hash = '#tool=buildings&b=grazing-field&butcher=35&smokehouse=25&wilder=150';
+    root = createRoot(container);
+    act(() => root.render(<BuildingStats />));
+
+    expect(container.textContent).toContain('Grazing Field');
+    expect(container.textContent).toContain('Butcher:');
+    expect(container.textContent).toContain('Smokehouse:');
+    expect(container.textContent).toContain('Wilder Sites:');
+
+    // (1 + 1.50) * (1 + 0.35) * (1 + 0.25) = 2.5 * 1.35 * 1.25 = 4.21875 -> +322% (4.22x output)
+    expect(container.textContent).toContain('Total: +322% (4.22× output)');
+
+    const butcherSelect = container.querySelector('#bs-butcher-select') as HTMLSelectElement;
+    expect(butcherSelect).toBeTruthy();
+    expect(butcherSelect.value).toBe('35');
+    // Butcher options: 0 to 45% (10 options)
+    expect(butcherSelect.options.length).toBe(10);
+
+    const smokehouseSelect = container.querySelector('#bs-smokehouse-select') as HTMLSelectElement;
+    expect(smokehouseSelect).toBeTruthy();
+    expect(smokehouseSelect.value).toBe('25');
+    // Smokehouse options: 0 to 25% (6 options)
+    expect(smokehouseSelect.options.length).toBe(6);
+
+    // Adjusting butcher to 45% -> (1 + 1.50) * (1 + 0.45) * (1 + 0.25) = 2.5 * 1.45 * 1.25 = 4.53125 -> +353% (4.53x output)
+    changeInput(butcherSelect, '45');
+    expect(container.textContent).toContain('Total: +353% (4.53× output)');
+  });
 });
 
 

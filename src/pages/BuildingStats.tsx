@@ -28,7 +28,7 @@ const FACTORY_OPTIONS_STANDARD = [
   { value: 40, label: '+40%' },
 ];
 
-const FACTORY_OPTIONS_CROP = [
+const BUTCHER_OPTIONS = [
   { value: 0, label: '0%' },
   { value: 5, label: '+5%' },
   { value: 10, label: '+10%' },
@@ -38,6 +38,16 @@ const FACTORY_OPTIONS_CROP = [
   { value: 30, label: '+30%' },
   { value: 35, label: '+35%' },
   { value: 40, label: '+40%' },
+  { value: 45, label: '+45%' },
+];
+
+const SMOKEHOUSE_OPTIONS = [
+  { value: 0, label: '0%' },
+  { value: 5, label: '+5%' },
+  { value: 10, label: '+10%' },
+  { value: 15, label: '+15%' },
+  { value: 20, label: '+20%' },
+  { value: 25, label: '+25%' },
 ];
 
 const WILDER_OPTIONS = [
@@ -121,6 +131,30 @@ export function BuildingStats() {
     return 0;
   }, [hashParams]);
 
+  const initialButcher = useMemo(() => {
+    const p = hashParams.get('butcher');
+    const parsed = p ? parseInt(p, 10) : NaN;
+    if (!isNaN(parsed) && parsed >= 0) return parsed;
+    const saved = loadStoredJson<{ butcherPct?: number }>(
+      StorageKeys.BUILDINGS_STATE,
+      {},
+    );
+    if (typeof saved.butcherPct === 'number' && saved.butcherPct >= 0) return saved.butcherPct;
+    return 0;
+  }, [hashParams]);
+
+  const initialSmokehouse = useMemo(() => {
+    const p = hashParams.get('smokehouse') || hashParams.get('smoke');
+    const parsed = p ? parseInt(p, 10) : NaN;
+    if (!isNaN(parsed) && parsed >= 0) return parsed;
+    const saved = loadStoredJson<{ smokehousePct?: number }>(
+      StorageKeys.BUILDINGS_STATE,
+      {},
+    );
+    if (typeof saved.smokehousePct === 'number' && saved.smokehousePct >= 0) return saved.smokehousePct;
+    return 0;
+  }, [hashParams]);
+
   const initialWilder = useMemo(() => {
     const p = hashParams.get('wilder') || hashParams.get('oasis') || hashParams.get('ws');
     const parsed = p ? parseInt(p, 10) : NaN;
@@ -137,6 +171,8 @@ export function BuildingStats() {
   const [thLevel, setThLevel] = useState<number>(initialTh);
   const [serverSpeed, setServerSpeed] = useState<ServerSpeed>(initialSpeed);
   const [factoryPct, setFactoryPct] = useState<number>(initialFactory);
+  const [butcherPct, setButcherPct] = useState<number>(initialButcher);
+  const [smokehousePct, setSmokehousePct] = useState<number>(initialSmokehouse);
   const [wilderPct, setWilderPct] = useState<number>(initialWilder);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<'All' | (typeof CATEGORIES)[number]>('All');
@@ -169,18 +205,47 @@ export function BuildingStats() {
   const thFactor = getTownHallFactor(effectiveTh);
 
   const isResourceField = selectedBuilding ? [1, 2, 3, 4].includes(selectedBuilding.gid) : false;
-  const effectiveBonusPct = isResourceField ? factoryPct + wilderPct : 0;
-  const bonusMultiplier = 1 + effectiveBonusPct / 100;
+  const isCropField = selectedBuilding?.gid === 4;
+
+  // Thronewake compound multiplier:
+  // For standard resource fields: 1 + (factory% + wilder%) / 100
+  // For Grazing Field (Food): (1 + wilder%/100) * (1 + butcher%/100) * (1 + smokehouse%/100)
+  const bonusMultiplier = useMemo(() => {
+    if (!isResourceField) return 1;
+    if (isCropField) {
+      return (1 + wilderPct / 100) * (1 + butcherPct / 100) * (1 + smokehousePct / 100);
+    }
+    return 1 + (factoryPct + wilderPct) / 100;
+  }, [isResourceField, isCropField, wilderPct, butcherPct, smokehousePct, factoryPct]);
+
+  const effectiveBonusPct = Math.round((bonusMultiplier - 1) * 100);
 
   const factoryOptions = useMemo(() => {
-    const baseOptions = selectedBuilding?.gid === 4 ? FACTORY_OPTIONS_CROP : FACTORY_OPTIONS_STANDARD;
-    if (factoryPct > 0 && !baseOptions.some((o) => o.value === factoryPct)) {
-      return [...baseOptions, { value: factoryPct, label: `+${factoryPct}% (Custom)` }].sort(
+    if (factoryPct > 0 && !FACTORY_OPTIONS_STANDARD.some((o) => o.value === factoryPct)) {
+      return [...FACTORY_OPTIONS_STANDARD, { value: factoryPct, label: `+${factoryPct}% (Custom)` }].sort(
         (a, b) => a.value - b.value
       );
     }
-    return baseOptions;
-  }, [selectedBuilding?.gid, factoryPct]);
+    return FACTORY_OPTIONS_STANDARD;
+  }, [factoryPct]);
+
+  const butcherOptions = useMemo(() => {
+    if (butcherPct > 0 && !BUTCHER_OPTIONS.some((o) => o.value === butcherPct)) {
+      return [...BUTCHER_OPTIONS, { value: butcherPct, label: `+${butcherPct}% (Custom)` }].sort(
+        (a, b) => a.value - b.value
+      );
+    }
+    return BUTCHER_OPTIONS;
+  }, [butcherPct]);
+
+  const smokehouseOptions = useMemo(() => {
+    if (smokehousePct > 0 && !SMOKEHOUSE_OPTIONS.some((o) => o.value === smokehousePct)) {
+      return [...SMOKEHOUSE_OPTIONS, { value: smokehousePct, label: `+${smokehousePct}% (Custom)` }].sort(
+        (a, b) => a.value - b.value
+      );
+    }
+    return SMOKEHOUSE_OPTIONS;
+  }, [smokehousePct]);
 
   const wilderOptions = useMemo(() => {
     if (wilderPct > 0 && !WILDER_OPTIONS.some((o) => o.value === wilderPct)) {
@@ -213,6 +278,17 @@ export function BuildingStats() {
       params.delete('factory');
       params.delete('fac');
     }
+    if (butcherPct > 0) {
+      params.set('butcher', String(butcherPct));
+    } else {
+      params.delete('butcher');
+    }
+    if (smokehousePct > 0) {
+      params.set('smokehouse', String(smokehousePct));
+    } else {
+      params.delete('smokehouse');
+      params.delete('smoke');
+    }
     if (wilderPct > 0) {
       params.set('wilder', String(wilderPct));
     } else {
@@ -224,13 +300,15 @@ export function BuildingStats() {
       thLevel,
       serverSpeed,
       factoryPct,
+      butcherPct,
+      smokehousePct,
       wilderPct,
     });
     const newHash = `#${params.toString()}`;
     if (window.location.hash !== newHash) {
       window.history.replaceState(null, '', newHash);
     }
-  }, [selectedBuilding, thLevel, serverSpeed, factoryPct, wilderPct]);
+  }, [selectedBuilding, thLevel, serverSpeed, factoryPct, butcherPct, smokehousePct, wilderPct]);
 
   // Lock body scroll when modal is open
   useEffect(() => {
@@ -659,24 +737,66 @@ export function BuildingStats() {
 
               {isResourceField && (
                 <>
-                  <div className="bs-modifier-item">
-                    <label htmlFor="bs-factory-select" className="bs-modifier-label">
-                      {getFactoryName(selectedBuilding.gid)}:
-                    </label>
-                    <select
-                      id="bs-factory-select"
-                      className="select bs-modifier-select bs-modifier-select--sm"
-                      value={factoryPct}
-                      onChange={(e) => setFactoryPct(Number(e.target.value))}
-                      aria-label="Factory Bonus"
-                    >
-                      {factoryOptions.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  {isCropField ? (
+                    <>
+                      <div className="bs-modifier-item">
+                        <label htmlFor="bs-butcher-select" className="bs-modifier-label">
+                          Butcher:
+                        </label>
+                        <select
+                          id="bs-butcher-select"
+                          className="select bs-modifier-select bs-modifier-select--sm"
+                          value={butcherPct}
+                          onChange={(e) => setButcherPct(Number(e.target.value))}
+                          aria-label="Butcher Bonus"
+                        >
+                          {butcherOptions.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="bs-modifier-item">
+                        <label htmlFor="bs-smokehouse-select" className="bs-modifier-label">
+                          Smokehouse:
+                        </label>
+                        <select
+                          id="bs-smokehouse-select"
+                          className="select bs-modifier-select bs-modifier-select--sm"
+                          value={smokehousePct}
+                          onChange={(e) => setSmokehousePct(Number(e.target.value))}
+                          aria-label="Smokehouse Bonus"
+                        >
+                          {smokehouseOptions.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="bs-modifier-item">
+                      <label htmlFor="bs-factory-select" className="bs-modifier-label">
+                        {getFactoryName(selectedBuilding.gid)}:
+                      </label>
+                      <select
+                        id="bs-factory-select"
+                        className="select bs-modifier-select bs-modifier-select--sm"
+                        value={factoryPct}
+                        onChange={(e) => setFactoryPct(Number(e.target.value))}
+                        aria-label="Factory Bonus"
+                      >
+                        {factoryOptions.map((opt) => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
 
                   <div className="bs-modifier-item">
                     <label htmlFor="bs-wilder-select" className="bs-modifier-label">
@@ -700,7 +820,11 @@ export function BuildingStats() {
                   {effectiveBonusPct > 0 && (
                     <span
                       className="bs-modifier-badge"
-                      title={`+${factoryPct}% factory + +${wilderPct}% wilder sites`}
+                      title={
+                        isCropField
+                          ? `(1 + ${wilderPct}% oasis) × (1 + ${butcherPct}% butcher) × (1 + ${smokehousePct}% smokehouse)`
+                          : `+${factoryPct}% factory + +${wilderPct}% wilder sites`
+                      }
                     >
                       Total: +{effectiveBonusPct}% ({bonusMultiplier.toFixed(2)}× output)
                     </span>
