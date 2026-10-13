@@ -16,6 +16,57 @@ type ServerSpeed = (typeof SPEED_OPTIONS)[number];
 
 const CATEGORIES = ['Resources', 'Infrastructure', 'Military'] as const;
 
+const FACTORY_OPTIONS_STANDARD = [
+  { value: 0, label: '0%' },
+  { value: 5, label: '+5%' },
+  { value: 10, label: '+10%' },
+  { value: 15, label: '+15%' },
+  { value: 20, label: '+20%' },
+  { value: 25, label: '+25%' },
+  { value: 30, label: '+30%' },
+  { value: 35, label: '+35%' },
+  { value: 40, label: '+40%' },
+];
+
+const FACTORY_OPTIONS_CROP = [
+  { value: 0, label: '0%' },
+  { value: 5, label: '+5%' },
+  { value: 10, label: '+10%' },
+  { value: 15, label: '+15%' },
+  { value: 20, label: '+20%' },
+  { value: 25, label: '+25%' },
+  { value: 30, label: '+30%' },
+  { value: 35, label: '+35%' },
+  { value: 40, label: '+40%' },
+];
+
+const WILDER_OPTIONS = [
+  { value: 0, label: '0%' },
+  { value: 25, label: '+25%' },
+  { value: 50, label: '+50%' },
+  { value: 75, label: '+75%' },
+  { value: 100, label: '+100%' },
+  { value: 125, label: '+125%' },
+  { value: 150, label: '+150%' },
+  { value: 175, label: '+175%' },
+  { value: 200, label: '+200%' },
+];
+
+function getFactoryName(gid: number): string {
+  switch (gid) {
+    case 1:
+      return 'Sawmill';
+    case 2:
+      return 'Brickyard';
+    case 3:
+      return 'Iron Foundry';
+    case 4:
+      return 'Butcher / Smokehouse';
+    default:
+      return 'Factory';
+  }
+}
+
 export function BuildingStats() {
   const hashParams = useMemo(() => {
     return new URLSearchParams(window.location.hash.replace(/^#/, ''));
@@ -58,9 +109,35 @@ export function BuildingStats() {
     return 1;
   }, [hashParams]);
 
+  const initialFactory = useMemo(() => {
+    const p = hashParams.get('factory') || hashParams.get('fac');
+    const parsed = p ? parseInt(p, 10) : NaN;
+    if (!isNaN(parsed) && parsed >= 0) return parsed;
+    const saved = loadStoredJson<{ factoryPct?: number }>(
+      StorageKeys.BUILDINGS_STATE,
+      {},
+    );
+    if (typeof saved.factoryPct === 'number' && saved.factoryPct >= 0) return saved.factoryPct;
+    return 0;
+  }, [hashParams]);
+
+  const initialWilder = useMemo(() => {
+    const p = hashParams.get('wilder') || hashParams.get('oasis') || hashParams.get('ws');
+    const parsed = p ? parseInt(p, 10) : NaN;
+    if (!isNaN(parsed) && parsed >= 0) return parsed;
+    const saved = loadStoredJson<{ wilderPct?: number }>(
+      StorageKeys.BUILDINGS_STATE,
+      {},
+    );
+    if (typeof saved.wilderPct === 'number' && saved.wilderPct >= 0) return saved.wilderPct;
+    return 0;
+  }, [hashParams]);
+
   const [selectedGid, setSelectedGid] = useState<number | null>(initialGid);
   const [thLevel, setThLevel] = useState<number>(initialTh);
   const [serverSpeed, setServerSpeed] = useState<ServerSpeed>(initialSpeed);
+  const [factoryPct, setFactoryPct] = useState<number>(initialFactory);
+  const [wilderPct, setWilderPct] = useState<number>(initialWilder);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<'All' | (typeof CATEGORIES)[number]>('All');
 
@@ -91,6 +168,29 @@ export function BuildingStats() {
   const effectiveTh = Math.min(thLevel, maxTh);
   const thFactor = getTownHallFactor(effectiveTh);
 
+  const isResourceField = selectedBuilding ? [1, 2, 3, 4].includes(selectedBuilding.gid) : false;
+  const effectiveBonusPct = isResourceField ? factoryPct + wilderPct : 0;
+  const bonusMultiplier = 1 + effectiveBonusPct / 100;
+
+  const factoryOptions = useMemo(() => {
+    const baseOptions = selectedBuilding?.gid === 4 ? FACTORY_OPTIONS_CROP : FACTORY_OPTIONS_STANDARD;
+    if (factoryPct > 0 && !baseOptions.some((o) => o.value === factoryPct)) {
+      return [...baseOptions, { value: factoryPct, label: `+${factoryPct}% (Custom)` }].sort(
+        (a, b) => a.value - b.value
+      );
+    }
+    return baseOptions;
+  }, [selectedBuilding?.gid, factoryPct]);
+
+  const wilderOptions = useMemo(() => {
+    if (wilderPct > 0 && !WILDER_OPTIONS.some((o) => o.value === wilderPct)) {
+      return [...WILDER_OPTIONS, { value: wilderPct, label: `+${wilderPct}% (Custom)` }].sort(
+        (a, b) => a.value - b.value
+      );
+    }
+    return WILDER_OPTIONS;
+  }, [wilderPct]);
+
   // Sync state to URL hash
   useEffect(() => {
     const params = new URLSearchParams(window.location.hash.replace(/^#/, ''));
@@ -107,12 +207,30 @@ export function BuildingStats() {
     } else {
       params.delete('speed');
     }
-    saveStoredJson(StorageKeys.BUILDINGS_STATE, { thLevel, serverSpeed });
+    if (factoryPct > 0) {
+      params.set('factory', String(factoryPct));
+    } else {
+      params.delete('factory');
+      params.delete('fac');
+    }
+    if (wilderPct > 0) {
+      params.set('wilder', String(wilderPct));
+    } else {
+      params.delete('wilder');
+      params.delete('oasis');
+      params.delete('ws');
+    }
+    saveStoredJson(StorageKeys.BUILDINGS_STATE, {
+      thLevel,
+      serverSpeed,
+      factoryPct,
+      wilderPct,
+    });
     const newHash = `#${params.toString()}`;
     if (window.location.hash !== newHash) {
       window.history.replaceState(null, '', newHash);
     }
-  }, [selectedBuilding, thLevel, serverSpeed]);
+  }, [selectedBuilding, thLevel, serverSpeed, factoryPct, wilderPct]);
 
   // Lock body scroll when modal is open
   useEffect(() => {
@@ -196,6 +314,7 @@ export function BuildingStats() {
         totalTime: 0,
         popGain: 0,
         cpGain: 0,
+        fieldsCount: 1,
         levelsCount: 0,
         isCustomRange: false,
       };
@@ -248,9 +367,10 @@ export function BuildingStats() {
         endIdx > 0
           ? ((selectedBuilding.levels[endIdx - 1]?.effects?.[prodKey] as number) ?? baseProd)
           : baseProd;
-      prodGain = Math.max(0, (endProd - startProd) * serverSpeed);
+      const baseGain = Math.max(0, endProd - startProd);
+      prodGain = Math.round(baseGain * bonusMultiplier * serverSpeed);
       if (prodGain > 0 && totalCost > 0) {
-        breakevenHours = totalCost / prodGain;
+        breakevenHours = totalCost / (baseGain * bonusMultiplier * serverSpeed);
       }
     }
 
@@ -268,10 +388,12 @@ export function BuildingStats() {
       prodKey,
       prodGain,
       breakevenHours,
+      bonusMultiplier,
+      effectiveBonusPct,
       levelsCount: endIdx - startIdx,
       isCustomRange: selection.step > 0,
     };
-  }, [selectedBuilding, selection, maxLvl, thFactor, serverSpeed]);
+  }, [selectedBuilding, selection, maxLvl, thFactor, serverSpeed, bonusMultiplier, effectiveBonusPct]);
 
   const prereqDescriptions = useMemo(
     () => (selectedBuilding ? describePrerequisites(selectedBuilding) : []),
@@ -534,6 +656,57 @@ export function BuildingStats() {
                   ))}
                 </div>
               </div>
+
+              {isResourceField && (
+                <>
+                  <div className="bs-modifier-item">
+                    <label htmlFor="bs-factory-select" className="bs-modifier-label">
+                      {getFactoryName(selectedBuilding.gid)}:
+                    </label>
+                    <select
+                      id="bs-factory-select"
+                      className="select bs-modifier-select bs-modifier-select--sm"
+                      value={factoryPct}
+                      onChange={(e) => setFactoryPct(Number(e.target.value))}
+                      aria-label="Factory Bonus"
+                    >
+                      {factoryOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="bs-modifier-item">
+                    <label htmlFor="bs-wilder-select" className="bs-modifier-label">
+                      Wilder Sites:
+                    </label>
+                    <select
+                      id="bs-wilder-select"
+                      className="select bs-modifier-select bs-modifier-select--sm"
+                      value={wilderPct}
+                      onChange={(e) => setWilderPct(Number(e.target.value))}
+                      aria-label="Wilder Sites Bonus"
+                    >
+                      {wilderOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {effectiveBonusPct > 0 && (
+                    <span
+                      className="bs-modifier-badge"
+                      title={`+${factoryPct}% factory + +${wilderPct}% wilder sites`}
+                    >
+                      Total: +{effectiveBonusPct}% ({bonusMultiplier.toFixed(2)}× output)
+                    </span>
+                  )}
+                </>
+              )}
             </div>
 
             {/* Range Selection Instructions Bar */}
@@ -610,13 +783,15 @@ export function BuildingStats() {
 
               {rangeSummary.prodKey && (
                 <div className="bs-summary-card">
-                  <span className="bs-summary-card__label">Breakeven / Payoff</span>
+                  <span className="bs-summary-card__label">
+                    Breakeven / Payoff{effectiveBonusPct > 0 ? ` (+${effectiveBonusPct}%)` : ''}
+                  </span>
                   <strong className="bs-summary-card__value" style={{ color: '#48bb78' }}>
                     {formatBreakevenTime(rangeSummary.breakevenHours)}
                   </strong>
                   <span className="bs-summary-card__sub">
                     {rangeSummary.prodGain > 0
-                      ? `+${rangeSummary.prodGain.toLocaleString()}/hr · ${serverSpeed}x Speed`
+                      ? `+${rangeSummary.prodGain.toLocaleString()}/hr · ${serverSpeed}x Speed${effectiveBonusPct > 0 ? ` · +${effectiveBonusPct}% boost` : ''}`
                       : '0/hr production gain'}
                   </span>
                 </div>
@@ -654,7 +829,14 @@ export function BuildingStats() {
                     <th className="bs-th">CP/d (Δ)</th>
                     <th className="bs-th">res / CP</th>
                     <th className="bs-th">res / Pop</th>
-                    {rangeSummary.prodKey && <th className="bs-th">Breakeven</th>}
+                    {rangeSummary.prodKey && (
+                      <th
+                        className="bs-th"
+                        title={effectiveBonusPct > 0 ? `Payoff with +${effectiveBonusPct}% bonus (${bonusMultiplier.toFixed(2)}x production)` : 'Time for field production to pay off level cost'}
+                      >
+                        Breakeven
+                      </th>
+                    )}
                     <th className="bs-th">Build Time (TH {effectiveTh})</th>
                     <th className="bs-th bs-th--effects">Effects & Production</th>
                   </tr>
@@ -673,7 +855,7 @@ export function BuildingStats() {
                     const isInRange = selection.step > 0 && lvl.level > selection.startLevel && lvl.level <= selection.endLevel;
 
                     const effectsList = Object.entries(lvl.effects || {})
-                      .map(([k, v]) => formatEffectLabel(k, v, serverSpeed))
+                      .map(([k, v]) => formatEffectLabel(k, v, serverSpeed, bonusMultiplier))
                       .filter(Boolean);
                     const effectsText = effectsList.join(' · ');
 
@@ -685,7 +867,7 @@ export function BuildingStats() {
                       const prevProd = prevLvl
                         ? ((prevLvl.effects?.[rangeSummary.prodKey] as number) ?? baseProd)
                         : baseProd;
-                      const hourlyGain = (currentProd - prevProd) * serverSpeed;
+                      const hourlyGain = (currentProd - prevProd) * bonusMultiplier * serverSpeed;
                       if (hourlyGain > 0 && levelCost > 0) {
                         levelBreakevenHours = levelCost / hourlyGain;
                       }

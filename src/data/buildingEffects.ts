@@ -44,7 +44,8 @@ export function formatBreakevenTime(hours: number | null | undefined): string {
 export function formatEffectLabel(
   key: string,
   value: number | null | undefined,
-  serverSpeed: number = 1
+  serverSpeed: number = 1,
+  bonusMultiplier: number = 1
 ): string {
   if (value === null || value === undefined) return '';
 
@@ -52,13 +53,25 @@ export function formatEffectLabel(
 
   switch (key) {
     case 'production1':
-      return `+${(value * spd).toLocaleString()} Wood/hr`;
     case 'production2':
-      return `+${(value * spd).toLocaleString()} Clay/hr`;
     case 'production3':
-      return `+${(value * spd).toLocaleString()} Iron/hr`;
-    case 'production4':
-      return `+${(value * spd).toLocaleString()} Food/hr`;
+    case 'production4': {
+      const resName =
+        key === 'production1'
+          ? 'Wood'
+          : key === 'production2'
+          ? 'Clay'
+          : key === 'production3'
+          ? 'Iron'
+          : 'Food';
+      const baseHourly = Math.round(value * spd);
+      if (bonusMultiplier > 1) {
+        const boostedHourly = Math.round(value * spd * bonusMultiplier);
+        const bonusPct = Math.round((bonusMultiplier - 1) * 100);
+        return `+${boostedHourly.toLocaleString()} ${resName}/hr (+${bonusPct}% boost · ${baseHourly.toLocaleString()} base)`;
+      }
+      return `+${baseHourly.toLocaleString()} ${resName}/hr`;
+    }
     case 'productionBoost1':
       return `+${Math.round(value * 100)}% Wood Production`;
     case 'productionBoost2':

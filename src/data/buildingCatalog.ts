@@ -82,7 +82,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "pop": 2,
         "cp": 1,
         "effects": {
-          "production1": 5
+          "production1": 9
         }
       },
       {
@@ -95,7 +95,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "pop": 3,
         "cp": 1,
         "effects": {
-          "production1": 9
+          "production1": 16
         }
       },
       {
@@ -108,7 +108,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "pop": 4,
         "cp": 2,
         "effects": {
-          "production1": 15
+          "production1": 26
         }
       },
       {
@@ -121,7 +121,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "pop": 5,
         "cp": 2,
         "effects": {
-          "production1": 22
+          "production1": 39
         }
       },
       {
@@ -134,7 +134,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "pop": 6,
         "cp": 2,
         "effects": {
-          "production1": 33
+          "production1": 58
         }
       },
       {
@@ -147,7 +147,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "pop": 8,
         "cp": 3,
         "effects": {
-          "production1": 50
+          "production1": 88
         }
       },
       {
@@ -160,7 +160,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "pop": 10,
         "cp": 4,
         "effects": {
-          "production1": 70
+          "production1": 123
         }
       },
       {
@@ -173,7 +173,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "pop": 12,
         "cp": 4,
         "effects": {
-          "production1": 100
+          "production1": 175
         }
       },
       {
@@ -186,7 +186,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "pop": 14,
         "cp": 5,
         "effects": {
-          "production1": 145
+          "production1": 254
         }
       },
       {
@@ -199,7 +199,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "pop": 16,
         "cp": 6,
         "effects": {
-          "production1": 200
+          "production1": 350
         }
       },
       {
@@ -212,7 +212,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "pop": 18,
         "cp": 7,
         "effects": {
-          "production1": 280
+          "production1": 490
         }
       },
       {
@@ -225,7 +225,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "pop": 20,
         "cp": 9,
         "effects": {
-          "production1": 375
+          "production1": 656
         }
       },
       {
@@ -238,7 +238,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "pop": 22,
         "cp": 11,
         "effects": {
-          "production1": 495
+          "production1": 866
         }
       },
       {
@@ -251,7 +251,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "pop": 24,
         "cp": 13,
         "effects": {
-          "production1": 635
+          "production1": 1111
         }
       },
       {
@@ -264,7 +264,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "pop": 26,
         "cp": 15,
         "effects": {
-          "production1": 800
+          "production1": 1400
         }
       },
       {
@@ -277,7 +277,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "pop": 29,
         "cp": 18,
         "effects": {
-          "production1": 1000
+          "production1": 1750
         }
       },
       {
@@ -290,7 +290,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "pop": 32,
         "cp": 22,
         "effects": {
-          "production1": 1300
+          "production1": 2275
         }
       },
       {
@@ -303,7 +303,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "pop": 35,
         "cp": 27,
         "effects": {
-          "production1": 1600
+          "production1": 2800
         }
       },
       {
@@ -316,7 +316,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "pop": 38,
         "cp": 32,
         "effects": {
-          "production1": 2000
+          "production1": 3500
         }
       },
       {
@@ -329,7 +329,7 @@ export const BUILDINGS: CatalogBuilding[] = [
         "pop": 41,
         "cp": 38,
         "effects": {
-          "production1": 2500
+          "production1": 4288
         }
       },
       {

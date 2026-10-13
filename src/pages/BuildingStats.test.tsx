@@ -243,9 +243,9 @@ describe('BuildingStats Component & Effect Helpers', () => {
     // Check Breakeven summary card
     expect(container.textContent).toContain('Breakeven / Payoff');
 
-    // Woodcutter Level 1 cost: 250 res (40+100+50+60). Delta prod: 5 - 2 = 3 res/hr.
-    // Breakeven hours: 250 / 3 = 83.33 hrs -> 83.33 / 24 = 3.5 days.
-    expect(container.textContent).toContain('3.5 days');
+    // Woodcutter Level 1 cost: 250 res (40+100+50+60). Delta prod: 9 - 2 = 7 res/hr.
+    // Breakeven hours: 250 / 7 = 35.71 hrs -> 35.71 / 24 = 1.5 days.
+    expect(container.textContent).toContain('1.5 days');
   });
 
   it('renders Grazing Field (GID 4) with authentic bundle stats and level 22', () => {
@@ -320,6 +320,40 @@ describe('BuildingStats Component & Effect Helpers', () => {
     const thSelect = container.querySelector('#bs-th-select') as HTMLSelectElement;
     expect(thSelect.options.length).toBe(20);
     expect(thSelect.value).toBe('20');
+  });
+
+  it('calculates ROI / breakeven with Factory and Wilder Sites bonuses', () => {
+    act(() => root.unmount());
+    // Load Woodcutter at TH 20, 3x speed, Sawmill +25%, Wilder Sites +50%
+    window.location.hash = '#tool=buildings&th=20&speed=3&b=woodcutter&fac=25&oasis=50';
+    root = createRoot(container);
+    act(() => root.render(<BuildingStats />));
+
+    expect(container.textContent).toContain('Woodcutter');
+    expect(container.textContent).toContain('Sawmill:');
+    expect(container.textContent).toContain('Wilder Sites:');
+    expect(container.textContent).toContain('Total: +75% (1.75× output)');
+
+    // Summary card should show Breakeven / Payoff (+75%)
+    expect(container.textContent).toContain('Breakeven / Payoff (+75%)');
+
+    // Table header should show plain Breakeven
+    const tableHeader = container.querySelector('.bs-table thead');
+    expect(tableHeader?.textContent).toContain('Breakeven');
+    expect(tableHeader?.textContent).not.toContain('Breakeven (+75%)');
+
+    // Test changing factory dropdown
+    const factorySelect = container.querySelector('#bs-factory-select') as HTMLSelectElement;
+    expect(factorySelect).toBeTruthy();
+    expect(factorySelect.value).toBe('25');
+
+    const wilderSelect = container.querySelector('#bs-wilder-select') as HTMLSelectElement;
+    expect(wilderSelect).toBeTruthy();
+    expect(wilderSelect.value).toBe('50');
+
+    // Change wilder to 75%
+    changeInput(wilderSelect, '75');
+    expect(container.textContent).toContain('Total: +100% (2.00× output)');
   });
 });
 
