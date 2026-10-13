@@ -38,7 +38,6 @@ const BUTCHER_OPTIONS = [
   { value: 30, label: '+30%' },
   { value: 35, label: '+35%' },
   { value: 40, label: '+40%' },
-  { value: 45, label: '+45%' },
 ];
 
 const SMOKEHOUSE_OPTIONS = [

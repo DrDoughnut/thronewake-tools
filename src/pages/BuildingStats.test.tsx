@@ -374,18 +374,18 @@ describe('BuildingStats Component & Effect Helpers', () => {
     const butcherSelect = container.querySelector('#bs-butcher-select') as HTMLSelectElement;
     expect(butcherSelect).toBeTruthy();
     expect(butcherSelect.value).toBe('35');
-    // Butcher options: 0 to 45% (10 options)
-    expect(butcherSelect.options.length).toBe(10);
+    // Butcher options: 0 to 40% (9 options, max level 8)
+    expect(butcherSelect.options.length).toBe(9);
 
     const smokehouseSelect = container.querySelector('#bs-smokehouse-select') as HTMLSelectElement;
     expect(smokehouseSelect).toBeTruthy();
     expect(smokehouseSelect.value).toBe('25');
-    // Smokehouse options: 0 to 25% (6 options)
+    // Smokehouse options: 0 to 25% (6 options, max level 5)
     expect(smokehouseSelect.options.length).toBe(6);
 
-    // Adjusting butcher to 45% -> (1 + 1.50) * (1 + 0.45) * (1 + 0.25) = 2.5 * 1.45 * 1.25 = 4.53125 -> +353% (4.53x output)
-    changeInput(butcherSelect, '45');
-    expect(container.textContent).toContain('Total: +353% (4.53× output)');
+    // Adjusting butcher to 40% -> (1 + 1.50) * (1 + 0.40) * (1 + 0.25) = 2.5 * 1.40 * 1.25 = 4.375 -> +338% (4.38x output)
+    changeInput(butcherSelect, '40');
+    expect(container.textContent).toContain('Total: +338% (4.38× output)');
   });
 });
 
