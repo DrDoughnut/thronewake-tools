@@ -308,7 +308,7 @@ describe('the army calculator', () => {
         pick.getAttribute('aria-label'),
       );
 
-    expect(picks(0)).toEqual(['Emberblade', 'Shieldbearer', 'Iron Spear']);
+    expect(picks(0)).toEqual(['Emberblade', 'Shieldbearer', 'Iron Cleaver']);
     expect(picks(1)).toEqual(['Sentinel', 'Sun Rider', 'Crimson Lancer']);
     expect(picks(2)).toEqual(['Iron Ram', 'Dominion Catapult']);
 

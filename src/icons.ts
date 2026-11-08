@@ -23,8 +23,14 @@ for (const [path, url] of Object.entries(modules)) {
   if (match) icons.set(match[1], url);
 }
 
+const UNIT_KEY_ALIASES: Record<string, string> = {
+  iron_cleaver: 'iron_spear',
+  spearguard: 'axeborn',
+};
+
 /** Artwork URL for a unit key, or undefined when the file is absent. */
-export const unitIcon = (unitKey: string): string | undefined => icons.get(unitKey);
+export const unitIcon = (unitKey: string): string | undefined =>
+  icons.get(unitKey) ?? icons.get(UNIT_KEY_ALIASES[unitKey] ?? '');
 
 /**
  * Stat and building icons, from the same source as the unit art. Live in

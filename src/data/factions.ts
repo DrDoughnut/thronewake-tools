@@ -36,11 +36,11 @@ export const factions: Faction[] = [
         cost: [100, 130, 160, 70],
         description:
           'A disciplined defender trained to hold the line against enemy infantry.' },
-      { key: 'iron_spear', name: 'Iron Spear', glyph: '🔱', role: 'foot',
+      { key: 'iron_spear', name: 'Iron Cleaver', glyph: '🗡️', role: 'foot',
         off: 70, defInf: 40, defCav: 25, speed: 7, capacity: 50, upkeep: 1, time: 1920,
         cost: [150, 160, 210, 80],
         description:
-          'An aggressive spearman forged for the front line, striking hard but faring poorly against cavalry.' },
+          'An aggressive swordsman with a heavy cleaver, strong on the assault but vulnerable to cavalry when defending.' },
       { key: 'sentinel', name: 'Sentinel', glyph: '👁️', role: 'scout',
         off: 0, defInf: 20, defCav: 10, speed: 16, capacity: 0, upkeep: 2, time: 1360,
         cost: [140, 160, 20, 40], stabled: true, upkeepReliefAt: 10,
@@ -89,12 +89,12 @@ export const factions: Faction[] = [
         off: 40, defInf: 20, defCav: 5, speed: 7, capacity: 60, upkeep: 1, time: 720,
         cost: [95, 75, 40, 40],
         description:
-          'A cheap and aggressive warrior ideal for early plundering.' },
-      { key: 'axeborn', name: 'Axeborn', glyph: '🪓', role: 'foot',
+          'A lightly equipped axe fighter built for cheap, early raids, with little protection when defending.' },
+      { key: 'axeborn', name: 'Spearguard', glyph: '🔱', role: 'foot',
         off: 10, defInf: 35, defCav: 60, speed: 7, capacity: 40, upkeep: 1, time: 1120,
         cost: [145, 70, 85, 40],
         description:
-          'An unyielding clan warrior who braces against mounted charges and excels against cavalry.' },
+          'A clan spearman who braces against mounted charges, trading attack power for strong cavalry defense.' },
       { key: 'war_brute', name: 'War Brute', glyph: '💢', role: 'foot',
         off: 60, defInf: 30, defCav: 30, speed: 6, capacity: 50, upkeep: 1, time: 1200,
         cost: [130, 120, 170, 70],
@@ -206,17 +206,17 @@ export const factions: Faction[] = [
     wild: true,
     units: [
       { key: 'stonepike', name: 'Stonepike', glyph: '🔱', role: 'foot',
-        off: 20, defInf: 35, defCav: 50, speed: 6, capacity: 0, upkeep: 1, time: 0,
+        off: 20, defInf: 35, defCav: 50, speed: 6, capacity: 10, upkeep: 1, time: 0,
         cost: [0, 0, 0, 0],
         description:
           'Basic infantry of The Ancients, armed with long stone-forged pikes. Strong at holding the line.' },
       { key: 'carved_warrior', name: 'Carved Warrior', glyph: '🗿', role: 'foot',
-        off: 65, defInf: 30, defCav: 10, speed: 7, capacity: 0, upkeep: 1, time: 0,
+        off: 65, defInf: 30, defCav: 10, speed: 7, capacity: 20, upkeep: 1, time: 0,
         cost: [0, 0, 0, 0],
         description:
           'A brutal Ancient infantry unit built for close combat. Reliable and relentless in attack.' },
       { key: 'monolith_warden', name: 'Monolith Warden', glyph: '🛡️', role: 'foot',
-        off: 100, defInf: 90, defCav: 75, speed: 6, capacity: 0, upkeep: 1, time: 0,
+        off: 100, defInf: 90, defCav: 75, speed: 6, capacity: 30, upkeep: 1, time: 0,
         cost: [0, 0, 0, 0],
         description:
           'Elite Ancient guardian in massive stone armor with formidable defense on both fronts.' },
@@ -226,12 +226,12 @@ export const factions: Faction[] = [
         description:
           'Swift scout that watches from afar and uncovers enemy movements. Fast and hard to catch.' },
       { key: 'slate_rider', name: 'Slate Rider', glyph: '🐎', role: 'mounted',
-        off: 155, defInf: 80, defCav: 50, speed: 14, capacity: 0, upkeep: 2, time: 0,
+        off: 155, defInf: 80, defCav: 50, speed: 14, capacity: 50, upkeep: 2, time: 0,
         cost: [0, 0, 0, 0], stabled: true,
         description:
           'A fast Ancient mounted attacker tuned for offensive strikes.' },
       { key: 'obsidian_knight', name: 'Obsidian Knight', glyph: '🏇', role: 'mounted',
-        off: 170, defInf: 140, defCav: 80, speed: 12, capacity: 0, upkeep: 3, time: 0,
+        off: 170, defInf: 140, defCav: 80, speed: 12, capacity: 100, upkeep: 3, time: 0,
         cost: [0, 0, 0, 0], stabled: true,
         description:
           'Heavy cavalry of The Ancients, feared for devastating charges. Powerful against most frontline troops.' },
